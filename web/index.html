@@ -1,0 +1,71 @@
+<!doctype html>
+<html lang="en-GB">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Secondary School Map</title>
+    <meta name="description" content="GCSE results, Progress 8 and Ofsted outcomes for secondary schools in England." />
+    <link rel="stylesheet" href="app.css" />
+  </head>
+  <body>
+    <div id="map" role="region" aria-label="Map of secondary schools"></div>
+
+    <aside id="panel" aria-label="Map controls">
+      <header class="panel-header">
+        <button id="panel-toggle" class="panel-toggle" aria-expanded="true" aria-controls="panel-body">
+          <span class="panel-title">Secondary schools in England</span>
+          <span class="chevron" aria-hidden="true"></span>
+        </button>
+        <p id="data-dates" class="muted small"></p>
+      </header>
+
+      <div id="panel-body" class="panel-body">
+        <section class="search">
+          <label for="search" class="visually-hidden">Search for a school or postcode</label>
+          <input id="search" type="search" placeholder="School name or postcode" autocomplete="off" />
+          <ul id="search-results" class="search-results" role="listbox" hidden></ul>
+          <p id="search-status" class="muted small" role="status"></p>
+        </section>
+
+        <section>
+          <h2>Colour by</h2>
+          <div id="modes" class="modes" role="radiogroup" aria-label="Colour schools by"></div>
+          <p id="mode-description" class="small"></p>
+          <ul id="legend" class="legend"></ul>
+        </section>
+
+        <section>
+          <h2>Show</h2>
+          <div class="filters">
+            <label><input type="checkbox" id="f-state" checked /> State-funded</label>
+            <label><input type="checkbox" id="f-independent" /> Independent</label>
+            <label><input type="checkbox" id="f-selective" checked /> Selective (grammar)</label>
+            <label><input type="checkbox" id="f-sixth" /> Sixth form only</label>
+            <label class="select-label">
+              Pupils
+              <select id="f-gender">
+                <option value="">Any</option>
+                <option value="Mixed">Mixed</option>
+                <option value="Girls">Girls only</option>
+                <option value="Boys">Boys only</option>
+              </select>
+            </label>
+          </div>
+        </section>
+
+        <section>
+          <h2 id="list-heading">Schools in view</h2>
+          <p class="muted small" id="list-caption"></p>
+          <ol id="school-list" class="school-list"></ol>
+        </section>
+
+        <details class="about">
+          <summary>About the data</summary>
+          <div id="about"></div>
+        </details>
+      </div>
+    </aside>
+
+    <script src="app.js" type="module"></script>
+  </body>
+</html>

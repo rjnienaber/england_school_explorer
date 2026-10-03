@@ -1,127 +1,128 @@
-# schools_performance
+# Secondary School Map
 
-Display UK schools performance on a map.
+An interactive map of England's secondary schools, coloured by GCSE results, Progress 8 or
+Ofsted outcome. It is built from open government data and published as a static site:
+plain HTML, JS and one GeoJSON file, with no server or API keys.
 
-This project prepares performance data for English secondary schools that teach up to age 18 (schools with a sixth form). The output is meant to feed a map, but only the data preparation exists so far. There is no map front end yet.
+Version 2 (2026) replaces the 2021 data-prep scripts (`to_sqlite.sh`, `src/optimize.ts`,
+and a Google Maps front end that was never committed) with a reproducible TypeScript
+pipeline and a MapLibre front end. The old pipeline is preserved in commit `3a964e2`.
 
-## Data source
+## Quick start
 
-The data comes from the Department for Education's **School and college performance tables**:
+Needs Node 24 or newer (it runs `.ts` files natively, so there is no compile step for scripts).
 
-- <https://www.compare-school-performance.service.gov.uk/download-data>
+```bash
+npm install
+npm start            # fetch → build → serve at http://localhost:8080
+```
 
-From that page, download the zip for an academic year with **"All data"** selected for England. The zip contains many CSV files. Two of them are used here:
+Or run the steps separately:
 
-| CSV in zip                       | SQLite table                  | Used for                                                          |
-| -------------------------------- | ----------------------------- | ----------------------------------------------------------------- |
-| `england_school_information.csv` | `england_school_information`  | School name, local authority, town, postcode, status, phase, ages |
-| `england_ks4final.csv`           | `england_ks4final`            | Key Stage 4 (GCSE) results: Attainment 8, Progress 8, EBacc       |
+| Command | What it does |
+| --- | --- |
+| `npm run fetch` | Downloads the three source files into `data/` (about 180 MB). Skips files already there; `-- --force` re-downloads. Records URLs in `data/sources.json`. |
+| `npm run build:data` | Joins the sources and writes `dist/schools.geojson` (about 5 MB, about 30 s). |
+| `npm run build:web` | Bundles `web/` with esbuild into `dist/app.js` and `dist/app.css`, and copies `index.html` and MapLibre's worker files. |
+| `npm run build` | Both build steps. |
+| `npm run watch` | Rebuilds the web bundle on change. |
+| `npm run serve` | Serves `dist/` locally (`PORT` to override 8080). |
+| `npm run typecheck` | `tsc` over the Node scripts and the browser code. |
 
-The two tables are joined on `URN`, the school's Unique Reference Number.
+To publish, upload `dist/` to any static host (for example GitHub Pages, Cloudflare Pages
+or DreamHost). Source maps (`*.map`) are optional.
 
-The checked-in sample in `tmp/` has about 2,340 schools across about 150 local authorities. It was generated around November 2021, so it most likely covers the 2018/19 academic year. That is the last year with published KS4 results before the COVID gap.
+## Data sources
 
-Some result columns use placeholder codes instead of numbers: `NP` (not published, e.g. Progress 8 for independent schools), `SUPP` (suppressed because the cohort is too small), `NE` (no entries) and `NEW` (new school with no results yet).
+All are published under the [Open Government Licence v3.0](https://www.nationalarchives.gov.uk/doc/open-government-licence/version/3/).
+
+| Source | Used for | Notes |
+| --- | --- | --- |
+| [DfE key stage 4 performance](https://explore-education-statistics.service.gov.uk/find-statistics/key-stage-4-performance), institution-level data set on Explore Education Statistics | Attainment 8, Progress 8 with confidence intervals, English and maths grade 5+, EBacc entry, cohort size, % disadvantaged | Three years per file (currently 2022/23 to 2024/25). `z` and `c` mark missing or suppressed values. The older compare-school-performance download blocks scripted access. |
+| [Get Information About Schools](https://get-information-schools.service.gov.uk/) daily extract (`edubasealldataYYYYMMDD.csv`) | Location, type, status, age range, gender, sixth form, admissions policy, religion, trust, website | Windows-1252. Gives British National Grid easting/northing, which are converted to WGS84 with `proj4`. |
+| [Ofsted monthly management information](https://www.gov.uk/government/statistical-data-sets/monthly-management-information-ofsteds-school-inspections-outcomes): state-funded schools, latest inspections | Inspection outcomes | Windows-1252. The latest file is found through the GOV.UK content API. Doesn't cover independent schools (most are inspected by the ISI). |
+
+Basemap: [OpenFreeMap](https://openfreemap.org/) vector tiles (OpenStreetMap data), with Positron for light mode and Dark for dark mode.
+Postcode search: [postcodes.io](https://postcodes.io/).
 
 ## Architecture
 
-The pipeline has two steps. Each step writes a CSV:
-
 ```
-DfE performance zip
-        │
-        │  to_sqlite.sh  (bash + unzip + sqlite3)
-        ▼
-/tmp/schools_performance.sqlite   ← every CSV in the zip, one table each
-        │
-        │  SQL join/filter (inside to_sqlite.sh)
-        ▼
-tmp/schools_performance.csv       ← raw DfE column names and values
-        │
-        │  yarn optimize_csv  (src/optimize.ts, TypeScript via ts-node)
-        ▼
-tmp/optimized_schools_performance.csv  ← friendly column names, cleaned values
-        │
-        ▼
-  (planned) map UI
-```
-
-### 1. `to_sqlite.sh`: zip → SQLite → CSV
-
-```bash
-./to_sqlite.sh path/to/performance-tables.zip
+scripts/
+  fetch.ts          download sources → data/
+  build-data.ts     join + score → dist/schools.geojson
+  build-web.ts      esbuild bundle → dist/
+  serve.ts          local static server
+  paths.ts
+  lib/
+    csv.ts          streaming CSV reader with encoding support
+    ks4.ts          KS4 performance loader (per school, per year)
+    gias.ts         register loader + BNG → lat/lng
+    ofsted.ts       inspection loader; handles three Ofsted frameworks
+    stats.ts        percentiles, linear fit, Progress 8 bands
+shared/
+  school.ts         SchoolProperties: the GeoJSON contract between build and browser
+web/
+  index.html, style.css
+  main.ts           map, filters, list, search
+  modes.ts          colour modes, legend buckets, palette
+  popup.ts          school detail popup
 ```
 
-- Lists every `.csv` in the zip and streams each one into a fresh SQLite database at `/tmp/schools_performance.sqlite`. The table name is the file name with `-` replaced by `_`.
-- Runs one query that left-joins school information to KS4 results and filters to schools where:
-  - `ISSECONDARY = 1`
-  - `AGEHIGH = 18` (has a sixth form)
-  - `SCHSTATUS = 'Open'`
-- Writes the result, with headers, to `tmp/schools_performance.csv`.
+In scope: open, mainstream secondary schools in England with a KS4 entry (state-funded and
+independent). Special schools, alternative provision and closed schools are excluded.
 
-Requires `unzip` and `sqlite3` on the `PATH`. The script must be run from the project root because the output path is relative.
+The browser loads the whole GeoJSON once, filters in memory, and gives MapLibre a slim
+copy that holds only a colour index per school. Popups look the full record up by URN.
 
-### 2. `src/optimize.ts`: clean and rename
+## How schools are compared
 
-```bash
-yarn install
-yarn optimize_csv
-```
+The map offers four "colour by" modes. None of them is a single "best school" score, by design.
 
-The script reads `tmp/schools_performance.csv` with `csv-parse`. Each row is converted to a `SchoolPerformance` record by `convertFromRaw`, which is imported from `src/school_performance.ts`. The records are then written to `tmp/optimized_schools_performance.csv` with `csv-stringify`.
+**Progress 8** (official). Measures pupils' progress from KS2 to GCSE against pupils
+nationally with the same starting point. Schools are banded the way DfE does it: a school is
+above or below average only if its whole 95% confidence interval is. "Well above" or "well
+below" also needs the score to be at least ±0.5. The popup shows the interval. About 28%
+of intervals cross zero, so many apparent differences are noise. P8 isn't published for
+2024/25 or 2025/26 because those cohorts had no KS2 tests during COVID, so the latest is
+2023/24.
 
-The mapping, as shown by the two CSVs in `tmp/`:
+**Results vs intake** (our own estimate). Attainment 8 minus the score predicted from the
+cohort's share of disadvantaged pupils. The prediction is a straight-line fit across
+non-selective state schools, fitted for each year: currently Att8 ≈ 53.3 − 0.26 × %
+disadvantaged, r = −0.50. Shown as a percentile among state schools. This is a rough,
+contextual measure that covers years without P8. Grammar schools score highly because
+their intake is selected on prior attainment, which the model doesn't see.
 
-| Raw column (DfE)    | Output column           | Meaning                                         | Cleaning                     |
-| ------------------- | ----------------------- | ----------------------------------------------- | ---------------------------- |
-| `LANAME`            | `locality`              | Local authority name                            |                              |
-| `SCHNAME`           | `schoolName`            | School name                                     |                              |
-| `TOWN`              | `town`                  | Town                                            |                              |
-| `POSTCODE`          | `postalCode`            | Postcode (for geocoding onto a map)             |                              |
-| `EGENDER`           | `gender`                | `BOYS` / `GIRLS` / `MIXED`                      |                              |
-| `AGERANGE`          | `ageRange`              | e.g. `11-18`                                    |                              |
-| `RELDENOM`          | `religionsDenomination` | Religious character                             |                              |
-| `TOTPUPS`           | `totalPupils`           | Number of pupils on roll                        | Parsed as a number (`NEW` → `NaN`) |
-| `ATT8SCR`           | `attainment8`           | Average Attainment 8 score                      | Placeholder codes → empty |
-| `P8MEA`             | `progress8`             | Progress 8 score                                | Placeholder codes → empty |
-| `EBACCAPS`          | `ebacAverage`           | Average EBacc point score                       | Placeholder codes → empty |
-| `PTEBACC_E_PTQ_EE`  | `enteringEbacPercentage`| % of pupils entering the EBacc                  | `%` removed, parsed as a number (codes → `NaN`) |
+**Attainment 8**. The raw average GCSE points across eight subjects, as a percentile among
+state schools. It is the most stable measure year to year (r = 0.97), but it mostly
+reflects intake. Independent schools are shown but not ranked: many take IGCSEs, which
+don't count, so some top schools score near zero.
 
-`decimal.js` is listed as a dependency, probably for parsing these numeric values exactly.
+**Ofsted**. The latest inspection, summarised to four levels:
 
-Known quirk: the original conversion didn't handle placeholder codes in `totalPupils` or `enteringEbacPercentage`. About 350 rows in the optimized CSV contain `NaN` in those columns. A rewrite should map the codes to empty values, as it already does for the score columns.
+- *Report cards* (since November 2025) grade each area on five points. The summary is
+  "serious" if safeguarding is Not met or any area is Urgent improvement, "concern" if any
+  area Needs attention, and "top" if at least half the areas are Strong or Exceptional.
+  Otherwise it is "good". This is our simplification. The popup shows every area.
+- *Graded inspections* (2019 to 2025 framework) map 1 to 4 onto the four levels. From
+  September 2024 there's no overall grade, so quality of education is used.
+- *Short (ungraded) inspections* give "School remains Good/Outstanding" when no graded
+  inspection is in the current data.
+- A school in special measures or with serious weaknesses is always "serious".
 
-> ⚠️ **`src/school_performance.ts` is missing.** It was staged in git as an empty file and has since been deleted from the working tree, so `yarn optimize_csv` won't compile right now. It needs to be rewritten. It should export a `SchoolPerformance` type and a `convertFromRaw(record)` function that implements the mapping above. `tmp/optimized_schools_performance.csv` is the last output from the original version and shows the expected result.
+The list of schools in view ranks by the current mode. Differences between neighbouring
+schools in the list are usually not meaningful.
 
-## Project layout
+## Caveats
 
-```
-.
-├── to_sqlite.sh        # Step 1: DfE zip → SQLite → tmp/schools_performance.csv
-├── src/
-│   └── optimize.ts     # Step 2: raw CSV → tmp/optimized_schools_performance.csv
-├── tmp/                # Generated CSVs (git-ignored)
-├── package.json        # Scripts and dependencies (yarn)
-└── tsconfig.json       # strict TypeScript, ES2021, CommonJS
-```
+- Data is a snapshot. Rerun `fetch` and `build` to refresh. Ofsted publishes monthly, GIAS
+  daily, and KS4 results annually (revised data in spring).
+- Small cohorts make every measure noisy. DfE suppresses the smallest.
+- The map shows where schools are, not who can get in. Admissions depend on catchment,
+  faith and selection criteria. Check the local authority's allocation data.
+- Ofsted grades can be many years old. The popup shows the inspection date.
 
-## Tech stack
+## Licence
 
-- **Bash**, **unzip** and **sqlite3** for import and filtering
-- **TypeScript 4.4**, run directly with **ts-node** (no build step)
-- **csv-parse** / **csv-stringify** for CSV input and output
-- **decimal.js** for numeric handling
-- **yarn** as the package manager
-
-## Status and next steps
-
-The project dates from November 2021. The git history has a single `initial` commit, and most files are only staged.
-
-- [ ] Rewrite `src/school_performance.ts` (see above)
-- [ ] Geocode postcodes to lat/long, e.g. with [postcodes.io](https://postcodes.io) or the ONS Postcode Directory
-- [ ] Build the map UI described in `package.json` (e.g. Leaflet, colouring markers by Progress 8)
-- [ ] Optionally re-run against a newer year of performance tables
-
-## Related
-
-`~/syncthing/code/nodejs/house_data` uses the same DfE school data and combines it with crime and other data to score areas for house hunting.
+Code: MIT. Data: Open Government Licence v3.0 (DfE, Ofsted). Map data © OpenStreetMap contributors.
