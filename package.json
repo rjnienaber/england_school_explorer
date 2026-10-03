@@ -1,0 +1,22 @@
+{
+  "devDependencies": {
+    "@types/node": "^16.11.6",
+    "@types/yargs": "^17.0.5",
+    "csv-parse": "^4.16.3",
+    "csv-stringify": "^5.6.5",
+    "ts-node": "^10.4.0",
+    "typescript": "^4.4.4"
+  },
+  "name": "schools_performance",
+  "version": "1.0.0",
+  "description": "Display UK schools performance on a map",
+  "main": "index.ts",
+  "author": "Richard Nienaber <521795+rjnienaber@users.noreply.github.com>",
+  "license": "MIT",
+  "scripts": {
+    "optimize_csv": "ts-node src/optimize.ts tmp/schools_performance.csv tmp/optimized_schools_performance.csv"
+  },
+  "dependencies": {
+    "decimal.js": "^10.3.1"
+  }
+}
