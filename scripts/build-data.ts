@@ -11,6 +11,7 @@ import { loadOfsted } from './lib/ofsted.ts';
 import { linearFit, mean, p8Band, percentileRanker, round } from './lib/stats.ts';
 import { DIST_DIR, SOURCES_FILE, dataPath } from './paths.ts';
 
+const MIN_SCHOOLS = 3500;
 const MAINSTREAM_STATE_GROUPS = new Set(['Academies', 'Free Schools', 'Local authority maintained schools']);
 
 /** Mainstream state and independent schools; excludes special schools, alternative provision and colleges. */
@@ -205,6 +206,12 @@ async function main(): Promise<void> {
     },
     features,
   };
+
+  // A source format change usually shows up as most schools vanishing. Fail rather than
+  // publish a near-empty map (England has about 4,000 schools with KS4 results).
+  if (features.length < MIN_SCHOOLS) {
+    throw new Error(`Only ${features.length} schools built (expected at least ${MIN_SCHOOLS}); check the source data`);
+  }
 
   await mkdir(DIST_DIR, { recursive: true });
   const out = join(DIST_DIR, 'schools.geojson');

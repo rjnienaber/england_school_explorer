@@ -25,12 +25,27 @@ Or run the steps separately:
 | `npm run build:data` | Joins the sources and writes `dist/schools.geojson` (about 5 MB, about 30 s). |
 | `npm run build:web` | Bundles `web/` with esbuild into `dist/app.js` and `dist/app.css`, and copies `index.html` and MapLibre's worker files. |
 | `npm run build` | Both build steps. |
+| `npm run build:release` | Both build steps without sourcemaps, as used by the deploy. |
 | `npm run watch` | Rebuilds the web bundle on change. |
 | `npm run serve` | Serves `dist/` locally (`PORT` to override 8080). |
 | `npm run typecheck` | `tsc` over the Node scripts and the browser code. |
 
 To publish, upload `dist/` to any static host (for example GitHub Pages, Cloudflare Pages
 or DreamHost). Source maps (`*.map`) are optional.
+
+## Deployment
+
+Live at **https://rjnienaber.github.io/uk_schools_performance/** via GitHub Pages.
+`.github/workflows/deploy.yml` downloads fresh data, builds and publishes the site:
+
+- on every push to `master`;
+- monthly, on the 10th, to pick up Ofsted's monthly update (and the yearly KS4 results
+  when they appear);
+- on demand: Actions → Deploy → Run workflow.
+
+Nothing is committed back to the repo: `data/` and `dist/` are rebuilt on every run. The
+build fails (and the live site stays as it was) if fewer than 3,500 schools come out,
+which usually means a source changed format.
 
 ## Data sources
 

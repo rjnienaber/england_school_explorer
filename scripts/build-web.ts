@@ -5,6 +5,8 @@ import * as esbuild from 'esbuild';
 import { DIST_DIR, ROOT, WEB_DIR } from './paths.ts';
 
 const watch = process.argv.includes('--watch');
+// --release (used by the GitHub Pages deploy) leaves out sourcemaps
+const release = process.argv.includes('--release');
 
 const options: esbuild.BuildOptions = {
   // main.ts imports style.css, so esbuild emits app.css alongside app.js
@@ -15,7 +17,7 @@ const options: esbuild.BuildOptions = {
   format: 'esm',
   target: 'es2022',
   minify: !watch,
-  sourcemap: true,
+  sourcemap: !release,
   logLevel: 'info',
 };
 
