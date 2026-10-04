@@ -605,7 +605,7 @@ build). Gzipped, as downloaded:
 | `core.json` (every visitor) | 200 KB | about 111 KB |
 | each `modes/<field>.json` | 50 KB | largest about 7 KB |
 | each `details/<n>.json` | 40 KB | largest about 8 KB |
-| primary `core.json` (primary visitors) | 380 KB | about 352 KB (16,700 schools) |
+| primary `core.json` (primary visitors) | 310 KB | about 289 KB (16,700 schools) |
 | JS bundle (`app.js` + `maplibre-gl-shared.mjs`) | baseline +10% | about 436 KB |
 
 These leave room for about 25 more dimensions. If your change fails a budget:

@@ -15,8 +15,8 @@
   "phases": {
     "primary": {
       "core": {
-        "maxGzipKB": 380,
-        "why": "The primary dataset (dist/data/primary/) is loaded only when a visitor switches to Primary, and has about 16,700 schools against 4,150, so its core is about four times the size: 352 KB when set. Nearly all of it is the five columns the map needs before it can draw (coordinates 107 KB, name 117 KB, postcode 69 KB, town 37 KB, local authority 19 KB), which scale with the number of schools and cannot move to a later placement. 380 KB leaves about 8% headroom; a new primary module should still keep its fields out of core."
+        "maxGzipKB": 310,
+        "why": "The primary dataset (dist/data/primary/) is loaded only when a visitor switches to Primary, and has about 16,700 schools against 4,150, so its core is about three times the size: 289 KB when set (it was 357 KB before postcodes moved to detail placement, as the popup is the only place that shows them). Nearly all of it is the four columns the map needs before it can draw (coordinates 108 KB, name 117 KB, town 37 KB, local authority 19 KB), which scale with the number of schools and cannot move to a later placement. 310 KB leaves about 7% headroom; a new primary module should still keep its fields out of core."
       }
     }
   },

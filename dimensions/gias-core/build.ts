@@ -63,7 +63,7 @@ export const module = defineDimension({
     name: { type: 'string', placement: 'core', label: 'Name', source: 'gias', nullable: false, default: '' },
     la: { type: 'string', placement: 'core', label: 'Local authority', source: 'gias', nullable: false, default: '' },
     town: { type: 'string', placement: 'core', label: 'Town', source: 'gias' },
-    postcode: { type: 'string', placement: 'core', label: 'Postcode', source: 'gias' },
+    postcode: { type: 'string', placement: 'detail', label: 'Postcode', source: 'gias' },
     website: { type: 'string', placement: 'detail', label: 'Website', source: 'gias' },
     sector: {
       type: 'enum',
