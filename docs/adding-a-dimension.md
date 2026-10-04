@@ -123,8 +123,9 @@ secondary output is unchanged by phases, so existing paths and caches keep worki
   phase). Primary fixtures are the 9000xx rows in `dimensions/gias-core/fixtures/gias.csv`.
 - Primary sizes: the primary core is about 365 KB gzipped (16,700 schools), so it has its own budget under
   `phases.primary` in `budgets.json`. Keep new primary fields out of core all the same.
-- `scripts/build-data.ts` builds both phases and `verify-data` checks both. `export-release` and the GeoJSON
-  diff only cover secondary.
+- `scripts/build-data.ts` builds both phases and `verify-data` checks both, and `export-release`
+  writes both (primary as separate `primary_*` files). The GeoJSON diff reads any data folder: pass `dist/data/primary`
+  for primary.
 
 ## Naming rules
 
@@ -260,7 +261,8 @@ field (summarise the table into a few fields).
 
 Every month the deploy also publishes the store as GitHub Release files (`npm run export-release` writes
 them to `release/`): `schools.csv` (one row per school, every field), `england_schools.sqlite`, `fields.csv`
-(the data dictionary) and `sources.csv`. You do nothing for this: it is generated from your declarations,
+(the data dictionary) and `sources.csv`; primary schools are separate files (`primary_schools.csv`,
+`england_primary_schools.sqlite`, `primary_fields.csv`), built from the modules that apply to primary. You do nothing for this: it is generated from your declarations,
 so a new module and its `extraTables` are included automatically.
 
 - Fields and extra-table columns become dictionary rows from `label`, `description`, `type`, `unit`, `year`

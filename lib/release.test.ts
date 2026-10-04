@@ -7,7 +7,7 @@ import { DatabaseSync } from 'node:sqlite';
 import { test } from 'node:test';
 import { gunzipSync } from 'node:zlib';
 import { buildFixtureStore } from './test-fixtures.ts';
-import { csvCell, exportRelease, FILES, formatBytes, looksPersonalValue, parseCsv, personalDataProblems, toCsv, ZIP_CONTENTS } from './release.ts';
+import { csvCell, exportRelease, FILES, formatBytes, looksPersonalValue, parseCsv, personalDataProblems, toCsv, ZIP_CONTENTS, ZIP_CONTENTS_WITH_PRIMARY } from './release.ts';
 import { loadBuildOrder } from './registry.ts';
 import { createZip, readZip } from './zip.ts';
 
@@ -127,7 +127,8 @@ test('release export: files agree with each other and with the module declaratio
     const zipped = readZip(readFileSync(join(outDir, FILES.zip)));
     assert.deepEqual(zipped.map((e) => e.name), [...ZIP_CONTENTS]);
     for (const e of zipped) assert.ok(e.data.equals(readFileSync(join(outDir, e.name))), e.name);
-    assert.deepEqual(readdirSync(outDir).sort(), Object.values(FILES).sort());
+    const secondaryOnly = Object.values(FILES).filter((f) => !f.includes('primary'));
+    assert.deepEqual(readdirSync(outDir).sort(), secondaryOnly.sort());
     assert.match(notes, /`schools\.csv\.gz` \(\d/);
     assert.match(notes, /Which file should I download\?/);
 
@@ -138,6 +139,55 @@ test('release export: files agree with each other and with the module declaratio
   } finally {
     rmSync(out, { recursive: true, force: true });
     dispose();
+  }
+});
+
+test('release export with primary schools: separate files, the secondary ones unchanged, one sources.csv', async () => {
+  const secondary = await buildFixtureStore('secondary');
+  const primary = await buildFixtureStore('primary');
+  const out = mkdtempSync(join(tmpdir(), 'release-test-'));
+  try {
+    const outDir = join(out, 'release');
+    const result = exportRelease({ storeFile: secondary.storeFile, outDir, order: secondary.order, sourceUrls: { gias: 'https://example.org/gias.csv' }, month: '2026-10', primary: { storeFile: primary.storeFile, order: primary.order } });
+    assert.ok(result.schools >= 10 && result.primarySchools >= 1);
+    assert.deepEqual(readdirSync(outDir).sort(), Object.values(FILES).sort());
+
+    // the secondary CSV has the same columns as without primary schools
+    const secondaryCsv = parseCsv(readFileSync(join(outDir, FILES.csv), 'utf-8'));
+    assert.equal(secondaryCsv.length, result.schools);
+    assert.ok('att8' in secondaryCsv[0] && !('ks2Cohort' in secondaryCsv[0]));
+    // the primary CSV has KS2 columns, not KS4 ones, and a row per primary school
+    const primaryCsv = parseCsv(readFileSync(join(outDir, FILES.primaryCsv), 'utf-8'));
+    assert.equal(primaryCsv.length, result.primarySchools);
+    assert.ok(!('att8' in primaryCsv[0]) && Object.keys(primaryCsv[0]).some((c) => c.startsWith('ks2')));
+    const urns = new Set(secondaryCsv.map((r) => r.urn));
+    assert.ok(primaryCsv.every((r) => !urns.has(r.urn)), 'no school is in both phases');
+
+    // each fields file documents its own CSV; every sqlite file stands alone
+    for (const [csv, fields, sqlite] of [[FILES.csv, FILES.fields, FILES.sqlite], [FILES.primaryCsv, FILES.primaryFields, FILES.primarySqlite]]) {
+      const described = new Set(parseCsv(readFileSync(join(outDir, fields), 'utf-8')).map((r) => r.field));
+      for (const column of Object.keys(parseCsv(readFileSync(join(outDir, csv), 'utf-8'))[0])) assert.ok(described.has(column), `${fields} describes ${column}`);
+      const db = new DatabaseSync(join(outDir, sqlite), { readOnly: true });
+      assert.equal((db.prepare('SELECT COUNT(*) AS n FROM wide').get() as { n: number }).n, csv === FILES.csv ? result.schools : result.primarySchools);
+      db.close();
+    }
+    for (const [gz, plain] of [[FILES.primaryCsvGz, FILES.primaryCsv], [FILES.primarySqliteGz, FILES.primarySqlite]]) {
+      assert.ok(gunzipSync(readFileSync(join(outDir, gz))).equals(readFileSync(join(outDir, plain))), gz);
+    }
+
+    // sources.csv lists each source once, whichever phase reads it; the zip and notes cover both
+    const ids = parseCsv(readFileSync(join(outDir, FILES.sources), 'utf-8')).map((r) => r.id);
+    assert.equal(new Set(ids).size, ids.length);
+    assert.ok(ids.includes('ks2'));
+    assert.deepEqual(readZip(readFileSync(join(outDir, FILES.zip))).map((e) => e.name), [...ZIP_CONTENTS_WITH_PRIMARY]);
+    const notes = readFileSync(join(outDir, FILES.notes), 'utf-8');
+    assert.match(notes, /`primary_schools\.csv` \(\d/);
+    assert.match(notes, /### Primary schools/);
+    assert.match(notes, /2022\/23 only/);
+  } finally {
+    rmSync(out, { recursive: true, force: true });
+    secondary.dispose();
+    primary.dispose();
   }
 });
 

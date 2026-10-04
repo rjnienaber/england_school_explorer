@@ -152,4 +152,10 @@ export const sourceNotes: SourceNoteDef[] = [
       h.html`${h.sourceLink('ks2', 'DfE key stage 2 attainment')} (${years(meta).join(', ')}), with ${h.sourceLink('ks2-info', 'pupil numbers')}`,
     dates: (meta) => [newest(meta) && `KS2 ${newest(meta)}`, meta.ks2ProgressYear ? `KS2 progress ${meta.ks2ProgressYear as string}` : null],
   },
+  {
+    id: 'primary-no-compare',
+    order: 96,
+    about: (_meta, h) =>
+      h.html`<strong>Shortlists and similar schools are secondary only.</strong> A primary school’s result comes from a year group of often 20 to 40 pupils, and the only intake-adjusted measure (KS2 progress) was published for 2022/23 alone, so there is no fair basis for ranking two primaries against each other. Use the percentile, the cohort size and the three-year average in each popup instead.`,
+  },
 ];

@@ -1,7 +1,8 @@
 # England School Explorer
 
 An interactive map of England's secondary schools, coloured by GCSE results, Progress 8,
-results compared with intake, Ofsted outcome and more. Each school's popup adds attendance,
+results compared with intake, Ofsted outcome and more. A switch at the top of the panel moves to
+primary schools, coloured by key stage 2 (SATs) results and Ofsted outcome. Each school's popup adds attendance,
 behaviour, staff, funding, curriculum and sixth form figures, and you can view all the schools in a
 trust, see schools with a similar intake, and compare a shortlist side by side. It is built from open
 government data and published as a static site: plain HTML and JS plus a set of JSON data files that
@@ -178,11 +179,22 @@ Release each month, tagged `data-YYYY-MM`. These links always give the newest:
 | [`england_schools.sqlite`](https://github.com/rjnienaber/england_school_explorer/releases/latest/download/england_schools.sqlite) | SQL, Datasette, DuckDB, pandas. Same data, plus the long-format tables. |
 | [`schools.csv.gz`](https://github.com/rjnienaber/england_school_explorer/releases/latest/download/schools.csv.gz) | The same CSV, gzip-compressed (about 30% of the size). pandas, DuckDB, R and Polars read it directly. |
 | [`england_schools.sqlite.gz`](https://github.com/rjnienaber/england_school_explorer/releases/latest/download/england_schools.sqlite.gz) | The same SQLite file, gzip-compressed (about 30% of the size). Run `gunzip` before querying. |
-| [`england_school_explorer-data.zip`](https://github.com/rjnienaber/england_school_explorer/releases/latest/download/england_school_explorer-data.zip) | Everything in one download: `schools.csv`, `england_schools.sqlite`, `fields.csv`, `sources.csv` and `NOTES.md`. |
+| [`england_school_explorer-data.zip`](https://github.com/rjnienaber/england_school_explorer/releases/latest/download/england_school_explorer-data.zip) | Everything in one download: the six plain files for both phases (`schools.csv`, `england_schools.sqlite`, `fields.csv` and the three `primary_*` equivalents), `sources.csv` and `NOTES.md`. |
 | [`fields.csv`](https://github.com/rjnienaber/england_school_explorer/releases/latest/download/fields.csv) | The data dictionary: every column with its label, description, type, unit, year field, source, and the number of schools that have a value. |
-| [`sources.csv`](https://github.com/rjnienaber/england_school_explorer/releases/latest/download/sources.csv) | Each source: publisher, download URL, when it was fetched, licence. |
+| [`sources.csv`](https://github.com/rjnienaber/england_school_explorer/releases/latest/download/sources.csv) | Each source for both phases: publisher, download URL, when it was fetched, licence. |
+| [`primary_schools.csv`](https://github.com/rjnienaber/england_school_explorer/releases/latest/download/primary_schools.csv) | The same for primary schools (about 16,700): one row per school, with key stage 2 results instead of GCSE ones. A separate file, not a `phase` column, because the phases measure different things (see below). Same encoding. |
+| [`england_primary_schools.sqlite`](https://github.com/rjnienaber/england_school_explorer/releases/latest/download/england_primary_schools.sqlite) | The primary schools as SQLite, laid out exactly like the secondary file. |
+| [`primary_schools.csv.gz`](https://github.com/rjnienaber/england_school_explorer/releases/latest/download/primary_schools.csv.gz), [`england_primary_schools.sqlite.gz`](https://github.com/rjnienaber/england_school_explorer/releases/latest/download/england_primary_schools.sqlite.gz) | The same two files, gzip-compressed (about 20 to 25% of the size). |
+| [`primary_fields.csv`](https://github.com/rjnienaber/england_school_explorer/releases/latest/download/primary_fields.csv) | The data dictionary for the primary files. |
 
-The SQLite file holds:
+**Why separate primary files?** The two phases share 88 columns (identity, Ofsted, pupils, absence,
+spending and so on), but secondary has 125 of its own (GCSEs, Progress 8, sixth form, destinations) and primary
+41 (key stage 2), so a single table with a `phase` column would have 254 columns with a third to a half of each
+row empty, and the existing `schools.csv` would change shape for anyone already using it. Shared columns have
+the same names in both, so stacking the two files is one line in pandas (`pd.concat`) or a `UNION ALL`
+across two attached SQLite files. No school is in both. The secondary files and links are unchanged.
+
+The SQLite files (each phase has its own, with the same layout) hold:
 
 - `schools`: one row per school (`urn`, `lng`, `lat`, `sector`, `selective`);
 - `dim_<module>`: one table per dimension, one column per field, keyed by `urn`;
@@ -544,6 +556,36 @@ qualification. Small community-language entries (Polish, Urdu...) are real but o
 The list of schools in view ranks by the current mode. Differences between neighbouring
 schools in the list are usually not meaningful.
 
+### How primary schools are compared
+
+The primary phase (`?phase=primary`) uses the same rule as secondary: no single "best school" score, and every
+measure says what it is. Differences from secondary:
+
+- **What is measured.** Key stage 2 (the SATs at the end of Year 6): the share reaching the expected standard and the
+  higher standard in reading, writing and maths combined (and each subject in the popup), plus Ofsted outcome. The
+  colour for the expected and higher standard modes is the school's percentile band (five bands) among state-funded
+  primaries, and the popup always shows the actual percentage beside the percentile.
+- **Results mostly reflect intake.** Unlike secondary, there is no "results vs intake" or Progress 8 equivalent that
+  is current: KS2 progress (from the age-7 KS1 baseline) exists only for 2022/23, and our own intake model for
+  secondary needs a prior-attainment input that primary does not have. So a primary map coloured by results largely
+  shows which neighbourhoods have more advantaged children. Read results with the pupil context in the popup
+  (disadvantaged, SEN, EAL) and with Ofsted, which looks at teaching rather than results.
+- **Cohorts are small.** A primary year group is often 20 to 40 pupils, and one pupil can move a result by 3 to 5
+  points. The number of pupils is always shown and cohorts under 30 are flagged. The popup also gives the previous two
+  years and DfE's published three-year average, which is steadier than a single year. Do not read a 2-point
+  difference between two primaries as anything.
+- **Progress is old.** The KS2 progress mode and popup section describe the 2022/23 year group only (the 2023/24 and
+  2024/25 pupils had no KS1 tests because of COVID), and say so.
+- **Shortlists and similar schools are secondary only.** The shortlist comparison builds on measures that separate a
+  school from its intake and on probabilities from their standard errors. Primary has no such measure, so ranking
+  two primaries on raw KS2 results would say more about their pupils than about the schools, and the comparison is
+  hidden (a note in "About the data" explains why). Phases never share a shortlist: the shortlist and the
+  similar-schools lists are loaded only in secondary, a `?compare=` link without a phase opens in secondary, and switching phase
+  starts a clean view.
+- **Which schools.** The open, state-funded mainstream schools GIAS lists as Primary or Middle deemed primary
+  (about 16,700). Independent primaries, nurseries and special schools are not on the map. Missing values (for
+  example, a school too small for DfE to publish) are hidden, not shown as zero.
+
 ### Comparing a shortlist
 
 "Add to shortlist" in a school's popup builds a list of up to six state-funded schools (kept in your
@@ -577,7 +619,11 @@ in the panel without touching your saved one; "Save as my shortlist" keeps it, "
 
 - Data is a snapshot. Rerun `fetch` and `build` to refresh. Ofsted publishes monthly, GIAS
   daily, and KS4 results annually (revised data in spring).
-- Small cohorts make every measure noisy. DfE suppresses the smallest.
+- Small cohorts make every measure noisy. DfE suppresses the smallest. This matters most for primary schools, where a
+  year group is often 20 to 40 pupils: a school's KS2 percentage can swing several points between years for no
+  real reason, so look at the three-year average and the cohort size shown in the popup.
+- KS2 progress (primary) is published for 2022/23 only, so it describes pupils who left primary school three
+  years ago, and no more recent figure exists until DfE publishes new baseline-based progress.
 - The map shows where schools are, not who can get in. Admissions depend on catchment,
   faith and selection criteria. Check the local authority's allocation data.
 - Ofsted grades can be many years old. The popup shows the inspection date.

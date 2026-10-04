@@ -73,11 +73,13 @@ jobs:
         with:
           path: dist
 
-      # The dataset files (schools.csv, england_schools.sqlite, fields.csv, sources.csv, NOTES.md). They
+      # The dataset files (schools.csv, england_schools.sqlite, fields.csv, the primary_* and england_primary_* equivalents,
+      # sources.csv, NOTES.md, .gz copies and a zip). They
       # are written on every run so a broken export shows up on pushes, but only kept for a release.
       # The last release's fields.csv is only for the "fields added or removed" note.
       - run: curl -fsSL -o "$RUNNER_TEMP/previous-fields.csv" https://github.com/${{ github.repository }}/releases/latest/download/fields.csv || true
-      - run: npm run export-release -- --month "${{ steps.month.outputs.month }}" --previous-fields "$RUNNER_TEMP/previous-fields.csv"
+      - run: curl -fsSL -o "$RUNNER_TEMP/previous-primary-fields.csv" https://github.com/${{ github.repository }}/releases/latest/download/primary_fields.csv || true
+      - run: npm run export-release -- --month "${{ steps.month.outputs.month }}" --previous-fields "$RUNNER_TEMP/previous-fields.csv" --previous-primary-fields "$RUNNER_TEMP/previous-primary-fields.csv"
       - if: github.event_name != 'push'
         uses: actions/upload-artifact@v7
         with:
@@ -117,7 +119,7 @@ jobs:
           path: release
       - name: Create or update the release
         run: |
-          assets=(release/schools.csv release/schools.csv.gz release/england_schools.sqlite release/england_schools.sqlite.gz release/fields.csv release/sources.csv release/england_school_explorer-data.zip)
+          assets=(release/schools.csv release/schools.csv.gz release/england_schools.sqlite release/england_schools.sqlite.gz release/fields.csv release/sources.csv release/england_school_explorer-data.zip release/primary_schools.csv release/primary_schools.csv.gz release/england_primary_schools.sqlite release/england_primary_schools.sqlite.gz release/primary_fields.csv)
           if gh release view "$TAG" > /dev/null 2>&1; then
             gh release upload "$TAG" "${assets[@]}" --clobber
             gh release edit "$TAG" --title "Data $MONTH" --notes-file release/NOTES.md --latest

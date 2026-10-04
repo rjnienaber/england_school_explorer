@@ -28,6 +28,8 @@ const PHASE_KEY = 'schools-map-phase';
 function readPhase(): Phase {
   const fromUrl = new URLSearchParams(location.search).get('phase');
   if (isPhase(fromUrl)) return fromUrl;
+  // Shortlists exist only in the default phase, so a shared ?compare= link opens there whatever phase was last used
+  if (new URLSearchParams(location.search).has('compare')) return DEFAULT_PHASE;
   try {
     const saved = localStorage.getItem(PHASE_KEY);
     if (isPhase(saved)) return saved;

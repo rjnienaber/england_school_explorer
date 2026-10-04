@@ -8,6 +8,8 @@
 //
 // Usage: node scripts/diff-geojson.ts <old> <new> [--allow-new-properties]
 //
+// A phase's folder works the same way: dist/data for secondary, dist/data/primary for primary.
+//
 // Used to prove a change altered nothing: build first, keep a copy of dist/data, then
 //   cp -r dist/data /tmp/old-data
 //   node scripts/diff-geojson.ts /tmp/old-data dist/data --allow-new-properties

@@ -77,12 +77,13 @@ function fixtureOptions(everything: LoadedDimension[], storeFile: string, phase:
  * Builds every module from fixtures into a store file inside a temporary folder, for tests of
  * things that read the whole store (the release export). Call `dispose()` when done.
  */
-export async function buildFixtureStore(): Promise<{ storeFile: string; order: LoadedDimension[]; dir: string; dispose(): void }> {
-  const order = forPhase(await loadBuildOrder(), DEFAULT_PHASE);
+export async function buildFixtureStore(phase: Phase = DEFAULT_PHASE): Promise<{ storeFile: string; order: LoadedDimension[]; dir: string; dispose(): void }> {
+  const everything = await loadBuildOrder();
+  const order = forPhase(everything, phase);
   const dir = mkdtempSync(join(tmpdir(), 'fixture-store-'));
   const storeFile = join(dir, 'schools.sqlite');
   try {
-    (await buildStore(order, fixtureOptions(order, storeFile))).db.close();
+    (await buildStore(order, fixtureOptions(everything, storeFile, phase))).db.close();
   } catch (err) {
     rmSync(dir, { recursive: true, force: true });
     throw err;
