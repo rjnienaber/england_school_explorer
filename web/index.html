@@ -17,6 +17,9 @@
           <span class="panel-title">Secondary schools in England</span>
           <span class="chevron" aria-hidden="true"></span>
         </button>
+        <button type="button" id="about-open" class="about-open" data-open-about aria-haspopup="dialog">
+          <span aria-hidden="true" class="about-icon">i</span><span>About</span>
+        </button>
       </header>
 
       <div id="panel-body" class="panel-body">
@@ -50,13 +53,56 @@
           <ol id="school-list" class="school-list"></ol>
         </section>
 
-        <details class="about">
-          <summary>About the data</summary>
-          <p id="data-dates" class="muted"></p>
-          <div id="about"></div>
-        </details>
+        <footer class="about">
+          <p id="data-dates" class="muted small"></p>
+          <p class="small"><button type="button" class="link-button" data-open-about>About this map, the data, privacy and licences</button></p>
+        </footer>
       </div>
     </aside>
+
+    <dialog id="about-dialog" class="about-dialog" aria-labelledby="about-title">
+      <div class="about-head">
+        <h2 id="about-title">About this map</h2>
+        <button type="button" class="about-close" data-close-about>Close</button>
+      </div>
+      <div class="about-body">
+        <p>An independent, unofficial map of schools in England, built from open data published by the Department for Education (DfE), Get Information About Schools (GIAS) and Ofsted. It is not a government service and is not endorsed by any of them.</p>
+
+        <h3>Links</h3>
+        <ul>
+          <li><a data-repo="">Source code on GitHub</a></li>
+          <li><a data-repo="/issues/new">Report a wrong figure or suggest something</a> (needs a free GitHub account)</li>
+          <li><a data-repo="/releases/latest">Download the data</a> (the latest release; <a data-repo="#download-the-data">what the files hold</a>)</li>
+          <li><a data-repo="#how-schools-are-compared">How schools are compared</a> (the full explanation, including <a data-repo="#how-primary-schools-are-compared">primary schools</a>)</li>
+        </ul>
+
+        <h3>Read the comparisons with care</h3>
+        <ul>
+          <li>Where a measure is our own rather than DfE's, the popup says so.</li>
+          <li>Most schools can't be reliably told apart: small year groups make every figure noisy, so small differences are mostly chance.</li>
+          <li>Results largely reflect who a school admits, not only how well it teaches.</li>
+          <li>Special schools and alternative provision aren't shown.</li>
+          <li>Living near a school doesn't mean getting a place there: check the admissions criteria and how far places went last year with the local authority.</li>
+        </ul>
+
+        <h3>Data sources</h3>
+        <div id="about" class="about-sources"></div>
+
+        <h3>Licences and credits</h3>
+        <ul>
+          <li>Contains public sector information licensed under the <a href="https://www.nationalarchives.gov.uk/doc/open-government-licence/version/3/" target="_blank" rel="noopener">Open Government Licence v3.0</a>.</li>
+          <li>Map tiles by <a href="https://openfreemap.org/" target="_blank" rel="noopener">OpenFreeMap</a>, map data &copy; <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap contributors</a>.</li>
+          <li id="about-code-licence" hidden></li>
+        </ul>
+
+        <h3>Privacy</h3>
+        <ul>
+          <li>There are no accounts, no cookies, no analytics and no tracking. Your colour and filter choices, your phase and your shortlist are kept in your own browser (localStorage) and are never sent anywhere.</li>
+          <li>The map itself loads its background tiles from OpenFreeMap, so that service (and the web host, GitHub Pages) sees your IP address and roughly which area you are looking at, as any website you visit does.</li>
+          <li>If you search for a postcode, that postcode is sent to <a href="https://postcodes.io/" target="_blank" rel="noopener">postcodes.io</a> to find where it is. Searching by school name stays in your browser.</li>
+        </ul>
+      </div>
+    </dialog>
 
     <script src="app.js" type="module"></script>
   </body>

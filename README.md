@@ -631,6 +631,15 @@ in the panel without touching your saved one; "Save as my shortlist" keeps it, "
   GIAS register entry and, for state-funded schools only (independent schools have no data there), the
   Financial Benchmarking and Insights Tool. They are plain links and are not checked at build time.
 
+## About page
+
+The panel header has an About button (also `?about` in the address) that opens a dialog: what the site is,
+links to the repository, Issues, the latest release and these README sections, the caveats, the data
+sources list (filled from each module's `sourceNotes`), the licence credits and a privacy statement. The
+text is static in `web/index.html`; `web/about.ts` holds the repository address (`REPO_URL`) and the code
+licence (`CODE_LICENCE`, `null` until one is chosen, which hides the line). The privacy text must stay true:
+the only third-party requests are the OpenFreeMap tiles and, for a postcode search, postcodes.io.
+
 ## Licence
 
 Code: MIT. Data: Open Government Licence v3.0 (DfE, Ofsted). Map data © OpenStreetMap contributors.

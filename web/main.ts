@@ -8,6 +8,7 @@ import { DEFAULT_PHASE, isPhase, PHASES, type Phase } from '../lib/phase.ts';
 import { registryFor } from './registry.ts';
 import { FILTER_GROUPS, h, type AppApi, type ChipFilter, type FilterDef, type FilterGroupId, type ModeDef } from './toolkit.ts';
 import { popupHtml } from './popup.ts';
+import { bindAbout } from './about.ts';
 import './style.css';
 
 const STYLES: Record<Theme, string> = {
@@ -589,11 +590,7 @@ function renderAbout(): void {
     <p>${PHASE_TEXT[PHASE].scope(data.core.count.toLocaleString())} Built ${built}.</p>
     <ul>
       ${items}
-    </ul>
-    <p>Contains public sector information licensed under the Open Government Licence v3.0.</p>
-    <p><strong>Read with care.</strong> Special schools and alternative provision aren't shown. Results for small year groups
-    are noisy. Living near a school doesn't mean getting a place there: check the admissions criteria and how far
-    places went last year with the local authority.</p>`;
+    </ul>`;
 
   $('data-dates').textContent = SOURCE_NOTES.flatMap((n) => n.dates?.(metadata) ?? [])
     .filter(Boolean)
@@ -882,6 +879,7 @@ function startExtensions(): void {
 async function main(): Promise<void> {
   bindMapEvents();
   bindPhaseSwitch();
+  bindAbout();
   if (hasPhaseInUrl) savePhase(PHASE);
   data = await loadCore(PHASE);
   // A link can carry a focus filter (?trust=17396) and a school (?urn=100049)
