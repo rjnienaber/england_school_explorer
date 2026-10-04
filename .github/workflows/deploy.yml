@@ -5,6 +5,9 @@
 # Production always gets freshly downloaded data: the cache is never restored here (`fetch
 # --force` re-downloads everything). The downloaded files are saved afterwards so that pull
 # request runs (ci.yml) start warm.
+#
+# On the monthly schedule and on manual runs (never on a push) the joined dataset is also
+# published as a GitHub Release, data-YYYY-MM, marked latest (see the `release` job).
 name: Deploy
 
 on:
@@ -26,6 +29,8 @@ concurrency:
 jobs:
   build:
     runs-on: ubuntu-latest
+    outputs:
+      month: ${{ steps.month.outputs.month }}
     steps:
       - uses: actions/checkout@v7
       - uses: actions/setup-node@v7
@@ -54,6 +59,18 @@ jobs:
         with:
           path: dist
 
+      # The dataset files (schools.csv, uk_schools.sqlite, fields.csv, sources.csv, NOTES.md). They
+      # are written on every run so a broken export shows up on pushes, but only kept for a release.
+      # The last release's fields.csv is only for the "fields added or removed" note.
+      - run: curl -fsSL -o "$RUNNER_TEMP/previous-fields.csv" https://github.com/${{ github.repository }}/releases/latest/download/fields.csv || true
+      - run: npm run export-release -- --month "${{ steps.month.outputs.month }}" --previous-fields "$RUNNER_TEMP/previous-fields.csv"
+      - if: github.event_name != 'push'
+        uses: actions/upload-artifact@v7
+        with:
+          name: release
+          path: release
+          if-no-files-found: error
+
   deploy:
     needs: build
     runs-on: ubuntu-latest
@@ -63,3 +80,33 @@ jobs:
     steps:
       - id: deployment
         uses: actions/deploy-pages@v5
+
+  # Publishes the dataset as the release data-YYYY-MM and marks it latest, so
+  # https://github.com/<repo>/releases/latest/download/<file> is a stable link. A re-run in the same
+  # month replaces the assets and notes of that month's release. Only scheduled and manual runs
+  # get here; the other jobs keep read-only contents access.
+  release:
+    needs: build
+    if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    env:
+      GH_TOKEN: ${{ github.token }}
+      GH_REPO: ${{ github.repository }}
+      TAG: data-${{ needs.build.outputs.month }}
+      MONTH: ${{ needs.build.outputs.month }}
+    steps:
+      - uses: actions/download-artifact@v8
+        with:
+          name: release
+          path: release
+      - name: Create or update the release
+        run: |
+          assets=(release/schools.csv release/uk_schools.sqlite release/fields.csv release/sources.csv)
+          if gh release view "$TAG" > /dev/null 2>&1; then
+            gh release upload "$TAG" "${assets[@]}" --clobber
+            gh release edit "$TAG" --title "Data $MONTH" --notes-file release/NOTES.md --latest
+          else
+            gh release create "$TAG" "${assets[@]}" --target "$GITHUB_SHA" --title "Data $MONTH" --notes-file release/NOTES.md --latest
+          fi

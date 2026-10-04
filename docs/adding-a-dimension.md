@@ -125,8 +125,9 @@ nothing").
   year?, nullable?, default?, decimals? (number), unit? (number), values (enum) }
 ```
 
-- `label` is plain English; `description` says what it is and any caveat. These feed the data
-  dictionary later, so write them for a reader who has not seen the source.
+- `label` is plain English; `description` says what it is and any caveat. These are published in the monthly
+  release's data dictionary (`fields.csv` and the `fields` table), so write them for a reader who has not seen
+  the source: what it is, its unit, and any caveat.
 - `source` is the id of the `SourceDef` it came from. `year` names the field holding the data year.
 - Values are validated when stored: a number must be finite, an enum value must be in `values`,
   a boolean must be a boolean. Numbers are rounded to `decimals` when you set it.
@@ -227,6 +228,25 @@ build(ctx) {
 they live in the store (`build/schools.sqlite`, table `dim_<id>__<name>`) for other modules and
 for later per-school detail files. Any field you want in the popup today must also be a normal
 field (summarise the table into a few fields).
+
+### The published dataset
+
+Every month the deploy also publishes the store as GitHub Release files (`npm run export-release` writes
+them to `release/`): `schools.csv` (one row per school, every field), `uk_schools.sqlite`, `fields.csv`
+(the data dictionary) and `sources.csv`. You do nothing for this: it is generated from your declarations,
+so a new module and its `extraTables` are included automatically.
+
+- Fields and extra-table columns become dictionary rows from `label`, `description`, `type`, `unit`, `year`
+  and `source`, plus how many schools have a value. Extra tables are `dim_<id>__<name>` in the SQLite file
+  (columns have no label, so the table `description` is used). Missing labels and descriptions show up in
+  public, so fill them in.
+- Suppressed values are `null`: the original codes are not kept.
+- **No personal data.** GIAS has head teacher names (`HeadTitle`, `HeadFirstName`, `HeadLastName`,
+  `HeadPreferredJobTitle`) and telephone numbers; never read them into a field. A field, table or column whose
+  name looks like personal data (head teacher, phone, email, a person's name, proprietor...) fails
+  `lib/release.test.ts` and the export, and so does any string value that is an email address or a UK phone
+  number. The patterns are in `lib/release.ts` (`PERSONAL_DATA_NAMES`). If one matches something harmless,
+  rename your field rather than loosening the list.
 
 ## The build context
 

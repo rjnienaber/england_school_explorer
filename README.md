@@ -31,6 +31,7 @@ Or run the steps separately:
 | `npm run serve` | Serves `dist/` locally (`PORT` to override 8080). |
 | `npm run typecheck` | Generates, then `tsc` over the Node code and the browser code. |
 | `npm test` | Runs every `test.ts` with `node --test`. Module tests build from small committed fixtures (`dimensions/<id>/fixtures/`), so they need no `data/`. |
+| `npm run export-release` | After `build:data`, writes the downloadable dataset to `release/` (see "Download the data"). `-- --month 2026-10` names the month; `-- --previous-fields <fields.csv>` lists fields added or removed since an earlier release. |
 | `npm run check-budgets` | After a build, checks `dist/` against the size budgets in `budgets.json` and prints a table. Fails when one is exceeded. |
 
 To publish, upload `dist/` to any static host (for example GitHub Pages, Cloudflare Pages
@@ -43,8 +44,9 @@ Live at **https://rjnienaber.github.io/uk_schools_performance/** via GitHub Page
 
 - on every push to `master`;
 - monthly, on the 10th, to pick up Ofsted's monthly update (and the yearly KS4 results
-  when they appear);
-- on demand: Actions → Deploy → Run workflow.
+  when they appear). This run also publishes the dataset release;
+- on demand: Actions → Deploy → Run workflow (also publishes the release; a re-run in the
+  same month replaces that month's files).
 
 Deploys always download fresh data (`fetch --force`). Pull requests run `.github/workflows/ci.yml`
 (typecheck, tests, build, size budgets); it caches `data/` per month and per set of
@@ -80,7 +82,7 @@ dimensions/<id>/      one folder per kind of data; the only place a new dimensio
   test.ts             tests for this module
   fixtures/           a few rows of each source, so tests run without data/
 lib/                  the framework: module types, build store, pipeline, generators
-scripts/              thin runners: fetch, generate, build-data, build-web, serve, diff-geojson, verify-data
+scripts/              thin runners: fetch, generate, build-data, build-web, export-release, serve, diff-geojson, verify-data
 web/                  the browser shell: map, list, search, popup framework, toolkit, palettes
   generated/          git-ignored; written by `npm run generate`
 docs/adding-a-dimension.md   the guide for adding a dimension
@@ -110,8 +112,45 @@ Which fields a mode, filter or popup section reads is found at build time by run
 every school (`lib/trace-needs.ts`), so modules declare nothing beyond each field's `placement`.
 Files are requested with `?v=<buildId>` and each carries that id, so a deploy can't mix old and
 new files; a mismatch reloads the page once. The browser filters in memory and gives MapLibre a
-slim copy that holds only a colour index per school. The full dataset for reuse is not published
-from the site.
+slim copy that holds only a colour index per school. The full dataset for reuse is published
+monthly as a GitHub Release (next section), not from the site.
+
+## Download the data
+
+The joined, cleaned dataset (every school on the map, with every field) is published as a GitHub
+Release each month, tagged `data-YYYY-MM`. These links always give the newest:
+
+| File | For |
+| --- | --- |
+| [`schools.csv`](https://github.com/rjnienaber/uk_schools_performance/releases/latest/download/schools.csv) | Spreadsheets. One row per school, the latest value of every field. UTF-8 with a BOM, so Excel shows accents correctly. |
+| [`uk_schools.sqlite`](https://github.com/rjnienaber/uk_schools_performance/releases/latest/download/uk_schools.sqlite) | SQL, Datasette, DuckDB, pandas. Same data, plus the long-format tables. |
+| [`fields.csv`](https://github.com/rjnienaber/uk_schools_performance/releases/latest/download/fields.csv) | The data dictionary: every column with its label, description, type, unit, year field, source, and the number of schools that have a value. |
+| [`sources.csv`](https://github.com/rjnienaber/uk_schools_performance/releases/latest/download/sources.csv) | Each source: publisher, download URL, when it was fetched, licence. |
+
+The SQLite file holds:
+
+- `schools`: one row per school (`urn`, `lng`, `lat`, `sector`, `selective`);
+- `dim_<module>`: one table per dimension, one column per field, keyed by `urn`;
+- `dim_<module>__<name>`: long-format tables where a school has several rows (for example
+  `dim_ks4-headline__history`, one row per school and year);
+- `wide`: a view joining every `dim_*` table, with exactly the columns of `schools.csv`;
+- `fields` and `sources`: the two dictionaries above, as tables.
+
+```bash
+sqlite3 uk_schools.sqlite 'select name, att8, p8 from wide where la = "Camden" order by p8 desc limit 5'
+duckdb -c "select count(*) from 'schools.csv'"
+```
+
+Empty (CSV) or NULL (SQLite) means "no value": the school has none, or DfE suppressed it. The
+original suppression codes (`c`, `z`, `x`, `low`) are not kept. Percentiles and "vs intake"
+figures are our own estimates, as described below. The files hold no personal data: GIAS head
+teacher names and telephone numbers are never read, and the export refuses to run (and a test
+fails) if any column looks like one.
+
+Contains public sector information licensed under the
+[Open Government Licence v3.0](https://www.nationalarchives.gov.uk/doc/open-government-licence/version/3/)
+(Department for Education and Ofsted; sources in the table above). Cite them, and this
+repository, when you reuse it.
 
 ## How schools are compared
 

@@ -52,24 +52,46 @@ export function buildFromFixtures(moduleId: string): Promise<FixtureBuild> {
   return build;
 }
 
+/** Where each source's fixture file is, and the options that make buildStore read them. */
+function fixtureOptions(everything: LoadedDimension[], storeFile: string) {
+  // The scope module reads ks4.csv without depending on its owner, so fixtures are found for every source
+  const owner = new Map(everything.flatMap((d) => d.sources.map((s) => [s.id, d.dir] as const)));
+  return {
+    storeFile,
+    minSchools: 1,
+    log: () => {},
+    moreSources: everything.flatMap((d) => d.sources),
+    dataFile: (def: { id: string; file?: string }) => {
+      const file = join(owner.get(def.id)!, 'fixtures', def.file ?? `${def.id}.csv`);
+      if (!existsSync(file)) throw new Error(`missing test fixture ${file}`);
+      return file;
+    },
+  };
+}
+
+/**
+ * Builds every module from fixtures into a store file inside a temporary folder, for tests of
+ * things that read the whole store (the release export). Call `dispose()` when done.
+ */
+export async function buildFixtureStore(): Promise<{ storeFile: string; order: LoadedDimension[]; dir: string; dispose(): void }> {
+  const order = await loadBuildOrder();
+  const dir = mkdtempSync(join(tmpdir(), 'fixture-store-'));
+  const storeFile = join(dir, 'schools.sqlite');
+  try {
+    (await buildStore(order, fixtureOptions(order, storeFile))).db.close();
+  } catch (err) {
+    rmSync(dir, { recursive: true, force: true });
+    throw err;
+  }
+  return { storeFile, order, dir, dispose: () => rmSync(dir, { recursive: true, force: true }) };
+}
+
 async function run(moduleId: string): Promise<FixtureBuild> {
   const everything = await loadBuildOrder();
   const order = closure(everything, moduleId);
-  // The scope module reads ks4.csv without depending on its owner, so fixtures are found for every source
-  const owner = new Map(everything.flatMap((d) => d.sources.map((s) => [s.id, d.dir] as const)));
   const dir = mkdtempSync(join(tmpdir(), 'fixture-store-'));
   try {
-    const { db, scope, metadata } = await buildStore(order, {
-      storeFile: join(dir, 'schools.sqlite'),
-      minSchools: 1,
-      log: () => {},
-      moreSources: everything.flatMap((d) => d.sources),
-      dataFile: (def) => {
-        const file = join(owner.get(def.id)!, 'fixtures', def.file ?? `${def.id}.csv`);
-        if (!existsSync(file)) throw new Error(`missing test fixture ${file}`);
-        return file;
-      },
-    });
+    const { db, scope, metadata } = await buildStore(order, fixtureOptions(everything, join(dir, 'schools.sqlite')));
     const fields = new Map(order.map((d) => [d.id, d.module] as const));
     // Read everything now so the store can be removed straight away
     const rows = new Map(order.map((d) => [d.id, readModuleRows(db, d.id, d.module.fields as Fields)]));

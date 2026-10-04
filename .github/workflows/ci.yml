@@ -1,4 +1,4 @@
-# Checks every pull request: types, tests, a full build and the data size budgets (budgets.json).
+# Checks every pull request: types, tests, a full build, the data size budgets (budgets.json) and the dataset export.
 # Downloaded data is cached (see below), so a warm run does no downloading.
 name: CI
 
@@ -44,3 +44,6 @@ jobs:
       # The live site's manifest is only for the "change" column; the check works without it
       - run: curl -fsSL -o "$RUNNER_TEMP/previous-manifest.json" https://rjnienaber.github.io/uk_schools_performance/data/manifest.json || true
       - run: npm run check-budgets -- --previous "$RUNNER_TEMP/previous-manifest.json"
+
+      # Proves the dataset export still works (nothing is published from a pull request)
+      - run: npm run export-release
