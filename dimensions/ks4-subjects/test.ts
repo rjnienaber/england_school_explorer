@@ -68,11 +68,12 @@ test('filter: keeps schools offering the subject and hides those with no figures
   assert.equal(f.test(school({}), 'FRE'), false);
 });
 
-test('popup: chips, shares against typical, and hidden without data', () => {
+test('popup: shares against typical, and hidden without data', () => {
   const s = popupSections[0];
   const meta = { subjectsTypicalPct: { SPA: 30 }, subjectsOfferedByPct: { SPA: 70 } } as unknown as Metadata;
   const html = String(s.render(school({ subjectsYear: '2024/25', subjectEntries: 'SPA:24,CS:16' }), h, () => [], meta));
-  assert.match(html, /<span class="tag">Spanish<\/span>/);
+  assert.match(html, /<th>Spanish<\/th><td>24%<\/td>/);
+  assert.doesNotMatch(html, /class="tag"/); // the table is the only list of subjects
   assert.match(html, /24%/);
   assert.match(html, /30%/);
   assert.match(html, /70%/);

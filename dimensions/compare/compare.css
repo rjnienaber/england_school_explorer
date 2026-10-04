@@ -348,3 +348,8 @@ td.cmp-best {
     grid-template-columns: 1fr;
   }
 }
+
+.cmp-shared {
+  margin: 0 0 6px;
+  font-size: 0.85rem;
+}

@@ -40,9 +40,12 @@ export function start(app: AppApi): void {
   let matrixId = 'p8';
   let pairText = '';
   let pairKey = '';
+  /** True while `list` is someone else's shortlist from a `?compare=` link: it is shown but never saved over the viewer's own. */
+  let shared = false;
 
   // ---------- Shortlist storage ----------
   const save = () => {
+    if (shared) return;
     try {
       localStorage.setItem(STORE, shortlistValue(list));
     } catch {
@@ -51,12 +54,21 @@ export function start(app: AppApi): void {
   };
   const known = (urns: number[]) => urns.filter((u) => data.byUrn.has(u));
   const fromLink = parseShortlist(new URLSearchParams(location.search).get('compare'));
-  try {
-    list = known(fromLink.length ? fromLink : parseShortlist(localStorage.getItem(STORE)));
-  } catch {
+  const saved = (): number[] => {
+    try {
+      return known(parseShortlist(localStorage.getItem(STORE)));
+    } catch {
+      return [];
+    }
+  };
+  // Opening a link shows its list without touching the viewer's own saved shortlist
+  let mine = saved();
+  if (fromLink.length) {
     list = known(fromLink);
+    shared = shortlistValue(list) !== shortlistValue(mine);
+  } else {
+    list = mine;
   }
-  if (fromLink.length) save();
   const school = (urn: number) => data.byUrn.get(urn)!.properties;
   const isState = (urn: number) => school(urn).sector === 'state';
 
@@ -79,8 +91,11 @@ export function start(app: AppApi): void {
   };
 
   function renderPanel(): void {
-    panel.hidden = list.length === 0;
-    panel.innerHTML = `<h2>Shortlist (${list.length} of ${MAX_SHORTLIST})</h2><ul>${list
+    panel.hidden = list.length === 0 && !shared;
+    const banner = shared
+      ? `<p class="cmp-shared" role="status">You are viewing a shared shortlist. Your own saved shortlist (${mine.length} school${mine.length === 1 ? '' : 's'}) has not been changed.</p><div class="cmp-actions"><button type="button" class="cmp-btn" data-cmp="keep">Save as my shortlist</button><button type="button" class="link-button" data-cmp="mine">Back to mine</button></div>`
+      : '';
+    panel.innerHTML = `<h2>${shared ? 'Shared shortlist' : 'Shortlist'} (${list.length} of ${MAX_SHORTLIST})</h2>${banner}<ul>${list
       .map((u) => `<li><button type="button" class="link-button" data-cmp-open="${u}">${esc(school(u).name)}</button><button type="button" class="cmp-x" data-cmp-remove="${u}" aria-label="Remove ${esc(school(u).name)} from the shortlist">✕</button></li>`)
       .join('')}</ul><div class="cmp-actions"><button type="button" class="cmp-btn" data-cmp="compare"${list.length < 2 ? ' disabled' : ''}>Compare</button><button type="button" class="link-button" data-cmp="map">Show on map</button><button type="button" class="link-button" data-cmp="copy">Copy link</button></div>${list.length < 2 ? '<p class="note">Add at least two schools (from a school’s popup) to compare them.</p>' : ''}`;
     refreshButtons();
@@ -97,6 +112,7 @@ export function start(app: AppApi): void {
 
   function change(next: number[]): void {
     list = next;
+    if (!shared) mine = next;
     save();
     renderPanel();
     if (app.focusValue('compare')) void app.setFocus('compare', list.length ? shortlistValue(list) : '');
@@ -144,6 +160,14 @@ export function start(app: AppApi): void {
         return void app.setFocus('compare', shortlistValue(list));
       case 'copy':
         return void copyLink(act);
+      case 'keep':
+        shared = false;
+        mine = list;
+        save();
+        return renderPanel();
+      case 'mine':
+        shared = false;
+        return change(mine);
       case 'close':
         return dialog.close();
       case 'similar': {
