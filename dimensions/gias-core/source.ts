@@ -10,7 +10,7 @@ export const sources: SourceDef[] = [
     publisher: 'Department for Education',
     licence: 'OGL v3',
     updated: 'daily',
-    usedFor: 'Location, type, status, age range, gender, sixth form, admissions policy, religion, trust, website',
+    usedFor: 'Location, type, pupils on roll, capacity, status, age range, gender, sixth form, admissions policy, religion, trust, website',
     notes: 'Windows-1252. Gives British National Grid easting/northing, which are converted to WGS84 with `proj4`.',
     encoding: 'windows-1252',
     // A dated extract (edubasealldataYYYYMMDD.csv) is published every day; today's may not exist yet early in the morning.

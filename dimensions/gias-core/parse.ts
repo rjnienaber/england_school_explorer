@@ -1,5 +1,5 @@
 import proj4 from 'proj4';
-import { num, readCsv, text } from '../../lib/csv.ts';
+import { num, readCsvShared, text } from '../../lib/csv.ts';
 
 export interface GiasSchool {
   urn: number;
@@ -45,7 +45,7 @@ function normaliseWebsite(url: string | null): string | null {
 export async function loadGias(file: string): Promise<Map<number, GiasSchool>> {
   const schools = new Map<number, GiasSchool>();
 
-  for await (const row of readCsv(file, 'windows-1252')) {
+  for await (const row of readCsvShared(file, 'windows-1252')) {
     const urn = num(row.URN);
     if (urn === null) continue;
     const status = row['EstablishmentStatus (name)'] ?? '';
