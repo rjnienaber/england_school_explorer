@@ -1,0 +1,46 @@
+# Checks every pull request: types, tests, a full build and the data size budgets (budgets.json).
+# Downloaded data is cached (see below), so a warm run does no downloading.
+name: CI
+
+on:
+  pull_request:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci
+      - run: npm run typecheck
+      # Module tests use the small fixtures in dimensions/*/fixtures/, so they need no downloaded data
+      - run: npm test
+
+      # data/ is large and slow to download. The key changes every month (data refreshes monthly)
+      # and whenever any module's source.ts changes. A cache from earlier in the same month is
+      # still used when only a source changed: `npm run fetch` skips files it already has and
+      # downloads the missing or new ones. The Deploy workflow fills the cache on master.
+      - id: month
+        run: echo "month=$(date -u +%Y-%m)" >> "$GITHUB_OUTPUT"
+      - uses: actions/cache@v6
+        with:
+          path: data
+          key: data-${{ steps.month.outputs.month }}-${{ hashFiles('dimensions/*/source.ts') }}
+          restore-keys: data-${{ steps.month.outputs.month }}-
+      - run: npm run fetch
+      - run: npm run build:release
+
+      # The live site's manifest is only for the "change" column; the check works without it
+      - run: curl -fsSL -o "$RUNNER_TEMP/previous-manifest.json" https://rjnienaber.github.io/uk_schools_performance/data/manifest.json || true
+      - run: npm run check-budgets -- --previous "$RUNNER_TEMP/previous-manifest.json"

@@ -1,6 +1,10 @@
 # Fetches the latest DfE, GIAS and Ofsted data, rebuilds the site and publishes it to
 # GitHub Pages. Runs monthly (after Ofsted's monthly data and before the new month's
 # inspections pile up), on pushes to master, and on demand from the Actions tab.
+#
+# Production always gets freshly downloaded data: the cache is never restored here (`fetch
+# --force` re-downloads everything). The downloaded files are saved afterwards so that pull
+# request runs (ci.yml) start warm.
 name: Deploy
 
 on:
@@ -30,9 +34,22 @@ jobs:
           cache: npm
       - run: npm ci
       - run: npm run typecheck
-      - run: npm run fetch
-      - run: npm run build:release
       - run: npm test
+      - run: npm run fetch -- --force
+      - id: month
+        run: echo "month=$(date -u +%Y-%m)" >> "$GITHUB_OUTPUT"
+      # Same key as ci.yml. A cache can't be overwritten, so this only adds one when none exists
+      # for this month and these sources (a "Unable to reserve cache" warning is normal otherwise).
+      - uses: actions/cache/save@v6
+        with:
+          path: data
+          key: data-${{ steps.month.outputs.month }}-${{ hashFiles('dimensions/*/source.ts') }}
+      - run: npm run build:release
+      # Reports the sizes in the run summary. Not a gate here (pull requests are): a source
+      # growing on its own should not stop the monthly refresh.
+      - run: curl -fsSL -o "$RUNNER_TEMP/previous-manifest.json" https://rjnienaber.github.io/uk_schools_performance/data/manifest.json || true
+      - run: npm run check-budgets -- --previous "$RUNNER_TEMP/previous-manifest.json"
+        continue-on-error: true
       - uses: actions/upload-pages-artifact@v5
         with:
           path: dist

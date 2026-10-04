@@ -15,6 +15,7 @@
     "build:data": "node --disable-warning=ExperimentalWarning scripts/build-data.ts",
     "build:web": "node --disable-warning=ExperimentalWarning scripts/build-web.ts",
     "build:release": "npm run build:data && node --disable-warning=ExperimentalWarning scripts/build-web.ts --release",
+    "check-budgets": "node --disable-warning=ExperimentalWarning scripts/check-budgets.ts",
     "watch": "node --disable-warning=ExperimentalWarning scripts/build-web.ts --watch",
     "serve": "node --disable-warning=ExperimentalWarning scripts/serve.ts",
     "start": "npm run fetch && npm run build && npm run serve",

@@ -51,10 +51,18 @@ function makeScope(schools: ScopeSchool[]): Scope {
 
 export async function buildStore(
   order: LoadedDimension[],
-  opts: { storeFile?: string; minSchools?: number; log?: (msg: string) => void } = {},
+  opts: {
+    storeFile?: string;
+    minSchools?: number;
+    log?: (msg: string) => void;
+    /** Where a source's file lives. Defaults to data/<file>; tests point it at committed fixtures. */
+    dataFile?: (def: SourceDef) => string;
+    /** Sources of modules that are not being built but whose files a built module reads (tests only). */
+    moreSources?: SourceDef[];
+  } = {},
 ): Promise<BuildOutcome> {
-  const { storeFile = STORE_FILE, minSchools = MIN_SCHOOLS, log = console.log } = opts;
-  const sourceDefs = new Map<string, SourceDef>(order.flatMap((d) => d.sources.map((s) => [s.id, s] as const)));
+  const { storeFile = STORE_FILE, minSchools = MIN_SCHOOLS, log = console.log, dataFile = (def) => dataPath(def.file ?? `${def.id}.csv`), moreSources = [] } = opts;
+  const sourceDefs = new Map<string, SourceDef>([...moreSources, ...order.flatMap((d) => d.sources)].map((s) => [s.id, s] as const));
   const sources = readSourceUrls();
   const warnings: string[] = [];
 
@@ -90,7 +98,7 @@ export async function buildStore(
       dataPath: (sourceId) => {
         const def = sourceDefs.get(sourceId);
         if (!def) throw new Error(`${id}: unknown source "${sourceId}"`);
-        const file = dataPath(def.file ?? `${sourceId}.csv`);
+        const file = dataFile(def);
         if (!existsSync(file)) throw new Error(`${id}: ${file} is missing; run "npm run fetch"`);
         return file;
       },

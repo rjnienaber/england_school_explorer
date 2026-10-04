@@ -18,6 +18,7 @@ dimensions/absence/
   build.ts    fields + build(): rows for each school   (required)
   web.ts      modes, filters, popup sections, About text  (optional: data with no UI is fine)
   test.ts     tests                                (required)
+  fixtures/   a few rows of each source you add     (required if you add a source)
 ```
 
 How the pieces connect:
@@ -171,7 +172,7 @@ Rules of thumb:
 
 - `core.json`: school ids, positions and every `core` field as columns (enums as integers, booleans
   as 0/1, so key names are not repeated per school), plus the field table and the field lists
-  found above. Budget: 150 KB gzipped.
+  found above. Budget: 200 KB gzipped (see "Size budgets").
 - `modes/<field>.json`: one column per `mode` field, in core's order. Fetched when a mode or
   filter first reads it; a second use costs nothing.
 - `details/<n>.json`: **all** non-core fields (`mode` ones too) for the ~65 schools whose
@@ -377,29 +378,95 @@ under the title (`'Ofsted to 31 August 2026'`). Provide both for every source yo
 
 ## Tests (test.ts)
 
-Run with `node:test` and `node:assert/strict`. Every dimension needs a `test.ts` that:
+Run with `node:test` and `node:assert/strict`. Every dimension needs a `test.ts`. Tests work from
+**small committed fixtures**, never from `data/`, so they run in CI before anything is
+downloaded, and on a fresh clone.
 
-1. Tests pure parsing/logic (bands, parsers, mappings) with small inline fixtures, no data needed.
-2. Checks a few known schools against the built store, using the helper:
+### Fixtures
+
+For each source you add, commit a few-row extract at
+`dimensions/<id>/fixtures/<file>`, where `<file>` is the name `fetch` gives it (`data/<source id>.csv`,
+or `SourceDef.file`). It must be in the same encoding the real file is (`SourceDef.encoding`), though
+ASCII is fine. Keep the real header names (or at least every column you read) and:
+
+- use URNs from the schools already in the map fixtures (`dimensions/gias-core/fixtures/gias.csv` and
+  `dimensions/ks4-headline/fixtures/ks4.csv`: 20 schools, 100049 Haverstock School among them); rows for any
+  other URN are dropped as out of scope. A handful is enough for most modules; use all 20 if you rank or fit
+  (percentiles, as `intake-model` does);
+- include a school with **suppressed values** (`z`, `c`, `x`, `SUPP`...), one that is independent, and one
+  that has no row at all in your source;
+- extract rows with a throwaway script from the real file, and write the expected values from the source
+  rows, not from your own parser's output. Do not commit full files (more than a few dozen KB is too many).
+
+### Template
 
 ```ts
-import { moduleRows, skipWithoutStore } from '../../lib/test-store.ts';
-import { module } from './build.ts';
+import assert from 'node:assert/strict';
+import { test } from 'node:test';
+import { buildFromFixtures } from '../../lib/test-fixtures.ts';
+import { loadAbsence } from './parse.ts';
 
-test('a known school', skipWithoutStore, () => {
-  const r = moduleRows('school-size', module.fields).get(100049);
-  assert.equal(r?.bigSchool, false);
+const fixture = new URL('./fixtures/absence.csv', import.meta.url).pathname;
+
+// 1. The parser, on the fixture file directly: known URNs, and suppression codes become null
+test('absence parser: a known school, and suppressed values are null', async () => {
+  const absence = await loadAbsence(fixture);
+  assert.equal(absence.get(100049)?.overall, 8.1);   // from the fixture row, not from the parser
+  assert.equal(absence.get(109694)?.overall, null);  // "x" in the source
+});
+
+// 2. The whole module: runs build() on fixtures (plus the modules it dependsOn) into a throwaway store
+test('absence: values on the stored rows', async () => {
+  const { rows } = await buildFromFixtures('absence');
+  const r = rows('absence').get(100049);
+  assert.equal(r?.absenceOverallPct, 8.1);
+  assert.equal(rows('absence').has(100001), false);   // independent schools are not in this source
+  for (const [urn, row] of rows('absence')) {
+    const pct = row.absenceOverallPct as number | null;
+    assert.ok(pct === null || (pct >= 0 && pct <= 100), `${urn}: ${String(pct)}`);
+  }
 });
 ```
 
-`skipWithoutStore` skips those tests when `build/schools.sqlite` does not exist, so
-`npm test` passes on a fresh clone. CI builds first, so they run there. Pick URNs from the real
-output and write the expected values from the source file, not from your own code's output.
-Also assert invariants (values within range, enums valid, expected coverage).
+`buildFromFixtures(id)` returns `{ rows(moduleId), extra(moduleId, table), urns, metadata }`: the
+decoded rows of the module (and of any module it depends on) exactly as the real build stores them. It
+builds once per test file, in well under a second. A module that reads another module's source
+without depending on it (as `gias-core` does with `ks4`) finds that fixture in the owner's folder.
+
+Also assert invariants (values within range, enums valid) and every suppression code your source
+uses. Pure logic (bands, mappings) can use inline values. Percentiles and fits over 20 schools differ
+from the real ones, so test them against a hand calculation (see `intake-model/test.ts`), not real values.
+
+Checks against the real build (`build/schools.sqlite`) are still possible with
+`moduleRows` and `skipWithoutStore` from `lib/test-store.ts`, but they skip on a clean clone and in CI's test
+step, so prefer fixtures.
 
 Run one module's tests: `node --disable-warning=ExperimentalWarning --test dimensions/<id>/test.ts`.
 `npm test` runs everything: every `dimensions/*/test.ts`, plus `lib/*.test.ts`, `web/*.test.ts`
 and `scripts/*.test.ts`.
+
+## Size budgets
+
+`budgets.json` holds the limits that CI enforces on pull requests (`npm run check-budgets`, after a
+build). Gzipped, as downloaded:
+
+| File | Budget | When this was set |
+| --- | --- | --- |
+| `core.json` (every visitor) | 200 KB | about 111 KB |
+| each `modes/<field>.json` | 50 KB | largest about 7 KB |
+| each `details/<n>.json` | 40 KB | largest about 8 KB |
+| JS bundle (`app.js` + `maplibre-gl-shared.mjs`) | baseline +10% | about 436 KB |
+
+These leave room for about 25 more dimensions. If your change fails a budget:
+
+1. Check the placements first: a field only the popup shows is `detail`, not `mode`; only fields that the
+   default mode or a default-on filter read belong in `core`.
+2. Don't store free text or long arrays as fields; summarise them.
+3. Only if the growth is intended, raise the number in `budgets.json` and say why in the pull request (and for
+   the bundle, update `baselineGzipKB`).
+
+`npm run check-budgets -- --previous <manifest path or URL>` also shows the change against an earlier
+manifest (CI uses the live site's). The table is also written to the Actions run summary.
 
 ## What the build checks for you
 
@@ -436,13 +503,13 @@ report rather than hiding it.)
 
 ## Definition of done
 
-- [ ] `npm run typecheck`, `npm test` and `npm run build` pass; about 4,150 schools still come out.
+- [ ] `npm run typecheck`, `npm test` and `npm run build` pass; about 4,150 schools still come out; `npm run check-budgets` passes.
 - [ ] `diff-geojson --allow-new-properties` shows 0 differences against the previous build (it rebuilds school records from `dist/data` first). `build:data` also verifies the files against the store.
 - [ ] Browser check (Playwright): the new mode, filter and popup work; no console errors;
       screenshots in light, dark and 390 px wide.
 - [ ] Data size reported before and after from `dist/data/manifest.json` (core, largest mode column, largest shard, total; gzipped).
 - [ ] Fields have honest placements, labels and descriptions; derived measures say they are derived.
-- [ ] `test.ts` covers parsing and known schools.
+- [ ] `test.ts` and `fixtures/` cover parsing, known schools and suppressed values, without needing `data/`.
 - [ ] No files outside `dimensions/<id>/` changed, except deliberate framework growth (explain it).
       The README sources table is regenerated, not hand-edited: commit the result of `npm run generate`.
 - [ ] README "How schools are compared" updated if you added a mode or a derived measure.

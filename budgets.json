@@ -1,0 +1,21 @@
+{
+  "about": "Size budgets checked by scripts/check-budgets.ts (npm run check-budgets) in CI. All sizes are gzipped bytes of what a visitor downloads. Raising a number is a deliberate, reviewable change: say why in the pull request. Do not raise one just to turn CI green; move the field to a later-loaded placement first (see docs/adding-a-dimension.md).",
+  "core": {
+    "maxGzipKB": 200,
+    "why": "dist/data/core.json is fetched by every visitor before the map can draw, so it is the first-load cost. It was about 111 KB when the budget was set. 200 KB leaves room for roughly 25 more dimensions that each add a field or two to core (a default mode or filter), while stopping a dimension that puts a whole table in core. Most new fields belong in modes/ or details/."
+  },
+  "mode": {
+    "maxGzipKB": 50,
+    "why": "Each dist/data/modes/<field>.json is one column for every school, fetched the first time a mode, filter or the list uses it. Today the largest is about 7 KB. A single column over 50 KB means it is not a column of numbers or short codes (free text, or something per-school that belongs in details/)."
+  },
+  "detail": {
+    "maxGzipKB": 40,
+    "why": "Each dist/data/details/<n>.json holds every non-core field for about 65 schools and is fetched when a popup opens. Today the largest is about 8 KB. 40 KB leaves room for about 25 more dimensions of popup fields, yet a popup stays quick on a slow connection. If this is hit, check for long free text or per-subject tables stored as fields."
+  },
+  "bundle": {
+    "files": ["app.js", "maplibre-gl-shared.mjs"],
+    "baselineGzipKB": 436,
+    "maxGrowthPercent": 10,
+    "why": "The JavaScript a visitor downloads before the page works (the app, which includes every dimension's web.ts, plus the shared MapLibre chunk). It may grow by 10% over this recorded baseline. When a change legitimately takes it past that (for example a batch of new dimensions), update baselineGzipKB in the same pull request and explain it. The number is the sum of the two files gzipped at level 9, as printed by the check."
+  }
+}

@@ -30,7 +30,8 @@ Or run the steps separately:
 | `npm run watch` | Rebuilds the web bundle on change. |
 | `npm run serve` | Serves `dist/` locally (`PORT` to override 8080). |
 | `npm run typecheck` | Generates, then `tsc` over the Node code and the browser code. |
-| `npm test` | Runs every `test.ts` with `node --test`. Tests that need data skip themselves until `build:data` has run. |
+| `npm test` | Runs every `test.ts` with `node --test`. Module tests build from small committed fixtures (`dimensions/<id>/fixtures/`), so they need no `data/`. |
+| `npm run check-budgets` | After a build, checks `dist/` against the size budgets in `budgets.json` and prints a table. Fails when one is exceeded. |
 
 To publish, upload `dist/` to any static host (for example GitHub Pages, Cloudflare Pages
 or DreamHost). Source maps (`*.map`) are optional.
@@ -44,6 +45,11 @@ Live at **https://rjnienaber.github.io/uk_schools_performance/** via GitHub Page
 - monthly, on the 10th, to pick up Ofsted's monthly update (and the yearly KS4 results
   when they appear);
 - on demand: Actions → Deploy → Run workflow.
+
+Deploys always download fresh data (`fetch --force`). Pull requests run `.github/workflows/ci.yml`
+(typecheck, tests, build, size budgets); it caches `data/` per month and per set of
+`source.ts` files, using the copy the last deploy saved, so a warm run downloads nothing.
+Raising a budget in `budgets.json` is a deliberate change: explain it in the pull request.
 
 Nothing is committed back to the repo: `data/` and `dist/` are rebuilt on every run. The
 build fails (and the live site stays as it was) if fewer than 3,500 schools come out,
@@ -72,6 +78,7 @@ dimensions/<id>/      one folder per kind of data; the only place a new dimensio
   build.ts            declares the fields and turns the source into rows
   web.ts              colour modes, filters, popup sections, About text
   test.ts             tests for this module
+  fixtures/           a few rows of each source, so tests run without data/
 lib/                  the framework: module types, build store, pipeline, generators
 scripts/              thin runners: fetch, generate, build-data, build-web, serve, diff-geojson, verify-data
 web/                  the browser shell: map, list, search, popup framework, toolkit, palettes
