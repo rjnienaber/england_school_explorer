@@ -122,7 +122,7 @@ nothing").
 
 ```ts
 { type: 'number' | 'string' | 'boolean' | 'enum', placement, label, description?, source?,
-  year?, nullable?, default?, decimals? (number), unit? (number), values (enum) }
+  year?, nullable?, default?, lazy?, decimals? (number), unit? (number), values (enum) }
 ```
 
 - `label` is plain English; `description` says what it is and any caveat. These are published in the monthly
@@ -179,8 +179,8 @@ Rules of thumb:
   found above. Budget: 200 KB gzipped (see "Size budgets").
 - `modes/<field>.json`: one column per `mode` field, in core's order. Fetched when a mode or
   filter first reads it; a second use costs nothing.
-- `details/<n>.json`: **all** non-core fields (`mode` ones too) for the ~32 schools whose
-  `urn % 128 == n`. A popup is one request however many fields it reads. Missing values (null or
+- `details/<n>.json`: **all** non-core fields (`mode` ones too) for up to 40 schools (about 32 today) whose
+  `urn % shards == n`. A popup is one request however many fields it reads. Missing values (null or
   the field's default) are left out.
 - `manifest.json`: raw and gzipped size of every file, for budget checks.
 
@@ -455,8 +455,47 @@ comparison is one). `start(app)` runs once the map and data are loaded and gets 
 dynamic `import()`: the Node-side build loads every `web.ts` and must never see DOM or CSS imports (the node
 tsconfig excludes `web.ts` and `web-*.ts`; the web one includes them). CSS imported there is bundled into
 `app.css`. A failing extension is logged and does not stop the map. Fields it needs for every school can be
-`mode` placement even if no mode reads them (the build only notes this); it loads them with
-`data.ensureFields`. See `dimensions/compare/`.
+`mode` placement even if no mode reads them; mark such a field `lazy: true` so the build does not note that
+nothing reads it. The extension loads the columns with `data.ensureFields`. See `dimensions/compare/`.
+
+## Reusable pieces for later modules
+
+Several features have already been built from the same few parts. Reuse them rather than adding new
+plumbing to `web/main.ts`.
+
+**Focus (chip) filters and deep links.** Any "these schools" view (a trust, similar schools, a shortlist) is a
+`chip` filter. You do not write URL code for it. `web/main.ts` does this for every chip filter:
+
+- `setFocus(chip, value)` turns it on or off (`''`), loads the columns its `test`, `chipText` and `summary` read,
+  ignores a value that matches no school, closes the popup, and fits the map to the matching schools with
+  `fitToSchools`. Open it from a popup with `h.filterButton(id, value, label)`; from an extension call
+  `app.setFocus(id, value)` (and `app.focusValue(id)` to read it).
+- `syncUrl()` keeps the address in step: `?urn=<school>` for the open popup and `?<chip id>=<value>` for each
+  active focus filter, with commas left readable. At start-up the same parameters are read back, so a shared
+  link (`?trust=17396`, `?similar=100049-...`, `?compare=1,2,3`) reproduces the view. A value matching no
+  school is dropped. A chip filter is never saved in localStorage.
+- `fitToSchools` and `syncUrl` are internal to `main.ts`; a module only needs to add the chip filter. The value's
+  format is yours (trust: a trust code; similar: URNs joined by `-`; compare: URNs joined by `,`). Cache the parsed
+  set in a `Map` as `similar-schools/web.ts` and `compare/web.ts` do, because `test` runs once per school on each redraw.
+
+**The similar-schools set.** `dimensions/similar-schools/shared.ts` is browser-safe and shared by that module's
+build and web code and by `compare`. A school's `similarUrns` field holds the URNs of its nearest schools joined by
+`-`. `parseSimilar(similarUrns)` returns them as numbers, `similarFocusValue(urn, similarUrns)` builds the value for the
+`similar` focus filter (the school first, then its set), and `rankAmong(value, others, higherIsBetter)` gives
+`{ rank, of }` (1 is best, ties share the better place) for placing a school among a set. Use these instead of
+re-parsing the field, and import them from `shared.ts` (not `web.ts`) so no filter is registered twice.
+
+**The `extensions` export.** For a feature with its own screen (`compare` is the example; its `web.ts` also
+exports a chip filter and a popup section that the extension wires up). `extensions: [{ id, start(app) }]`, with the DOM
+code behind a dynamic `import()` of `web-ui.ts` (see "`extensions`" above).
+
+**Groups.** A popup section's `group` (a key of `POPUP_GROUPS`) and a checkbox or select filter's `group` (a key of
+`FILTER_GROUPS`), both in `web/toolkit.ts`, put it in a collapsible section. Leave `group` out for something that
+should always show. Add a new group only if none fits; a popup group with one section uses that section's title.
+
+**The metadata argument.** `render(p, h, extra, meta)` of a popup section, and `summary(schools, value, h, meta)`
+of a chip filter, get the dataset metadata as an optional last argument (national medians, data years). It is
+`undefined` while the build traces which fields a piece reads, so write `meta?.x` and cope with its absence.
 
 ## Tests (test.ts)
 
