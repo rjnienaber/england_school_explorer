@@ -199,6 +199,9 @@ schools in the list are usually not meaningful.
 - The map shows where schools are, not who can get in. Admissions depend on catchment,
   faith and selection criteria. Check the local authority's allocation data.
 - Ofsted grades can be many years old. The popup shows the inspection date.
+- Each popup ends with "More information" links built from the URN: DfE's school performance tables, the
+  GIAS register entry and, for state-funded schools only (independent schools have no data there), the
+  Financial Benchmarking and Insights Tool. They are plain links and are not checked at build time.
 
 ## Licence
 

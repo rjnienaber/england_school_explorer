@@ -1,4 +1,4 @@
-import type { FilterDef, PopupTagDef, SourceNoteDef } from '../../web/toolkit.ts';
+import type { FilterDef, PopupSectionDef, PopupTagDef, SourceNoteDef } from '../../web/toolkit.ts';
 
 export const filters: FilterDef[] = [
   {
@@ -53,6 +53,26 @@ export const popupTags: PopupTagDef[] = [
   { id: 'sixthForm', order: 30, tag: (p) => (p.sixthForm ? { text: 'Sixth form' } : null) },
   { id: 'religion', order: 40, tag: (p) => (p.religion ? { text: p.religion } : null) },
   { id: 'trust', order: 50, tag: (p) => (p.trust ? { text: p.trust } : null) },
+];
+
+// Links to the school's own pages on the official sites, all keyed by URN. Checked against live
+// pages for an academy, a maintained and an independent school. The performance tables redirect
+// /school/{urn} to /school/{urn}/{name-slug}, which is fine. The finance tool (FBIT) covers
+// state-funded schools only: it answers 404 for independent ones, so that link is left out.
+export const popupSections: PopupSectionDef[] = [
+  {
+    id: 'official-links',
+    order: 90,
+    title: 'More information',
+    render: (p, h) => {
+      const links = [
+        h.link(`https://www.compare-school-performance.service.gov.uk/school/${p.urn}`, 'Performance tables'),
+        h.link(`https://get-information-schools.service.gov.uk/Establishments/Establishment/Details/${p.urn}`, 'School register'),
+        p.sector === 'state' ? h.link(`https://financial-benchmarking-and-insights-tool.education.gov.uk/school/${p.urn}`, 'Finances') : null,
+      ].filter((l) => l !== null);
+      return h.meta(h.html`${links.flatMap((l, i) => (i ? [' · ', l] : [l]))}`);
+    },
+  },
 ];
 
 export const sourceNotes: SourceNoteDef[] = [

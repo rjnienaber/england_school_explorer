@@ -1,7 +1,9 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
 import { buildFromFixtures } from '../../lib/test-fixtures.ts';
+import { h, type School } from '../../web/toolkit.ts';
 import { loadGias } from './parse.ts';
+import { popupSections } from './web.ts';
 
 const fixture = new URL('./fixtures/gias.csv', import.meta.url).pathname;
 
@@ -48,4 +50,15 @@ test('gias-core: sectors, selection and who is left out', async () => {
     assert.ok(row.sector === 'state' || row.sector === 'independent', `${urn} sector ${String(row.sector)}`);
     assert.ok(typeof row.name === 'string' && row.name.length > 0, `${urn} has no name`);
   }
+});
+
+test('official links: finances only for state-funded schools', () => {
+  const render = (sector: string) => popupSections[0].render({ urn: 100049, sector } as School, h, () => [])?.value ?? '';
+  const state = render('state');
+  assert.match(state, /compare-school-performance\.service\.gov\.uk\/school\/100049"/);
+  assert.match(state, /Establishments\/Establishment\/Details\/100049"/);
+  assert.match(state, /financial-benchmarking-and-insights-tool\.education\.gov\.uk\/school\/100049"/);
+  const independent = render('independent');
+  assert.match(independent, /Performance tables/);
+  assert.doesNotMatch(independent, /Finances|financial-benchmarking/);
 });
