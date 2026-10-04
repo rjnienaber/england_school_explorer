@@ -52,6 +52,7 @@ export const popupSections: PopupSectionDef[] = [
   },
   {
     // Other modules add rows with popupRows { section: 'gcse', slot: 'after-average' } (or no slot, for the end).
+    // Slots: 'after-average', 'after-engmaths', 'after-ebacc'.
     id: 'gcse',
     order: 20,
     title: (p) => (p.att8 === null ? 'GCSE results' : `GCSE results ${p.ks4Year ?? ''}`),
@@ -66,7 +67,9 @@ export const popupSections: PopupSectionDef[] = [
         p.att8Years > 1 && [`${p.att8Years}-year average`, fmt(p.att8Avg)],
         ...extra('after-average'),
         ['English & maths grade 5+', fmt(p.engMaths5, 0, '%')],
+        ...extra('after-engmaths'), // grade 4+ and 5-GCSE rows from ks4-pass-rates
         ['Entering EBacc', fmt(p.ebaccEntry, 0, '%')],
+        ...extra('after-ebacc'),
         p.ks4Cohort !== null && ['Pupils in year group', String(p.ks4Cohort)],
         ...extra(), // includes the disadvantaged-pupil rows from ks4-disadvantaged
       ]);

@@ -1,15 +1,15 @@
-time_period,school_urn,school_name,establishment_type_group,breakdown,pupil_count,pupil_percent,attainment8_average,engmath_95_percent,ebacc_entering_percent,progress8_average,progress8_lower_95_ci,progress8_upper_95_ci
-202425,100001,City of London School for Girls,Independent schools,Total,100,100,49.7,0,0,z,z,z
+time_period,school_urn,school_name,establishment_type_group,breakdown,pupil_count,pupil_percent,attainment8_average,engmath_95_percent,ebacc_entering_percent,progress8_average,progress8_lower_95_ci,progress8_upper_95_ci,engmath_94_percent,gcse_five_engmath_percent,ebacc_94_percent,ebacc_95_percent
+202425,100001,City of London School for Girls,Independent schools,Total,100,100,49.7,0,0,z,z,z,0,0,0,0
 202425,100001,City of London School for Girls,Independent schools,Disadvantaged,z,z,z,z,z,z,z,z
-202425,100049,Haverstock School,Community school,Total,146,100,41.5,37,27.4,z,z,z
+202425,100049,Haverstock School,Community school,Total,146,100,41.5,37,27.4,z,z,z,64.4,55.5,17.1,13.7
 202425,100049,Haverstock School,Community school,Disadvantaged,117,80.1,39.8,31.6,26.5,z,z,z
 202425,100050,Parliament Hill School,Community school,Total,179,100,57.1,59.2,41.9,z,z,z
 202425,100050,Parliament Hill School,Community school,Disadvantaged,72,40.2,46.5,34.7,31.9,z,z,z
-202425,100052,Hampstead School,Community school,Total,202,100,43.1,42.6,23.8,z,z,z
+202425,100052,Hampstead School,Community school,Total,202,100,43.1,42.6,23.8,z,z,z,67.2,60.1,12.5,9.8
 202425,100052,Hampstead School,Community school,Disadvantaged,111,55,39.9,37.8,18.9,z,z,z
 202425,100055,Maria Fidelis Catholic School FCJ,Voluntary aided school,Total,143,100,41.9,35,53.1,z,z,z
 202425,100055,Maria Fidelis Catholic School FCJ,Voluntary aided school,Disadvantaged,88,61.5,38.9,29.5,48.9,z,z,z
-202425,100193,St Ursula's Convent School,Voluntary aided school,Total,116,100,55.1,62.1,83.6,z,z,z
+202425,100193,St Ursula's Convent School,Voluntary aided school,Total,116,100,55.1,62.1,83.6,z,z,z,85.3,84.1,70.2,64.9
 202425,100193,St Ursula's Convent School,Voluntary aided school,Disadvantaged,23,19.8,48.9,43.5,78.3,z,z,z
 202425,100455,Highbury Fields School,Community school,Total,134,100,57.4,61.9,48.5,z,z,z
 202425,100455,Highbury Fields School,Community school,Disadvantaged,72,53.7,52.1,50,40.3,z,z,z
@@ -29,7 +29,7 @@ time_period,school_urn,school_name,establishment_type_group,breakdown,pupil_coun
 202425,108058,Allerton Grange School,Community school,Disadvantaged,91,29.9,36,22,78,z,z,z
 202425,108640,Burnside College,Foundation school,Total,131,100,44.2,30.5,74,z,z,z
 202425,108640,Burnside College,Foundation school,Disadvantaged,42,32.1,38.2,23.8,61.9,z,z,z
-202425,109319,Brimsham Green School,Community school,Total,152,100,44.9,43.4,16.4,z,z,z
+202425,109319,Brimsham Green School,Community school,Total,152,100,44.9,43.4,16.4,z,z,z,z,z,z,z
 202425,109319,Brimsham Green School,Community school,Disadvantaged,18,11.8,29.1,11.1,16.7,z,z,z
 202425,109707,Queen Elizabeth School,Foundation school,Total,200,100,39.9,34.5,72.5,z,z,z
 202425,109707,Queen Elizabeth School,Foundation school,Disadvantaged,71,35.5,33,23.9,57.7,z,z,z
@@ -41,7 +41,7 @@ time_period,school_urn,school_name,establishment_type_group,breakdown,pupil_coun
 202425,135897,The Basildon Upper Academy,Sponsored academies,Disadvantaged,133,45.5,22.1,11.3,57.9,z,z,z
 202324,100001,City of London School for Girls,Independent schools,Total,97,100,60.3,0,0,z,z,z
 202324,100001,City of London School for Girls,Independent schools,Disadvantaged,z,z,z,z,z,z,z,z
-202324,100049,Haverstock School,Community school,Total,156,100,44.2,47.4,27.6,-0.2,-0.44,0.04
+202324,100049,Haverstock School,Community school,Total,156,100,44.2,47.4,27.6,-0.2,-0.44,0.04,70.1,60,19.5,14
 202324,100049,Haverstock School,Community school,Disadvantaged,113,72.4,42.6,43.4,23,-0.29,-0.57,-0.02
 202324,100050,Parliament Hill School,Community school,Total,177,100,58.9,70.1,43.5,0.5,0.28,0.72
 202324,100050,Parliament Hill School,Community school,Disadvantaged,74,41.8,50.1,52.7,29.7,0.18,-0.15,0.51
