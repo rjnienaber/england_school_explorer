@@ -67,10 +67,8 @@ export const popupSections: PopupSectionDef[] = [
         ...extra('after-average'),
         ['English & maths grade 5+', fmt(p.engMaths5, 0, '%')],
         ['Entering EBacc', fmt(p.ebaccEntry, 0, '%')],
-        p.disadvantagedPct !== null && ['Disadvantaged pupils', fmt(p.disadvantagedPct, 0, '%')],
-        p.att8Disadvantaged !== null && ['…their Attainment 8', fmt(p.att8Disadvantaged)],
         p.ks4Cohort !== null && ['Pupils in year group', String(p.ks4Cohort)],
-        ...extra(),
+        ...extra(), // includes the disadvantaged-pupil rows from ks4-disadvantaged
       ]);
       const caveat =
         p.sector === 'independent'

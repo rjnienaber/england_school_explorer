@@ -1,5 +1,6 @@
 // KS4 (GCSE) headline measures: Attainment 8 and its history, Progress 8 with confidence
-// intervals, English and maths, EBacc, and the disadvantaged-pupil figures. Each school gets
+// intervals, English and maths, EBacc, and the disadvantaged-pupil figures (shown, ranked and
+// compared with other pupils by ks4-disadvantaged). Each school gets
 // the latest year with an Attainment 8 score (Progress 8 can be an older year: it wasn't
 // published for the 2024/25 and 2025/26 cohorts).
 
@@ -28,7 +29,7 @@ export const module = defineDimension({
     att8Prev2: { type: 'number', placement: 'detail', label: 'Attainment 8, two years ago', source: 'ks4' },
     att8Avg: { type: 'number', decimals: 1, placement: 'detail', label: 'Attainment 8, average of up to 3 years', source: 'ks4' },
     att8Years: { type: 'number', placement: 'detail', label: 'Years in the Attainment 8 average', source: 'ks4', nullable: false, default: 0 },
-    att8Disadvantaged: { type: 'number', placement: 'detail', label: 'Attainment 8 of disadvantaged pupils', source: 'ks4', year: 'ks4Year' },
+    att8Disadvantaged: { type: 'number', placement: 'mode', label: 'Attainment 8 of disadvantaged pupils', source: 'ks4', year: 'ks4Year' },
     engMaths5: { type: 'number', placement: 'detail', label: 'English and maths grade 5+ (%)', source: 'ks4', year: 'ks4Year' },
     ebaccEntry: { type: 'number', placement: 'detail', label: 'Entering the EBacc (%)', source: 'ks4', year: 'ks4Year' },
     att8Pct: {

@@ -154,7 +154,7 @@ repository, when you reuse it.
 
 ## How schools are compared
 
-The map offers four "colour by" modes. None of them is a single "best school" score, by design.
+The map offers five "colour by" modes. None of them is a single "best school" score, by design.
 
 **Progress 8** (official). Measures pupils' progress from KS2 to GCSE against pupils
 nationally with the same starting point. Schools are banded the way DfE does it: a school is
@@ -175,6 +175,14 @@ their intake is selected on prior attainment, which the model doesn't see.
 state schools. It is the most stable measure year to year (r = 0.97), but it mostly
 reflects intake. Independent schools are shown but not ranked: many take IGCSEs, which
 don't count, so some top schools score near zero.
+
+**Disadvantaged pupils** (our own ranking of official figures). The Attainment 8 score of
+disadvantaged pupils only (free school meals at any time in the last 6 years, or looked after),
+as a percentile among state schools. It partly allows for intake and shows how well a school
+does for pupils who often start behind. Schools with fewer than 10 disadvantaged pupils are not
+ranked: their averages swing too much. The popup also shows other pupils' score and the gap, but
+colour does not use the gap: a small gap can just mean other pupils do badly. Independent
+schools have no data.
 
 **Ofsted**. The latest inspection, summarised to four levels:
 

@@ -14,7 +14,8 @@ test('ids are unique and lists are sorted by order', () => {
 test('the default mode is the lowest order, and an unknown id falls back to it', () => {
   assert.equal(MODES[0].id, 'p8');
   assert.equal(modeById('nonsense'), MODES[0]);
-  assert.deepEqual(MODES.map((m) => m.id), ['p8', 'intake', 'att8', 'ofsted']);
+  // New dimensions' modes start at order 100, so they follow the original four without editing this test
+  assert.deepEqual(MODES.filter((m) => m.order < 100).map((m) => m.id), ['p8', 'intake', 'att8', 'ofsted']);
 });
 
 test('every bucket points at a colour in the palette', () => {

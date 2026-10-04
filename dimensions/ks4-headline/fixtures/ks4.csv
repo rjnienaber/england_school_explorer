@@ -136,3 +136,61 @@ time_period,school_urn,school_name,establishment_type_group,breakdown,pupil_coun
 202324,101361,St Michael's Catholic Grammar School,Voluntary aided school,High prior attainment,112,87.5,80.4,99.1,74.1,0.9,0.64,1.16
 202324,101361,St Michael's Catholic Grammar School,Voluntary aided school,Low prior attainment,0,0,z,z,z,z,z,z
 202324,101361,St Michael's Catholic Grammar School,Voluntary aided school,Mid prior attainment,13,10.2,70.7,92.3,61.5,1.63,0.86,2.4
+202425,100001,City of London School for Girls,Independent schools,Not known to be disadvantaged,z,z,z,z,z,z,z,z
+202425,100049,Haverstock School,Community school,Not known to be disadvantaged,29,19.9,48.8,58.6,31,z,z,z
+202425,100050,Parliament Hill School,Community school,Not known to be disadvantaged,107,59.8,64.1,75.7,48.6,z,z,z
+202425,100052,Hampstead School,Community school,Not known to be disadvantaged,91,45,47,48.4,29.7,z,z,z
+202425,100055,Maria Fidelis Catholic School FCJ,Voluntary aided school,Not known to be disadvantaged,55,38.5,46.9,43.6,60,z,z,z
+202425,100193,St Ursula's Convent School,Voluntary aided school,Not known to be disadvantaged,93,80.2,56.6,66.7,84.9,z,z,z
+202425,100455,Highbury Fields School,Community school,Not known to be disadvantaged,62,46.3,63.5,75.8,58.1,z,z,z
+202425,135315,Ark Walworth Academy,Sponsored academies,Not known to be disadvantaged,45,28.8,48,42.2,77.8,z,z,z
+202425,100977,Stepney All Saints Church of England Secondary School,Voluntary aided school,Not known to be disadvantaged,96,46.8,55.8,65.6,86.5,z,z,z
+202425,101361,St Michael's Catholic Grammar School,Voluntary aided school,Not known to be disadvantaged,116,91.3,78,96.6,71.6,z,z,z
+202425,103519,Moseley School and Sixth Form,Foundation school,Not known to be disadvantaged,83,33.7,42.7,31.3,32.5,z,z,z
+202425,136091,The Phoenix Collegiate,Foundation school,Not known to be disadvantaged,191,57.7,44.6,30.4,49.2,z,z,z
+202425,131726,Holy Family Roman Catholic and Church of England College,Voluntary aided school,Not known to be disadvantaged,112,75.2,47.8,51.8,17,z,z,z
+202425,108058,Allerton Grange School,Community school,Not known to be disadvantaged,213,70.1,53.4,62,89.7,z,z,z
+202425,108640,Burnside College,Foundation school,Not known to be disadvantaged,89,67.9,47.1,33.7,79.8,z,z,z
+202425,109319,Brimsham Green School,Community school,Not known to be disadvantaged,134,88.2,47,47.8,16.4,z,z,z
+202425,109707,Queen Elizabeth School,Foundation school,Not known to be disadvantaged,129,64.5,43.7,40.3,80.6,z,z,z
+202425,109694,Edward Peake CofE VC School,Voluntary controlled school,Not known to be disadvantaged,0,z,z,z,z,z,z,z
+202425,116430,The Clere School,Community school,Not known to be disadvantaged,67,76.1,44.3,47.8,37.3,z,z,z
+202425,135897,The Basildon Upper Academy,Sponsored academies,Not known to be disadvantaged,159,54.5,34.3,28.9,88.7,z,z,z
+202324,100001,City of London School for Girls,Independent schools,Not known to be disadvantaged,z,z,z,z,z,z,z,z
+202324,100049,Haverstock School,Community school,Not known to be disadvantaged,43,27.6,48.4,58.1,39.5,0.07,-0.4,0.54
+202324,100050,Parliament Hill School,Community school,Not known to be disadvantaged,103,58.2,65.1,82.5,53.4,0.75,0.46,1.04
+202324,100052,Hampstead School,Community school,Not known to be disadvantaged,100,49.3,48,44,25,-0.11,-0.39,0.17
+202324,100055,Maria Fidelis Catholic School FCJ,Voluntary aided school,Not known to be disadvantaged,67,51.1,45.2,44.8,25.4,-0.46,-0.81,-0.11
+202324,100193,St Ursula's Convent School,Voluntary aided school,Not known to be disadvantaged,97,75.2,52.4,67,84.5,0.27,-0.03,0.56
+202324,100455,Highbury Fields School,Community school,Not known to be disadvantaged,59,46.5,57.8,71.2,37.3,0.77,0.4,1.15
+202324,135315,Ark Walworth Academy,Sponsored academies,Not known to be disadvantaged,53,34.2,44.2,50.9,52.8,0.06,-0.33,0.44
+202324,100977,Stepney All Saints Church of England Secondary School,Voluntary aided school,Not known to be disadvantaged,101,49.3,58.8,64.4,89.1,0.72,0.44,1
+202324,101361,St Michael's Catholic Grammar School,Voluntary aided school,Not known to be disadvantaged,117,91.4,79.5,98.3,76.1,0.97,0.71,1.23
+202324,103519,Moseley School and Sixth Form,Foundation school,Not known to be disadvantaged,115,46.9,40.7,31.3,34.8,-0.28,-0.55,-0.01
+202324,136091,The Phoenix Collegiate,Foundation school,Not known to be disadvantaged,214,62.8,48.8,46.3,16.8,0.49,0.29,0.69
+202324,131726,Holy Family Roman Catholic and Church of England College,Voluntary aided school,Not known to be disadvantaged,119,79.9,49.1,58,21,-0.19,-0.45,0.06
+202324,108058,Allerton Grange School,Community school,Not known to be disadvantaged,169,63.3,51.5,60.4,91.1,0.15,-0.07,0.37
+202324,108640,Burnside College,Foundation school,Not known to be disadvantaged,103,62,46.6,40.8,71.8,-0.21,-0.49,0.07
+202324,109319,Brimsham Green School,Community school,Not known to be disadvantaged,141,88.1,52.1,56,9.9,0.37,0.13,0.6
+202324,109707,Queen Elizabeth School,Foundation school,Not known to be disadvantaged,144,67,45.9,49.3,75,-0.16,-0.43,0.1
+202324,116430,The Clere School,Community school,Not known to be disadvantaged,57,79.2,42.9,42.1,28.1,-0.52,-0.9,-0.14
+202324,135897,The Basildon Upper Academy,Sponsored academies,Not known to be disadvantaged,187,56.7,33.1,26.7,89.3,-1.06,-1.29,-0.83
+202223,100001,City of London School for Girls,Independent schools,Not known to be disadvantaged,z,z,z,z,z,z,z,z
+202223,100049,Haverstock School,Community school,Not known to be disadvantaged,56,37.1,48.5,48.2,35.7,0.02,-0.43,0.47
+202223,100050,Parliament Hill School,Community school,Not known to be disadvantaged,101,58,65.3,76.2,56.4,0.99,0.69,1.28
+202223,100052,Hampstead School,Community school,Not known to be disadvantaged,108,54.8,49,52.8,23.1,0.09,-0.19,0.37
+202223,100055,Maria Fidelis Catholic School FCJ,Voluntary aided school,Not known to be disadvantaged,61,45.5,47.7,47.5,49.2,-0.06,-0.42,0.3
+202223,100193,St Ursula's Convent School,Voluntary aided school,Not known to be disadvantaged,96,78.7,58,70.8,87.5,0.49,0.21,0.78
+202223,100455,Highbury Fields School,Community school,Not known to be disadvantaged,47,35.1,65.3,83,59.6,1.28,0.85,1.71
+202223,135315,Ark Walworth Academy,Sponsored academies,Not known to be disadvantaged,76,43.9,45.9,51.3,60.5,0.31,-0.01,0.63
+202223,100977,Stepney All Saints Church of England Secondary School,Voluntary aided school,Not known to be disadvantaged,85,43.8,59,74.1,89.4,0.89,0.59,1.19
+202223,101361,St Michael's Catholic Grammar School,Voluntary aided school,Not known to be disadvantaged,94,97.9,c,c,c,c,c,c
+202223,103519,Moseley School and Sixth Form,Foundation school,Not known to be disadvantaged,109,44.1,36.9,25.7,43.1,-0.67,-0.96,-0.38
+202223,136091,The Phoenix Collegiate,Foundation school,Not known to be disadvantaged,197,59.2,45.9,40.6,14.2,0.08,-0.13,0.28
+202223,131726,Holy Family Roman Catholic and Church of England College,Voluntary aided school,Not known to be disadvantaged,117,79.1,48.4,53.8,12,-0.01,-0.27,0.25
+202223,108058,Allerton Grange School,Community school,Not known to be disadvantaged,195,72.2,47.5,50.3,89.2,0.03,-0.17,0.23
+202223,108640,Burnside College,Foundation school,Not known to be disadvantaged,95,72.5,47,40,85.3,0.02,-0.27,0.31
+202223,109319,Brimsham Green School,Community school,Not known to be disadvantaged,140,85.9,48.4,47.1,13.6,0.18,-0.06,0.41
+202223,109707,Queen Elizabeth School,Foundation school,Not known to be disadvantaged,147,67.4,46.5,40.8,31.3,0.21,-0.04,0.47
+202223,116430,The Clere School,Community school,Not known to be disadvantaged,60,78.9,41.7,46.7,20,-0.6,-0.96,-0.24
+202223,135897,The Basildon Upper Academy,Sponsored academies,Not known to be disadvantaged,129,50.2,36,34.9,7,-0.74,-1,-0.47
