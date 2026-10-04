@@ -5,7 +5,7 @@
 // None of it is hand-edited. The two generated files are git-ignored.
 
 import { existsSync } from 'node:fs';
-import { mkdir, readFile, writeFile } from 'node:fs/promises';
+import { mkdir, readdir, readFile, writeFile } from 'node:fs/promises';
 import { join, relative } from 'node:path';
 import type { FieldDef } from './dimension.ts';
 import { GENERATED_DIR, ROOT } from './paths.ts';
@@ -68,12 +68,49 @@ export async function registrySource(order: LoadedDimension[]): Promise<string> 
 export const README_START = '<!-- sources:start (generated from dimensions/*/source.ts by `npm run generate`; do not edit) -->';
 export const README_END = '<!-- sources:end -->';
 
-export function sourcesTable(order: LoadedDimension[]): string {
+/** For each source id, the other modules that use it (see `sourceReaders`). */
+export type SourceReaders = Map<string, string[]>;
+
+/**
+ * Finds which modules use each source, beyond the one that declares it. A module counts as using a source when its
+ * code asks for it (`ctx.dataPath('id')` or `ctx.csv('id')`), or when it reads another module's data with
+ * `ctx.read('module')` and that module is built from the source. Found by reading the module's .ts files (tests
+ * excluded), so nothing has to be declared twice.
+ */
+export async function sourceReaders(order: LoadedDimension[]): Promise<SourceReaders> {
+  const own = new Map<string, Set<string>>(); // module -> sources it declares or asks for directly
+  const reads = new Map<string, Set<string>>(); // module -> modules it reads with ctx.read
+  for (const d of order) {
+    const direct = new Set(d.sources.map((s) => s.id));
+    const via = new Set<string>();
+    for (const file of (await readdir(d.dir)).filter((f) => f.endsWith('.ts') && !f.endsWith('.test.ts') && f !== 'test.ts')) {
+      const text = await readFile(join(d.dir, file), 'utf-8');
+      for (const m of text.matchAll(/\b(?:dataPath|csv)\(\s*'([^']+)'/g)) direct.add(m[1]);
+      for (const m of text.matchAll(/\bread\(\s*'([^']+)'/g)) via.add(m[1]);
+    }
+    own.set(d.id, direct);
+    reads.set(d.id, via);
+  }
+  const readers: SourceReaders = new Map();
+  for (const d of order) {
+    const used = new Set(own.get(d.id));
+    for (const dep of reads.get(d.id)!) for (const id of own.get(dep) ?? []) used.add(id);
+    for (const id of used) {
+      if (d.sources.some((s) => s.id === id)) continue;
+      readers.set(id, [...(readers.get(id) ?? []), d.id]);
+    }
+  }
+  return readers;
+}
+
+export function sourcesTable(order: LoadedDimension[], readers: SourceReaders = new Map()): string {
   const rows = order.flatMap((d) =>
     d.sources.map((s) => {
       const cell = (t: string) => t.replaceAll('|', '\\|');
       const notes = [`Updated ${s.updated}.`, s.notes].filter(Boolean).join(' ');
-      return `| [${cell(s.describe)}](${s.homepage}), ${cell(s.publisher)} (${cell(s.licence)}) | ${cell(s.usedFor ?? '')} | ${cell(notes)} |`;
+      const others = readers.get(s.id)?.sort();
+      const usedFor = [s.usedFor && !/[.!?]$/.test(s.usedFor) ? `${s.usedFor}.` : s.usedFor, others?.length ? `Also read by: ${others.map((m) => `\`${m}\``).join(', ')}.` : ''].filter(Boolean).join(' ');
+      return `| [${cell(s.describe)}](${s.homepage}), ${cell(s.publisher)} (${cell(s.licence)}) | ${cell(usedFor)} | ${cell(notes)} |`;
     }),
   );
   return ['| Source | Used for | Notes |', '| --- | --- | --- |', ...rows].join('\n');
@@ -90,5 +127,5 @@ export async function generateAll(order: LoadedDimension[]): Promise<void> {
   if (start < 0 || end < start) {
     throw new Error(`${relative(ROOT, readme)} needs the ${README_START} ... ${README_END} markers around the Data sources table`);
   }
-  await writeIfChanged(readme, `${text.slice(0, start)}${README_START}\n${sourcesTable(order)}\n${text.slice(end)}`);
+  await writeIfChanged(readme, `${text.slice(0, start)}${README_START}\n${sourcesTable(order, await sourceReaders(order))}\n${text.slice(end)}`);
 }
