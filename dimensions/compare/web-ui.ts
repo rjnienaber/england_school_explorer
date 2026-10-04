@@ -216,7 +216,7 @@ export function start(app: AppApi): void {
     for (const group of Object.keys(GROUP_TITLES) as MeasureGroup[]) {
       const rows = MEASURES.filter((m) => m.group === group && readingsOf(m).some((r) => r));
       if (!rows.length) continue;
-      body += `<tr class="cmp-group"><th colspan="${cols}" scope="colgroup">${esc(GROUP_TITLES[group].title)}<span>${esc(GROUP_TITLES[group].note)}</span></th></tr>`;
+      body += `<tr class="cmp-group"><th colspan="${cols}" scope="colgroup"><div class="cmp-group-text">${esc(GROUP_TITLES[group].title)}<span>${esc(GROUP_TITLES[group].note)}</span></div></th></tr>`;
       for (const m of rows) {
         const rs = readingsOf(m);
         const years = new Set(list.map((u) => m.year(school(u))).filter(Boolean));
@@ -238,7 +238,7 @@ export function start(app: AppApi): void {
       ['Place among similar schools (Attainment 8)', (p) => (p.similarAtt8Rank !== null && p.similarAtt8Of !== null ? `${place(p.similarAtt8Rank)} of ${p.similarAtt8Of}` : null)],
       ['Suspensions per 100 pupils', (p) => (p.suspensionRate !== null ? p.suspensionRate.toFixed(1) : null)],
     ];
-    body += `<tr class="cmp-group"><th colspan="${cols}" scope="colgroup">For context (no verdict)</th></tr>`;
+    body += `<tr class="cmp-group"><th colspan="${cols}" scope="colgroup"><div class="cmp-group-text">For context (no verdict)</div></th></tr>`;
     for (const [label, pick] of info) {
       const vals = list.map((u) => pick(school(u)));
       if (!vals.some(Boolean)) continue;

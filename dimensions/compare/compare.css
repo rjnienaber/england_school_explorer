@@ -161,6 +161,13 @@
   position: static;
   max-width: none;
 }
+/* The heading and its note stay in view when the table scrolls sideways, instead of running off to the right */
+.cmp-group-text {
+  position: sticky;
+  left: 8px;
+  width: min(100%, 42rem);
+  max-width: calc(100vw - 64px);
+}
 .cmp-table tr.cmp-group th span {
   display: block;
   font-weight: 400;
