@@ -21,7 +21,8 @@ test('the default mode is the lowest order, and an unknown id falls back to it',
 test('every bucket points at a colour in the palette', () => {
   for (const m of MODES) {
     const size = PALETTES[m.palette ?? 'diverging'].light.length;
-    for (const b of m.buckets) assert.ok(b.colour >= 0 && b.colour < size, `${m.id}: ${b.label}`);
+    // -2 is the plain grey dot for "does not apply" (no sixth form)
+    for (const b of m.buckets) assert.ok(b.colour === -2 || (b.colour >= 0 && b.colour < size), `${m.id}: ${b.label}`);
   }
 });
 

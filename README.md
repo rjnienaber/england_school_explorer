@@ -77,6 +77,7 @@ All are published under the [Open Government Licence v3.0](https://www.nationala
 | [DfE suspensions and permanent exclusions in England, school level](https://explore-education-statistics.service.gov.uk/find-statistics/suspensions-and-permanent-exclusions-in-england), Department for Education (OGL v3) | Suspension rate, pupils suspended at least once and permanent exclusions, with pupil numbers | Updated annually (full academic year, published in the summer, a year behind). All academic years since 2006/07 in one file (about 85 MB), currently to 2024/25; only the latest year is used. State-funded schools only. Rates are suppressed (`x`) for schools with no pupils on roll. |
 | [DfE key stage 4 performance, institution-level data set](https://explore-education-statistics.service.gov.uk/find-statistics/key-stage-4-performance), Department for Education (OGL v3) | Attainment 8, Progress 8 with confidence intervals, English and maths grade 5+ and 4+, average English and maths grades, Progress 8 by subject area, value added in science, humanities and languages, EBacc entry, cohort size, % disadvantaged | Updated annually (provisional in autumn, revised in spring). Three years per file (currently 2022/23 to 2024/25). `z` and `c` mark missing or suppressed values. The older compare-school-performance download blocks scripted access. |
 | [Ofsted monthly management information: state-funded schools, latest inspections](https://www.gov.uk/government/statistical-data-sets/monthly-management-information-ofsteds-school-inspections-outcomes), Ofsted (OGL v3) | Inspection outcomes | Updated monthly. Windows-1252. The latest file is found through the GOV.UK content API. Doesn't cover independent schools (most are inspected by the ISI). |
+| [DfE A level and other 16 to 18 results, schools and colleges](https://explore-education-statistics.service.gov.uk/find-statistics/a-level-and-other-16-to-18-results), Department for Education (OGL v3) | Sixth form results: average A level grade, best three A levels, AAB share, value added and retention | Updated annually (final results are published each January or February; a revised-results release follows in the autumn). Four years in one file (about 59 MB), and every exam cohort and disadvantage group; only the latest year and the all-students A level rows are used. Suppressed values are `c`, not applicable `z`. |
 <!-- sources:end -->
 
 Basemap: [OpenFreeMap](https://openfreemap.org/) vector tiles (OpenStreetMap data), with Positron for light mode and Dark for dark mode.
@@ -226,6 +227,18 @@ measured the following year and published about two years later. There is no map
 pupils go depends on the post-16 courses nearby (a school with no sixth form sends everyone elsewhere) and
 on the intake as much as on the school. The rest of each cohort has an unknown destination; small cohorts
 are suppressed. DfE covers state-funded mainstream schools only.
+
+**Sixth form: A level results and progress** (official figures; popup and the "Sixth form progress" map
+colour). For schools with A level students the popup shows the average A level grade, the average grade of
+each student's best three A levels, the share with AAB or better and the share who stayed to the end of their
+courses (retention), each beside the median state secondary, plus DfE's A level value added with its 95%
+confidence interval. It is the 2024/25 results. The map colour uses DfE's own value-added bands (a school is
+above or below average only if its whole interval is) on the red-blue scale. Schools without a sixth form are
+shown in plain grey as "No sixth form", separate from the hollow "No data" ring used for schools that have a
+sixth form but too few students or no published figure. Value added compares students with others who had the
+same GCSE results, so it partly allows for intake, but sixth forms differ a lot in size and entry
+requirements. Small sixth forms swing by a few points on one student; a figure DfE suppresses is left out.
+Only the A level results are used, not applied general or technical courses.
 
 **SEN units and resourced provision** (filter and popup, from the school register). Tick "Has an SEN
 unit or resourced provision" to keep only schools that run one (about 690 of the 4,150), then

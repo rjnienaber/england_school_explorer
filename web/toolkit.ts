@@ -14,7 +14,7 @@ export type School = SchoolRecord;
 
 export interface Bucket {
   label: string;
-  /** Index into the mode's palette (0-4). 4 is best / highest. */
+  /** Index into the mode's palette (0-4). 4 is best / highest. -2 draws a solid neutral dot for "does not apply" (such as no sixth form), unlike the hollow ring of "No data". */
   colour: number;
 }
 

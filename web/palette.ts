@@ -24,6 +24,6 @@ export const PALETTES: Record<PaletteName, Record<Theme, string[]>> = {
 
 /** Draw order on the map: extremes on top so they aren't hidden under average schools. */
 export function drawOrder(palette: PaletteName, colour: number): number {
-  if (colour < 0) return -1;
+  if (colour < 0) return colour;
   return palette === 'diverging' ? Math.abs(colour - 2) : colour;
 }

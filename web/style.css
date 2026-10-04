@@ -300,6 +300,10 @@ input[type='search'] {
   border: 1px solid rgb(0 0 0 / 0.35);
 }
 
+.swatch.na {
+  border: 1.5px solid var(--muted);
+}
+
 .swatch.empty {
   background: transparent !important;
   border: 1.5px solid var(--muted);

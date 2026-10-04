@@ -140,15 +140,18 @@ function mapData(): FeatureCollection {
   };
 }
 
+const notApplicableColour = () => (theme === 'dark' ? '#b9b8b0' : '#7a7973');
+
 function colourExpression(): ExpressionSpecification {
   const p = PALETTES[mode.palette ?? 'diverging'][theme];
-  return ['match', ['get', 'colour'], 0, p[0], 1, p[1], 2, p[2], 3, p[3], 4, p[4], 'rgba(0,0,0,0)'];
+  // -2 is a bucket that does not apply (a school with no sixth form): a solid neutral dot, unlike the hollow "No data" ring
+  return ['match', ['get', 'colour'], 0, p[0], 1, p[1], 2, p[2], 3, p[3], 4, p[4], -2, notApplicableColour(), 'rgba(0,0,0,0)'];
 }
 
 function strokeExpression(): ExpressionSpecification {
   const ring = theme === 'dark' ? 'rgba(255,255,255,0.55)' : 'rgba(20,20,20,0.55)';
   const empty = '#8a8983';
-  return ['case', ['==', ['get', 'colour'], -1], empty, ring];
+  return ['case', ['<', ['get', 'colour'], 0], empty, ring];
 }
 
 function addLayers(): void {
@@ -286,8 +289,9 @@ function renderModes(): void {
 
 function swatch(colour: number): HTMLSpanElement {
   const el = document.createElement('span');
-  el.className = colour < 0 ? 'swatch empty' : 'swatch';
+  el.className = colour === -1 ? 'swatch empty' : colour === -2 ? 'swatch na' : 'swatch';
   if (colour >= 0) el.style.background = PALETTES[mode.palette ?? 'diverging'][theme][colour];
+  if (colour === -2) el.style.background = notApplicableColour();
   return el;
 }
 
