@@ -207,6 +207,11 @@ for boys and for girls, with pupil numbers. Only mixed schools with at least 10 
 girls in the year group; single-sex schools show nothing. Small groups swing a lot from year
 to year, so treat differences of a point or two as noise.
 
+**English as an additional language** (popup only, official figures). One row in the GCSE
+results: the share of the year group whose first language is known or believed to be other
+than English, and their Attainment 8. Shown only with at least 10 such pupils. There is no
+published figure for English-speaking pupils, so compare with the school's overall score.
+
 The list of schools in view ranks by the current mode. Differences between neighbouring
 schools in the list are usually not meaningful.
 

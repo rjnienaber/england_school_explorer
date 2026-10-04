@@ -205,3 +205,8 @@ time_period,school_urn,school_name,establishment_type_group,breakdown,pupil_coun
 202324,108058,Allerton Grange School,Community school,Girls,137,51.3,46.5,46,87.7,z,z,z
 202425,109319,Brimsham Green School,Community school,Boys,z,z,z,z,z,z,z,z
 202425,109319,Brimsham Green School,Community school,Girls,76,50,45,44,16,z,z,z
+202425,100049,Haverstock School,Community school,Known or believed to be other than English,90,61.6,42.5,38,26,z,z,z
+202324,100049,Haverstock School,Community school,Known or believed to be other than English,85,60,40.1,36,25,z,z,z
+202425,100052,Hampstead School,Community school,Known or believed to be other than English,6,3,z,z,z,z,z,z
+202425,108058,Allerton Grange School,Community school,Known or believed to be other than English,40,13.2,51.3,55,80,z,z,z
+202425,109319,Brimsham Green School,Community school,Known or believed to be other than English,z,z,z,z,z,z,z,z
