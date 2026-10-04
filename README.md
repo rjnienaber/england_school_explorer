@@ -70,7 +70,7 @@ All are published under the [Open Government Licence v3.0](https://www.nationala
 <!-- sources:start (generated from dimensions/*/source.ts by `npm run generate`; do not edit) -->
 | Source | Used for | Notes |
 | --- | --- | --- |
-| [Get Information About Schools: daily extract of every establishment](https://get-information-schools.service.gov.uk/), Department for Education (OGL v3) | Location, type, pupils on roll, capacity, status, age range, gender, sixth form, admissions policy, religion, trust, website, SEN units and resourced provision, urban or rural area, boarding schools, opening date and reason | Updated daily. Windows-1252. Gives British National Grid easting/northing, which are converted to WGS84 with `proj4`. |
+| [Get Information About Schools: daily extract of every establishment](https://get-information-schools.service.gov.uk/), Department for Education (OGL v3) | Location, type, pupils on roll, capacity, status, age range, gender, sixth form, admissions policy, religion, religious ethos and diocese, trust, website, SEN units and resourced provision, urban or rural area, boarding schools, opening date and reason | Updated daily. Windows-1252. Gives British National Grid easting/northing, which are converted to WGS84 with `proj4`. |
 | [DfE key stage 4 performance, institution-level data set](https://explore-education-statistics.service.gov.uk/find-statistics/key-stage-4-performance), Department for Education (OGL v3) | Attainment 8, Progress 8 with confidence intervals, English and maths grade 5+ and 4+, average English and maths grades, Progress 8 by subject area, value added in science, humanities and languages, EBacc entry, cohort size, % disadvantaged | Updated annually (provisional in autumn, revised in spring). Three years per file (currently 2022/23 to 2024/25). `z` and `c` mark missing or suppressed values. The older compare-school-performance download blocks scripted access. |
 | [Ofsted monthly management information: state-funded schools, latest inspections](https://www.gov.uk/government/statistical-data-sets/monthly-management-information-ofsteds-school-inspections-outcomes), Ofsted (OGL v3) | Inspection outcomes | Updated monthly. Windows-1252. The latest file is found through the GOV.UK content API. Doesn't cover independent schools (most are inspected by the ISI). |
 <!-- sources:end -->
@@ -219,6 +219,14 @@ tag. Most are independent schools, with a few state boarding schools. Only the r
 "Boarding school" value counts: children's homes and college residential places are left out, and a
 school with a blank entry is treated as not boarding. The register may be out of date, and it does
 not say how many pupils board or whether day pupils are taken.
+
+**Faith schools** (filter and popup tags, from the school register). The "Faith schools" filter
+keeps either the 1,079 schools with a religious character, or an ethos naming a faith, or everything
+else. The popup tag shows the religious character with the diocese where there is one ("Roman
+Catholic · Archdiocese of Westminster", 495 schools), and a second "Christian ethos" style tag only
+when the register's ethos says something the character does not (it mostly repeats it). A blank
+register entry counts as non-faith, and an "inter- or non-denominational" ethos is not treated as a
+faith. The grouping is ours, not an official label.
 
 **Opening date** (popup line, from the school register). Under the school's name the popup says
 "Opened Sept 2023 (new school)" for a genuinely new school (a new provision or free school) that

@@ -51,7 +51,6 @@ export const popupTags: PopupTagDef[] = [
   { id: 'independent', order: 10, tag: (p) => (p.sector === 'independent' ? { text: 'Independent', warn: true } : null) },
   { id: 'selective', order: 20, tag: (p) => (p.selective ? { text: 'Selective (grammar)', warn: true } : null) },
   { id: 'sixthForm', order: 30, tag: (p) => (p.sixthForm ? { text: 'Sixth form' } : null) },
-  { id: 'religion', order: 40, tag: (p) => (p.religion ? { text: p.religion } : null) },
   { id: 'trust', order: 50, tag: (p) => (p.trust ? { text: p.trust } : null) },
 ];
 
