@@ -18,7 +18,7 @@ import { gradePercentiles, quantileTable, seOfPercent, seFromCi, weightedMean } 
 
 const number = (v: unknown) => (typeof v === 'number' && Number.isFinite(v) ? v : null);
 
-const seField = (label: string, description: string) => ({ type: 'number', decimals: 3, placement: 'mode', label, description }) as const;
+const seField = (label: string, description: string) => ({ type: 'number', decimals: 3, placement: 'mode', lazy: true, label, description }) as const;
 
 export const module = defineDimension({
   id: 'compare',
@@ -35,6 +35,7 @@ export const module = defineDimension({
       decimals: 1,
       unit: '%',
       placement: 'mode',
+      lazy: true,
       label: 'Pupils suspended at least once',
       description: 'Copy of "Pupils suspended at least once" as a column for every school, for the shortlist comparison',
     },

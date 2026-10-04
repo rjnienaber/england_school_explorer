@@ -16,8 +16,14 @@ import type { LoadedDimension } from './registry.ts';
 import { getMeta, readModuleRows } from './store.ts';
 import { traceNeeds } from './trace-needs.ts';
 
-/** Secondary schools spread over this many popup shards (about 32 schools, 5-20 KB gzipped, each; raised from 64 to 128 when the staff fields took the largest to 35 KB of the 40 KB budget). */
-export const SHARDS = 128;
+/**
+ * Popup shards are sized by school count, so adding schools (primary schools are several times as many) does not
+ * grow each shard past the 40 KB budget: up to this many schools per shard, rounded up to a power of two.
+ * 128 shards for the secondary schools today (about 32 each; the largest is 27.6 KB gzipped, mostly from the staff,
+ * funding and subjects fields).
+ */
+export const MAX_SCHOOLS_PER_SHARD = 40;
+export const shardsFor = (schools: number) => Math.max(64, 2 ** Math.ceil(Math.log2(Math.max(1, schools) / MAX_SCHOOLS_PER_SHARD)));
 /** What search, the list and hover tips read directly, so they must always be loaded. */
 export const CLIENT_CORE = ['name', 'la', 'town'];
 
@@ -45,6 +51,8 @@ export interface DataExport {
   records: Record<string, unknown>[];
   needs: Needs;
   fields: Record<string, FieldInfo>;
+  /** How many popup shards (details/<n>.json) the schools are spread over. */
+  shards: number;
   warnings: string[];
 }
 
@@ -61,8 +69,17 @@ export function fieldTable(order: LoadedDimension[]): Record<string, FieldInfo> 
   return out;
 }
 
+const lazyFields = (order: LoadedDimension[]) =>
+  new Set(order.flatMap((d) => Object.entries(d.module.fields).filter(([, f]) => f.lazy).map(([name]) => name)));
+
 /** Throws when the UI reads a field that isn't loaded early enough; returns advice for the rest. */
-export function checkPlacements(fields: Record<string, FieldInfo>, needs: Needs, startup: string[]): { errors: string[]; warnings: string[] } {
+export function checkPlacements(
+  fields: Record<string, FieldInfo>,
+  needs: Needs,
+  startup: string[],
+  /** Fields declared `lazy: true`: 'mode' fields nothing reads on purpose, so no note about them. */
+  lazy: ReadonlySet<string> = new Set(),
+): { errors: string[]; warnings: string[] } {
   const errors: string[] = [];
   const warnings: string[] = [];
   const placement = (n: string) => fields[n]?.placement;
@@ -90,7 +107,7 @@ export function checkPlacements(fields: Record<string, FieldInfo>, needs: Needs,
   const needed = new Set([...startup, ...CLIENT_CORE, ...popupHeader]);
   for (const [n, f] of Object.entries(fields)) {
     if (f.placement === 'core' && !needed.has(n)) warnings.push(`"${n}" is placement 'core' but nothing needs it at start-up; every visitor downloads it. Consider 'mode' or 'detail'.`);
-    if (f.placement === 'mode' && !usedByUi.has(n)) warnings.push(`"${n}" is placement 'mode' but no mode or filter reads it. Consider 'detail'.`);
+    if (f.placement === 'mode' && !lazy.has(n) && !usedByUi.has(n)) warnings.push(`"${n}" is placement 'mode' but no mode or filter reads it. Consider 'detail'.`);
   }
   return { errors, warnings };
 }
@@ -120,18 +137,19 @@ export async function exportData(db: DatabaseSync, order: LoadedDimension[], sou
   });
 
   const needs = await traceNeeds(records, Object.keys(fields));
-  const { errors, warnings } = checkPlacements(fields, needs, await startupFields(needs));
+  const { errors, warnings } = checkPlacements(fields, needs, await startupFields(needs), lazyFields(order));
   if (errors.length) throw new Error(`Field placement problems:\n  ${errors.join('\n  ')}`);
 
   const column = (name: string) => encodeColumn(fields[name], records.map((r) => r[name] as Value));
   const names = (placement: string) => Object.keys(fields).filter((n) => fields[n].placement === placement);
 
+  const shardCount = shardsFor(schools.length);
   let urn = 0;
   const metadata = { builtAt: meta.builtAt as string, sources } as CoreFile['metadata'];
   for (const [key, value] of Object.entries(meta)) if (key.startsWith('metadata.')) metadata[key.slice('metadata.'.length)] = value;
   const core: Omit<CoreFile, 'buildId'> = {
     count: schools.length,
-    shards: SHARDS,
+    shards: shardCount,
     metadata,
     fields,
     needs,
@@ -147,7 +165,7 @@ export async function exportData(db: DatabaseSync, order: LoadedDimension[], sou
 
   const modeFiles = names('mode').map((n) => ({ path: columnPath(n), body: { values: column(n) } }));
 
-  const shards: Record<string, Record<string, Value>>[] = Array.from({ length: SHARDS }, () => ({}));
+  const shards: Record<string, Record<string, Value>>[] = Array.from({ length: shardCount }, () => ({}));
   // A school's shard holds all its non-core fields, `mode` ones too (a few KB in all), so a
   // popup is one request however many columns it reads
   const shardNames = Object.keys(fields).filter((n) => fields[n].placement !== 'core');
@@ -157,7 +175,7 @@ export async function exportData(db: DatabaseSync, order: LoadedDimension[], sou
       const v = record[n] as Value;
       if (v !== missingValue(fields[n])) values[n] = v;
     }
-    shards[shardOf(record.urn as number, SHARDS)][record.urn as number] = values;
+    shards[shardOf(record.urn as number, shardCount)][record.urn as number] = values;
   }
   const detailFiles = shards.map((schoolsInShard, i) => ({ path: shardPath(i), body: { schools: schoolsInShard } }));
 
@@ -169,7 +187,7 @@ export async function exportData(db: DatabaseSync, order: LoadedDimension[], sou
 
   const files = new Map<string, string>();
   for (const { path, body } of bodies) files.set(path, JSON.stringify({ buildId, ...body }));
-  return { buildId, builtAt: metadata.builtAt, files, records, needs, fields, warnings };
+  return { buildId, builtAt: metadata.builtAt, files, records, needs, fields, shards: shardCount, warnings };
 }
 
 /** Replaces dist/data with the exported files plus manifest.json (sizes for the budget check). */
@@ -188,7 +206,7 @@ export async function writeData(dataDir: string, result: DataExport): Promise<Ma
     buildId: result.buildId,
     builtAt: result.builtAt,
     schools: result.records.length,
-    shards: SHARDS,
+    shards: result.shards,
     files: sizes,
     totals: {
       coreGzip: core.gzip,

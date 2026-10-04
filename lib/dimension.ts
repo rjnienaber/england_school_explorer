@@ -63,6 +63,11 @@ interface FieldBase {
   /** Default true. When false, schools without a row get `default` instead of null. */
   nullable?: boolean;
   default?: unknown;
+  /**
+   * Mode-placement field that no mode or filter reads on purpose, because the browser fetches the column on request
+   * (the rank band, shortlist comparison). Silences the build note "placement 'mode' but nothing reads it".
+   */
+  lazy?: boolean;
 }
 
 export interface NumberField extends FieldBase {

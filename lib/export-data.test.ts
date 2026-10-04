@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
 import { decodeCell, decodeColumn, decodeUrns, encodeColumn, missingValue, shardOf, type FieldInfo, type Needs } from './columnar.ts';
-import { CLIENT_CORE, checkPlacements } from './export-data.ts';
+import { CLIENT_CORE, checkPlacements, shardsFor } from './export-data.ts';
 
 const field = (placement: FieldInfo['placement'], extra: Partial<FieldInfo> = {}): FieldInfo => ({ placement, type: 'number', ...extra });
 
@@ -20,6 +20,9 @@ test('columns round-trip: enums as indexes, booleans as 0/1, nulls kept', () => 
 test('urns decode from differences; shards by remainder; defaults only for non-nullable fields', () => {
   assert.deepEqual(decodeUrns({ urnDeltas: [100000, 5, 1] }), [100000, 100005, 100006]);
   assert.equal(shardOf(100006, 128), 100006 % 128);
+  assert.equal(shardsFor(4150), 128);
+  assert.equal(shardsFor(21000), 1024);
+  assert.equal(shardsFor(100), 64);
   assert.equal(missingValue(field('detail')), null);
   assert.equal(missingValue(field('detail', { type: 'boolean', default: false })), false);
 });
