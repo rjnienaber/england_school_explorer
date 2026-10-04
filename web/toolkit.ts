@@ -6,8 +6,17 @@
 import type { SchoolRecord, Metadata } from './types.ts';
 import type { PaletteName } from './palette.ts';
 import type { SchoolData } from './data.ts';
+import type { Phase } from '../lib/phase.ts';
 
-export type { Metadata, PaletteName, SchoolRecord };
+export type { Metadata, PaletteName, Phase, SchoolRecord };
+
+/**
+ * Every mode, filter, popup section, row, tag, source note and extension may set `phases` to narrow where it
+ * appears. Left out, it follows its module's `phases` (build.ts), which default to secondary only.
+ */
+export interface PhaseScoped {
+  phases?: readonly Phase[];
+}
 /** One school's properties, typed from the field declarations. */
 export type School = SchoolRecord;
 
@@ -19,7 +28,7 @@ export interface Bucket {
   colour: number;
 }
 
-export interface ModeDef {
+export interface ModeDef extends PhaseScoped {
   /** Unique across modules. */
   id: string;
   /** Button text and list heading ("Schools in view by <label>"). */
@@ -61,7 +70,7 @@ export const FILTER_GROUPS = {
 } satisfies Record<string, { label: string; open?: boolean }>;
 export type FilterGroupId = keyof typeof FILTER_GROUPS;
 
-interface FilterBase {
+interface FilterBase extends PhaseScoped {
   /** Unique across modules. Also the key the value is saved under in localStorage. */
   id: string;
   /** Position in the "Show" list. */
@@ -284,7 +293,7 @@ export const POPUP_GROUPS = {
 } satisfies Record<string, { label: string; open?: boolean }>;
 export type PopupGroupId = keyof typeof POPUP_GROUPS;
 
-export interface PopupSectionDef {
+export interface PopupSectionDef extends PhaseScoped {
   /** Unique across modules. */
   id: string;
   /** Collapsible group this section goes in (a key of `POPUP_GROUPS`). Omit to leave it always visible. */
@@ -304,7 +313,7 @@ export interface PopupSectionDef {
 }
 
 /** A row a module adds to another module's popup section, e.g. a new line in the GCSE results table. */
-export interface PopupRowDef {
+export interface PopupRowDef extends PhaseScoped {
   id: string;
   /** `id` of the PopupSectionDef to add to. A row aimed at a section that doesn't exist is ignored. */
   section: string;
@@ -315,7 +324,7 @@ export interface PopupRowDef {
   row: (p: School, h: Helpers) => RowEntry | null;
 }
 
-export interface PopupTagDef {
+export interface PopupTagDef extends PhaseScoped {
   id: string;
   /** Position among the small tags under the school's name. */
   order: number;
@@ -325,7 +334,7 @@ export interface PopupTagDef {
 
 // ---------- "About the data" and the header's data dates ----------
 
-export interface SourceNoteDef {
+export interface SourceNoteDef extends PhaseScoped {
   id: string;
   /** Position in the About list and the dates line. */
   order: number;
@@ -360,7 +369,7 @@ export interface AppApi {
  * ready. Keep its code in a file that is only imported from `start` (`web-ui.ts`), so the Node-side build, which
  * loads every web.ts, never sees DOM or CSS imports.
  */
-export interface ExtensionDef {
+export interface ExtensionDef extends PhaseScoped {
   id: string;
   start: (app: AppApi) => void | Promise<void>;
 }

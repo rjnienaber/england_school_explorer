@@ -18,6 +18,7 @@ export const module = defineDimension({
   id: 'ofsted',
   title: 'Ofsted inspections',
   dependsOn: ['gias-core'],
+  phases: ['secondary', 'primary'],
   fields: {
     ofstedUrl: { type: 'string', placement: 'detail', label: 'Ofsted reports page', source: 'ofsted' },
     ofstedFramework: {

@@ -18,6 +18,7 @@ import {
   type DetailFile,
   type Value,
 } from '../lib/columnar.ts';
+import { DEFAULT_PHASE, phaseDir, type Phase } from '../lib/phase.ts';
 import type { SchoolFeature, SchoolRecord } from './types.ts';
 
 /** The data on the server changed while the page was open. */
@@ -40,6 +41,8 @@ function reloadOnce(): boolean {
 
 export class SchoolData {
   readonly core: CoreFile;
+  /** Where this phase's files are, relative to the page: `data/` for secondary, `data/primary/` for primary. */
+  private readonly base: string;
   /** One per school, in core's order. `properties` holds only what has been loaded so far. */
   readonly features: SchoolFeature[];
   readonly byUrn = new Map<number, SchoolFeature>();
@@ -49,8 +52,9 @@ export class SchoolData {
   private readonly columnRequests = new Map<string, Promise<void>>();
   private readonly shardRequests = new Map<number, Promise<void>>();
 
-  constructor(core: CoreFile) {
+  constructor(core: CoreFile, phase: Phase = DEFAULT_PHASE) {
     this.core = core;
+    this.base = `data/${phaseDir(phase)}`;
     this.urns = decodeUrns(core);
     const columns = Object.entries(core.columns).map(([name, values]) => [name, decodeColumn(core.fields[name], values)] as const);
     this.features = this.urns.map((urn, i) => {
@@ -68,7 +72,7 @@ export class SchoolData {
   }
 
   private async fetchFile<T extends { buildId: string }>(path: string): Promise<T> {
-    const res = await fetch(`data/${path}?v=${this.core.buildId}`);
+    const res = await fetch(`${this.base}${path}?v=${this.core.buildId}`);
     if (!res.ok) throw new Error(`Couldn’t load ${path} (${res.status}).`);
     const body = (await res.json()) as T;
     if (body.buildId !== this.core.buildId) {
@@ -162,9 +166,9 @@ export class SchoolData {
   }
 }
 
-export async function loadCore(): Promise<SchoolData> {
+export async function loadCore(phase: Phase = DEFAULT_PHASE): Promise<SchoolData> {
   // Revalidate every visit: core.json is the one file whose URL doesn't change between builds
-  const res = await fetch('data/core.json', { cache: 'no-cache' });
+  const res = await fetch(`data/${phaseDir(phase)}core.json`, { cache: 'no-cache' });
   if (!res.ok) throw new Error(`Couldn’t load the school data (${res.status}). Run npm run build first.`);
-  return new SchoolData((await res.json()) as CoreFile);
+  return new SchoolData((await res.json()) as CoreFile, phase);
 }

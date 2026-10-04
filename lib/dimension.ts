@@ -3,7 +3,10 @@
 
 import type { DatabaseSync } from 'node:sqlite';
 import type { Row } from './csv.ts';
+import type { Phase } from './phase.ts';
 import type { MultipleFit } from './stats.ts';
+
+export type { Phase };
 
 // ---------- Sources ----------
 
@@ -154,6 +157,8 @@ export interface StatsToolkit {
 
 export interface BuildContext {
   moduleId: string;
+  /** The phase being built. A module that applies to several phases (gias-core, ofsted) runs once per phase, each time with that phase's schools. */
+  phase: Phase;
   /** The build store. Read other modules' tables via `read()`; don't write to it. */
   db: DatabaseSync;
   /** Resolved download URLs, from data/sources.json. */
@@ -189,6 +194,14 @@ export interface DimensionModule<F extends Fields = Fields> {
   title: string;
   /** Modules whose tables this one reads. Built first. The scope module is implied. */
   dependsOn?: string[];
+  /**
+   * The phases this module applies to. Default `['secondary']`, so KS4 modules need not say anything. A module for
+   * both (the scope module, Ofsted, trusts) lists both and runs once per phase against that phase's schools: its
+   * `build()` sees only that phase in `ctx.schools`, and its fields exist only in the phases it lists. Its web.ts
+   * items follow it, and each may narrow that with its own `phases` (a "sixth form" filter on a module for both).
+   * A module may only depend on modules that cover all its phases.
+   */
+  phases?: readonly Phase[];
   /** Exactly one module sets this (gias-core): its rows define which schools exist. */
   scope?: boolean;
   fields: F;

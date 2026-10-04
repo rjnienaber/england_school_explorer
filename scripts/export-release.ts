@@ -11,7 +11,7 @@ import { existsSync } from 'node:fs';
 import { join } from 'node:path';
 import { ROOT, STORE_FILE } from '../lib/paths.ts';
 import { readSourceUrls } from '../lib/pipeline.ts';
-import { loadBuildOrder } from '../lib/registry.ts';
+import { forPhase, loadBuildOrder } from '../lib/registry.ts';
 import { exportRelease } from '../lib/release.ts';
 
 const args = process.argv.slice(2);
@@ -32,7 +32,8 @@ if (!/^\d{4}-\d{2}$/.test(month)) {
   process.exit(1);
 }
 
-const order = await loadBuildOrder();
+// The release covers the secondary schools (the original dataset); the primary phase is not part of it yet
+const order = forPhase(await loadBuildOrder(), 'secondary');
 const result = exportRelease({ storeFile: STORE_FILE, outDir, order, sourceUrls: readSourceUrls(), month, previousFields: option('previous-fields') });
 console.log(`Wrote ${result.files.join(', ')} to ${outDir}`);
 console.log(`  ${result.schools} schools, ${result.fields} documented columns; fields added: ${result.added.length}, removed: ${result.removed.length}`);

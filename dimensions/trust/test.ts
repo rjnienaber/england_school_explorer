@@ -56,6 +56,19 @@ test('summary: medians and Ofsted counts, skipping missing values', () => {
   assert.match(html, /joined the trust after/);
 });
 
+test('trust primary phase: counts the primaries in the trust, and the chip has no secondary results rows', async () => {
+  const { rows } = await buildFromFixtures('trust', 'primary');
+  const all = rows('trust');
+  assert.equal(all.get(900003)?.trustId, '17001');
+  assert.equal(all.get(900003)?.trustSchools, 1);
+  assert.equal(all.has(135315), false); // a secondary academy
+  const f = filters[1];
+  if (f.control.kind !== 'chip') throw new Error('expected a chip filter');
+  const html = f.control.summary!([school({ trust: 'T', ofstedSummary: 'good' }), school({ trust: 'T' })], '1', h)!.value;
+  assert.match(html, /Ofsted: Good<\/th><td>1</);
+  assert.doesNotMatch(html, /percentile|Progress 8/);
+});
+
 test('popup button: only when the trust has other schools, and the id is escaped', () => {
   const render = popupSections[0].render;
   assert.equal(render(school({ trustId: '1', trustSchools: 1 }), h, () => []), null);

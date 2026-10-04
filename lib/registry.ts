@@ -6,6 +6,7 @@ import { join } from 'node:path';
 import { pathToFileURL } from 'node:url';
 import type { DimensionModule, SourceDef } from './dimension.ts';
 import { DIMENSIONS_DIR } from './paths.ts';
+import { isPhase, phasesOf, type Phase } from './phase.ts';
 
 export interface LoadedDimension {
   id: string;
@@ -14,6 +15,12 @@ export interface LoadedDimension {
   sources: SourceDef[];
   hasWeb: boolean;
 }
+
+/** The phases a loaded module applies to (default: secondary only). */
+export const phasesOfModule = (d: LoadedDimension): readonly Phase[] => phasesOf(d.module.phases);
+
+/** The modules that apply to a phase, keeping the order given. Build and export one phase at a time with this. */
+export const forPhase = (order: LoadedDimension[], phase: Phase): LoadedDimension[] => order.filter((d) => phasesOfModule(d).includes(phase));
 
 const ID = /^[a-z][a-z0-9]*(-[a-z0-9]+)*$/;
 const FIELD_NAME = /^[a-z][A-Za-z0-9]*$/;
@@ -48,15 +55,25 @@ export function validateDimensions(list: LoadedDimension[]): void {
   const sourceOwner = new Map<string, string>();
   const scopes = list.filter((d) => d.module.scope);
   if (scopes.length !== 1) problems.push(`exactly one module must set scope: true (found ${scopes.length})`);
+  // The scope module decides which schools exist, so it must cover every phase a module uses
+  for (const d of list) {
+    const uncovered = scopes[0] ? phasesOfModule(d).filter((p) => !phasesOfModule(scopes[0]).includes(p)) : [];
+    if (uncovered.length) problems.push(`dimensions/${d.id}: applies to ${uncovered.join(', ')}, which the scope module (${scopes[0].id}) does not cover`);
+  }
 
   for (const d of list) {
     const { module: m } = d;
     const at = `dimensions/${d.id}`;
     if (m.id !== d.id) problems.push(`${at}: module.id is "${m.id}" but the folder is "${d.id}"`);
     if (!ID.test(d.id)) problems.push(`${at}: id must be lower-case letters, digits and single hyphens`);
+    const phases = phasesOfModule(d);
+    if (phases.length === 0 || phases.some((p) => !isPhase(p))) problems.push(`${at}: phases must list at least one known phase`);
     for (const dep of m.dependsOn ?? []) {
       if (!ids.has(dep)) problems.push(`${at}: dependsOn "${dep}", which is not a dimension`);
       if (dep === d.id) problems.push(`${at}: depends on itself`);
+      const depModule = list.find((x) => x.id === dep);
+      const missing = depModule ? phases.filter((p) => !phasesOfModule(depModule).includes(p)) : [];
+      if (missing.length) problems.push(`${at}: applies to ${missing.join(', ')}, but its dependency "${dep}" does not`);
     }
     for (const s of d.sources) {
       const prev = sourceOwner.get(s.id);

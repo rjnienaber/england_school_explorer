@@ -10,7 +10,8 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { type Fields } from './dimension.ts';
 import { buildStore } from './pipeline.ts';
-import { loadBuildOrder, type LoadedDimension } from './registry.ts';
+import { DEFAULT_PHASE, type Phase } from './phase.ts';
+import { forPhase, loadBuildOrder, phasesOfModule, type LoadedDimension } from './registry.ts';
 import { readExtraRows, readModuleRows } from './store.ts';
 
 export interface FixtureBuild {
@@ -41,22 +42,25 @@ const cache = new Map<string, Promise<FixtureBuild>>();
 
 /**
  * Builds `moduleId` from fixtures. Memoised per test file, so call it freely in every test:
- * `const { rows } = await buildFromFixtures('my-module')`.
+ * `const { rows } = await buildFromFixtures('my-module')`. `phase` defaults to the first phase the module
+ * applies to (secondary for most); pass 'primary' to build a module that applies to both for the primary schools.
  */
-export function buildFromFixtures(moduleId: string): Promise<FixtureBuild> {
-  let build = cache.get(moduleId);
+export function buildFromFixtures(moduleId: string, phase?: Phase): Promise<FixtureBuild> {
+  const key = `${moduleId}/${phase ?? ''}`;
+  let build = cache.get(key);
   if (!build) {
-    build = run(moduleId);
-    cache.set(moduleId, build);
+    build = run(moduleId, phase);
+    cache.set(key, build);
   }
   return build;
 }
 
 /** Where each source's fixture file is, and the options that make buildStore read them. */
-function fixtureOptions(everything: LoadedDimension[], storeFile: string) {
+function fixtureOptions(everything: LoadedDimension[], storeFile: string, phase: Phase = DEFAULT_PHASE) {
   // The scope module reads ks4.csv without depending on its owner, so fixtures are found for every source
   const owner = new Map(everything.flatMap((d) => d.sources.map((s) => [s.id, d.dir] as const)));
   return {
+    phase,
     storeFile,
     minSchools: 1,
     log: () => {},
@@ -74,7 +78,7 @@ function fixtureOptions(everything: LoadedDimension[], storeFile: string) {
  * things that read the whole store (the release export). Call `dispose()` when done.
  */
 export async function buildFixtureStore(): Promise<{ storeFile: string; order: LoadedDimension[]; dir: string; dispose(): void }> {
-  const order = await loadBuildOrder();
+  const order = forPhase(await loadBuildOrder(), DEFAULT_PHASE);
   const dir = mkdtempSync(join(tmpdir(), 'fixture-store-'));
   const storeFile = join(dir, 'schools.sqlite');
   try {
@@ -86,12 +90,16 @@ export async function buildFixtureStore(): Promise<{ storeFile: string; order: L
   return { storeFile, order, dir, dispose: () => rmSync(dir, { recursive: true, force: true }) };
 }
 
-async function run(moduleId: string): Promise<FixtureBuild> {
+async function run(moduleId: string, wanted?: Phase): Promise<FixtureBuild> {
   const everything = await loadBuildOrder();
-  const order = closure(everything, moduleId);
+  const own = everything.find((d) => d.id === moduleId);
+  if (!own) throw new Error(`no dimension "${moduleId}"`);
+  const phase = wanted ?? phasesOfModule(own)[0];
+  if (!phasesOfModule(own).includes(phase)) throw new Error(`${moduleId} does not apply to the ${phase} phase`);
+  const order = forPhase(closure(everything, moduleId), phase);
   const dir = mkdtempSync(join(tmpdir(), 'fixture-store-'));
   try {
-    const { db, scope, metadata } = await buildStore(order, fixtureOptions(everything, join(dir, 'schools.sqlite')));
+    const { db, scope, metadata } = await buildStore(order, fixtureOptions(everything, join(dir, 'schools.sqlite'), phase));
     const fields = new Map(order.map((d) => [d.id, d.module] as const));
     // Read everything now so the store can be removed straight away
     const rows = new Map(order.map((d) => [d.id, readModuleRows(db, d.id, d.module.fields as Fields)]));

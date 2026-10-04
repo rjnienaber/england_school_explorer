@@ -312,6 +312,15 @@ input[type='search'] {
   font-weight: 600;
 }
 
+/* Secondary / Primary: the same buttons, centred, above the search */
+.phase-switch {
+  margin-bottom: 4px;
+}
+
+.phase-switch button {
+  text-align: center;
+}
+
 .legend {
   list-style: none;
   margin: 6px 0 0;

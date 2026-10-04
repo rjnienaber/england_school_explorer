@@ -12,6 +12,7 @@ import { gzipSync } from 'node:zlib';
 import type { DatabaseSync } from 'node:sqlite';
 import { columnPath, encodeColumn, missingValue, shardOf, shardPath, type CoreFile, type FieldInfo, type Needs, type Value } from './columnar.ts';
 import type { FieldDef } from './dimension.ts';
+import type { Phase } from './phase.ts';
 import type { LoadedDimension } from './registry.ts';
 import { getMeta, readModuleRows } from './store.ts';
 import { traceNeeds } from './trace-needs.ts';
@@ -113,12 +114,13 @@ export function checkPlacements(
 }
 
 /** The fields read before the first render with default settings: default mode and default filter values. */
-export async function startupFields(needs: Needs): Promise<string[]> {
-  const { MODES, FILTERS } = await import('../web/registry.ts');
+export async function startupFields(needs: Needs, phase: Phase = 'secondary'): Promise<string[]> {
+  const { MODES, FILTERS } = (await import('../web/registry.ts')).registryFor(phase);
   return [...new Set([...needs.modes[MODES[0].id], ...FILTERS.flatMap((f) => needs.filters[f.id][String(f.default)])])].sort();
 }
 
-export async function exportData(db: DatabaseSync, order: LoadedDimension[], sources: Record<string, string>): Promise<DataExport> {
+/** `order` is the modules of `phase` (see `forPhase`); the files describe only that phase's schools. */
+export async function exportData(db: DatabaseSync, order: LoadedDimension[], sources: Record<string, string>, phase: Phase = 'secondary'): Promise<DataExport> {
   const meta = getMeta(db);
   const fields = fieldTable(order);
   const tables = order.map((d) => ({ fields: d.module.fields, rows: readModuleRows(db, d.id, d.module.fields) }));
@@ -136,8 +138,8 @@ export async function exportData(db: DatabaseSync, order: LoadedDimension[], sou
     return record;
   });
 
-  const needs = await traceNeeds(records, Object.keys(fields));
-  const { errors, warnings } = checkPlacements(fields, needs, await startupFields(needs), lazyFields(order));
+  const needs = await traceNeeds(records, Object.keys(fields), phase);
+  const { errors, warnings } = checkPlacements(fields, needs, await startupFields(needs, phase), lazyFields(order));
   if (errors.length) throw new Error(`Field placement problems:\n  ${errors.join('\n  ')}`);
 
   const column = (name: string) => encodeColumn(fields[name], records.map((r) => r[name] as Value));

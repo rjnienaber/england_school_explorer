@@ -10,6 +10,7 @@ export const module = defineDimension({
   id: 'trust',
   title: 'Trusts',
   dependsOn: ['gias-core'],
+  phases: ['secondary', 'primary'],
   fields: {
     trustId: {
       type: 'string',
@@ -22,7 +23,7 @@ export const module = defineDimension({
       type: 'number',
       placement: 'detail',
       label: 'Schools in the trust on this map',
-      description: 'How many of the mapped secondary schools belong to the same trust, this one included. A trust may run other schools (primaries, special schools) that are not on the map.',
+      description: 'How many of the mapped schools in this phase belong to the same trust, this one included. A trust may run other schools (the other phase, special schools) that are not in this dataset.',
       source: 'gias',
       decimals: 0,
     },

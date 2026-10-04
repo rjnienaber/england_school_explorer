@@ -9,7 +9,7 @@ import { HttpError } from '../../lib/download.ts';
 const COLUMNS = [
   'URN', 'EstablishmentName', 'EstablishmentStatus (name)', 'LA (name)', 'Town', 'Postcode', 'SchoolWebsite',
   'TypeOfEstablishment (name)', 'EstablishmentTypeGroup (name)', 'Gender (name)', 'StatutoryLowAge', 'StatutoryHighAge',
-  'OfficialSixthForm (name)', 'AdmissionsPolicy (name)', 'ReligiousCharacter (name)', 'ReligiousEthos (name)', 'Diocese (name)',
+  'PhaseOfEducation (name)', 'OfficialSixthForm (name)', 'AdmissionsPolicy (name)', 'ReligiousCharacter (name)', 'ReligiousEthos (name)', 'Diocese (name)',
   'Trusts (name)', 'Trusts (code)', 'NumberOfPupils', 'SchoolCapacity', 'Easting', 'Northing', 'LSOA (code)', 'UrbanRural (name)',
   'OpenDate', 'ReasonEstablishmentOpened (name)', 'Boarders (name)', 'TypeOfResourcedProvision (name)',
   ...Array.from({ length: 13 }, (_, i) => `SEN${i + 1} (name)`), 'ResourcedProvisionCapacity', 'SenUnitCapacity',

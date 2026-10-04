@@ -85,3 +85,9 @@ test('what a view needs: the mode plus each filter at its current value', () => 
   // an id the build doesn't know (a stale page): load every column rather than guess
   assert.deepEqual(data.viewFields('other', { f: true }).sort(), ['band', 'name']);
 });
+
+test('each phase loads from its own folder, and secondary keeps the original paths', async () => {
+  const { phaseDir } = await import('../lib/phase.ts');
+  assert.equal(`data/${phaseDir('secondary')}core.json`, 'data/core.json');
+  assert.equal(`data/${phaseDir('primary')}core.json`, 'data/primary/core.json');
+});

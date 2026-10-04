@@ -5,6 +5,7 @@
 // that only reads Ofsted report-card grades for schools that have one.
 
 import type { Needs } from './columnar.ts';
+import type { Phase } from './phase.ts';
 
 type Record_ = Record<string, unknown>;
 
@@ -30,10 +31,10 @@ const union = (...lists: string[][]) => [...new Set(lists.flat())].sort();
  * browser sees a school once everything is loaded. Imports the web registry lazily because
  * it needs web/generated/registry.ts to exist first.
  */
-export async function traceNeeds(records: Record_[], fieldNames: string[]): Promise<Needs> {
-  const { MODES, FILTERS } = await import('../web/registry.ts');
+export async function traceNeeds(records: Record_[], fieldNames: string[], phase: Phase = 'secondary'): Promise<Needs> {
+  const { MODES, FILTERS } = (await import('../web/registry.ts')).registryFor(phase);
   const { h } = await import('../web/toolkit.ts');
-  const { PIECES } = await import('../web/popup.ts');
+  const PIECES = (await import('../web/popup.ts')).piecesFor(phase);
   const names = new Set(fieldNames);
   const t = (fn: (p: never) => unknown) => trace(records, names, fn);
 

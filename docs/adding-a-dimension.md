@@ -102,6 +102,30 @@ node scripts/diff-geojson.ts /tmp/old-data dist/data --allow-new-properties
 The last command proves you changed nothing that existed before (see "Proving you changed
 nothing").
 
+## Phases (secondary and primary)
+
+The map has two separate datasets, one per phase (`secondary`, the original, and `primary`; the list is in
+`lib/phase.ts`). Each is built into its own store and output (`build/schools.sqlite` and `dist/data/`, and
+`build/primary.sqlite` and `dist/data/primary/`) and the browser loads only the phase it is showing. The
+secondary output is unchanged by phases, so existing paths and caches keep working.
+
+- `build.ts`: add `phases: ['primary']` (or `['secondary', 'primary']`) to `defineDimension`. The default is
+  secondary only, so existing modules need nothing. The pipeline runs once per phase over just the modules
+  that declare it; `ctx.phase` says which phase is being built. A module must be declared for every phase of
+  the modules it depends on, and every module's phases must be covered by the scope module (`gias-core`),
+  which decides which schools are in each phase. Field names are shared across phases, so a field that exists
+  in both must mean the same thing.
+- `web.ts`: modes, filters, popup sections, rows, tags, source notes and extensions follow their module's
+  phases. Add `phases` to one item to narrow it (the sixth-form filter is `phases: ['secondary']` although
+  `gias-core` is in both). Ids must be unique within a phase, not across them, so two modules can each have a
+  `trust` filter for different phases.
+- Tests: `buildFromFixtures(id, 'primary')` builds the fixtures for a phase (default: the module's first
+  phase). Primary fixtures are the 9000xx rows in `dimensions/gias-core/fixtures/gias.csv`.
+- Primary sizes: the primary core is about 350 KB gzipped (16,700 schools), so it has its own budget under
+  `phases.primary` in `budgets.json`. Keep new primary fields out of core all the same.
+- `scripts/build-data.ts` builds both phases and `verify-data` checks both. `export-release` and the GeoJSON
+  diff only cover secondary.
+
 ## Naming rules
 
 - Module id and folder: lower-case, digits, single hyphens (`school-size`). Must match.
@@ -579,6 +603,7 @@ build). Gzipped, as downloaded:
 | `core.json` (every visitor) | 200 KB | about 111 KB |
 | each `modes/<field>.json` | 50 KB | largest about 7 KB |
 | each `details/<n>.json` | 40 KB | largest about 8 KB |
+| primary `core.json` (primary visitors) | 380 KB | about 352 KB (16,700 schools) |
 | JS bundle (`app.js` + `maplibre-gl-shared.mjs`) | baseline +10% | about 436 KB |
 
 These leave room for about 25 more dimensions. If your change fails a budget:

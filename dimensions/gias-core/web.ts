@@ -3,6 +3,7 @@ import type { FilterDef, PopupSectionDef, PopupTagDef, SourceNoteDef } from '../
 export const filters: FilterDef[] = [
   {
     id: 'state',
+    phases: ['secondary'],
     group: 'type',
     order: 10,
     control: { kind: 'checkbox', label: 'State-funded' },
@@ -11,6 +12,7 @@ export const filters: FilterDef[] = [
   },
   {
     id: 'independent',
+    phases: ['secondary'],
     group: 'type',
     order: 20,
     control: { kind: 'checkbox', label: 'Independent' },
@@ -19,6 +21,7 @@ export const filters: FilterDef[] = [
   },
   {
     id: 'selective',
+    phases: ['secondary'],
     group: 'type',
     order: 30,
     control: { kind: 'checkbox', label: 'Selective (grammar)' },
@@ -27,6 +30,7 @@ export const filters: FilterDef[] = [
   },
   {
     id: 'sixthForm',
+    phases: ['secondary'], // primary schools have none
     group: 'type',
     order: 40,
     control: { kind: 'checkbox', label: 'Sixth form only' },
@@ -53,9 +57,9 @@ export const filters: FilterDef[] = [
 ];
 
 export const popupTags: PopupTagDef[] = [
-  { id: 'independent', order: 10, tag: (p) => (p.sector === 'independent' ? { text: 'Independent', warn: true } : null) },
-  { id: 'selective', order: 20, tag: (p) => (p.selective ? { text: 'Selective (grammar)', warn: true } : null) },
-  { id: 'sixthForm', order: 30, tag: (p) => (p.sixthForm ? { text: 'Sixth form' } : null) },
+  { id: 'independent', phases: ['secondary'], order: 10, tag: (p) => (p.sector === 'independent' ? { text: 'Independent', warn: true } : null) },
+  { id: 'selective', phases: ['secondary'], order: 20, tag: (p) => (p.selective ? { text: 'Selective (grammar)', warn: true } : null) },
+  { id: 'sixthForm', phases: ['secondary'], order: 30, tag: (p) => (p.sixthForm ? { text: 'Sixth form' } : null) },
   { id: 'trust', order: 50, tag: (p) => (p.trust ? { text: p.trust } : null) },
 ];
 

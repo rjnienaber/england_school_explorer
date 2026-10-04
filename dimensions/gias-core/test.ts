@@ -52,6 +52,15 @@ test('gias-core: sectors, selection and who is left out', async () => {
   }
 });
 
+test('gias-core primary phase: open mainstream primaries only, with their own sector', async () => {
+  const { rows } = await buildFromFixtures('gias-core', 'primary');
+  const r = rows('gias-core');
+  for (const urn of [900001, 900002, 900003, 900007]) assert.ok(r.has(urn), `${urn} should be a primary`);
+  // closed, special, independent (no GIAS phase) and every secondary school are left out
+  for (const urn of [900004, 900005, 900006, 101361, 100001]) assert.equal(r.has(urn), false, `${urn} should not be a primary`);
+  assert.equal(r.get(900003)?.sector, 'state');
+});
+
 test('official links: finances only for state-funded schools', () => {
   const render = (sector: string) => popupSections[0].render({ urn: 100049, sector } as School, h, () => [])?.value ?? '';
   const state = render('state');

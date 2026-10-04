@@ -9,7 +9,7 @@ import { mkdir, readdir, readFile, writeFile } from 'node:fs/promises';
 import { join, relative } from 'node:path';
 import type { FieldDef } from './dimension.ts';
 import { GENERATED_DIR, ROOT } from './paths.ts';
-import type { LoadedDimension } from './registry.ts';
+import { phasesOfModule, type LoadedDimension } from './registry.ts';
 
 /** Names a dimension's web.ts may export. A typo (`mode` for `modes`) would otherwise be silently ignored. */
 export const WEB_EXPORTS = ['modes', 'filters', 'popupSections', 'popupRows', 'popupTags', 'sourceNotes', 'extensions'];
@@ -56,10 +56,11 @@ export async function registrySource(order: LoadedDimension[]): Promise<string> 
   return [
     HEADER,
     "import type { WebExports } from '../toolkit.ts';",
+    "import type { Phase } from '../../lib/phase.ts';",
     ...web.map((d) => `import * as ${camel(d.id)} from '../../dimensions/${d.id}/web.ts';`),
     '',
-    'export const webModules: { id: string; web: WebExports }[] = [',
-    ...web.map((d) => `  { id: ${JSON.stringify(d.id)}, web: ${camel(d.id)} },`),
+    'export const webModules: { id: string; phases: readonly Phase[]; web: WebExports }[] = [',
+    ...web.map((d) => `  { id: ${JSON.stringify(d.id)}, phases: ${JSON.stringify(phasesOfModule(d))}, web: ${camel(d.id)} },`),
     '];',
     '',
   ].join('\n');

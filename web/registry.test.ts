@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
-import { FILTERS, MODES, POPUP_SECTIONS, POPUP_TAGS, SOURCE_NOTES, modeById } from './registry.ts';
+import { registryFor, FILTERS, MODES, POPUP_SECTIONS, POPUP_TAGS, SOURCE_NOTES, modeById } from './registry.ts';
 import { PALETTES } from './palette.ts';
 
 test('ids are unique and lists are sorted by order', () => {
@@ -40,4 +40,19 @@ test('enabledBy points at an earlier checkbox filter', () => {
     assert.ok(parent && parent.control.kind === 'checkbox', `${f.id}: enabledBy must name a checkbox filter`);
     assert.ok(parent.order < f.order, `${f.id}: should come after ${parent.id}`);
   }
+});
+
+test('the primary registry has its own modes and filters, and none of the secondary-only ones', () => {
+  const primary = registryFor('primary');
+  const ids = (list: { id: string }[]) => list.map((x) => x.id);
+  assert.ok(ids(FILTERS).includes('sixthForm'));
+  assert.ok(!ids(primary.FILTERS).includes('sixthForm'));
+  assert.ok(ids(primary.FILTERS).includes('primaryType'));
+  assert.ok(!ids(FILTERS).includes('primaryType'));
+  assert.ok(ids(primary.MODES).includes('ofsted'));
+  assert.ok(!ids(primary.MODES).includes('p8'));
+  for (const list of [primary.MODES, primary.FILTERS, primary.POPUP_SECTIONS, primary.POPUP_TAGS, primary.SOURCE_NOTES]) {
+    assert.equal(new Set(ids(list)).size, list.length);
+  }
+  assert.equal(primary.modeById('nonsense'), primary.MODES[0]);
 });

@@ -5,7 +5,7 @@
 //   --previous   an earlier dist/data/manifest.json (the deployed site's, say) to show the change against.
 //                Optional; a missing or unreadable one is ignored.
 //
-// Reads dist/data/manifest.json (written by `npm run build:data`) and the bundle files in dist/.
+// Reads dist/data/manifest.json and dist/data/<phase>/manifest.json (written by `npm run build:data`) and the bundle files in dist/.
 // In GitHub Actions the table is also appended to $GITHUB_STEP_SUMMARY.
 
 import { appendFileSync } from 'node:fs';
@@ -20,6 +20,8 @@ export interface Budgets {
   mode: { maxGzipKB: number };
   detail: { maxGzipKB: number };
   bundle: { files: string[]; baselineGzipKB: number; maxGrowthPercent: number };
+  /** Per-phase overrides of core, mode and detail (the primary dataset is four times the size of the secondary one). */
+  phases?: Record<string, { core?: { maxGzipKB: number; why?: string }; mode?: { maxGzipKB: number; why?: string }; detail?: { maxGzipKB: number; why?: string } }>;
 }
 
 export interface SizedFile {
@@ -46,6 +48,8 @@ export function evaluate(
   bundle: SizedFile[],
   budgets: Budgets,
   previous?: { files: SizedFile[] } | null,
+  /** Prefix for the paths shown (for example 'primary/'), when the manifest is a phase's rather than the secondary one. */
+  prefix = '',
 ): { rows: Row[]; problems: string[] } {
   const before = new Map(previous?.files.map((f) => [f.path, f.gzip]));
   const delta = (path: string, gzip: number) => (before.has(path) ? gzip - before.get(path)! : null);
@@ -56,12 +60,12 @@ export function evaluate(
   const check = (file: SizedFile, label: string, limitKB: number, key: string, note?: string): Row => {
     const budget = limitKB * 1024;
     const over = file.gzip > budget;
-    if (over) problems.push(`${file.path} is ${kb(file.gzip)} gzipped, over the ${key} budget of ${limitKB} KB (by ${kb(file.gzip - budget)}). ${fix}`);
-    return { ...file, path: label, budget, delta: delta(file.path, file.gzip), over, note };
+    if (over) problems.push(`${prefix}${file.path} is ${kb(file.gzip)} gzipped, over the ${key} budget of ${limitKB} KB (by ${kb(file.gzip - budget)}). ${fix}`);
+    return { ...file, path: prefix + label, budget, delta: delta(file.path, file.gzip), over, note };
   };
 
   const core = manifest.files.find((f) => f.path === 'core.json');
-  if (!core) problems.push('core.json is not in the manifest: did build:data run?');
+  if (!core) problems.push(`${prefix}core.json is not in the manifest: did build:data run?`);
   else rows.push(check(core, 'core.json', budgets.core.maxGzipKB, 'core'));
 
   for (const f of manifest.files.filter((f) => f.path.startsWith('modes/')).sort((a, b) => a.path.localeCompare(b.path))) {
@@ -71,13 +75,15 @@ export function evaluate(
   const shards = manifest.files.filter((f) => f.path.startsWith('details/'));
   for (const s of shards) {
     if (s.gzip > budgets.detail.maxGzipKB * 1024 && s !== shards.reduce((a, b) => (b.gzip > a.gzip ? b : a))) {
-      problems.push(`${s.path} is ${kb(s.gzip)} gzipped, over the detail budget of ${budgets.detail.maxGzipKB} KB. ${fix}`);
+      problems.push(`${prefix}${s.path} is ${kb(s.gzip)} gzipped, over the detail budget of ${budgets.detail.maxGzipKB} KB. ${fix}`);
     }
   }
   if (shards.length) {
     const largest = shards.reduce((a, b) => (b.gzip > a.gzip ? b : a));
     rows.push(check(largest, `${largest.path} (largest of ${shards.length})`, budgets.detail.maxGzipKB, 'detail'));
   }
+
+  if (prefix) return { rows, problems }; // a phase's manifest has no bundle of its own
 
   for (const f of bundle) rows.push({ ...f, budget: null, delta: null, over: false });
   const total = bundle.reduce((s, f) => s + f.gzip, 0);
@@ -159,6 +165,18 @@ async function main(): Promise<void> {
   }
 
   const { rows, problems } = evaluate(manifest, bundle, budgets, previous);
+  // Other phases: their own manifest under dist/data/<phase>/, with the top-level budgets overridden by budgets.phases.<phase>.
+  for (const [phase, override] of Object.entries(budgets.phases ?? {})) {
+    const phaseManifest = await loadJson<{ files: SizedFile[] }>(join(dist, 'data', phase, 'manifest.json'));
+    if (!phaseManifest) {
+      problems.push(`${join(dist, 'data', phase, 'manifest.json')} is missing: run "npm run build:data" first`);
+      continue;
+    }
+    const phasePrevious = previousSource ? await loadJson<{ files: SizedFile[] }>(previousSource.replace(/manifest\.json$/, `${phase}/manifest.json`)) : null;
+    const result = evaluate(phaseManifest, [], { ...budgets, ...override }, phasePrevious, `${phase}/`);
+    rows.push(...result.rows);
+    problems.push(...result.problems);
+  }
   console.log(textTable(rows));
   if (process.env.GITHUB_STEP_SUMMARY) appendFileSync(process.env.GITHUB_STEP_SUMMARY, markdownTable(rows, problems));
   if (problems.length) {

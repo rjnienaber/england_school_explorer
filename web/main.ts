@@ -4,7 +4,8 @@ import type { FeatureCollection } from 'geojson';
 import type { SchoolFeature, SchoolRecord } from './types.ts';
 import { loadCore, StaleDataError, type SchoolData } from './data.ts';
 import { drawOrder, PALETTES, type Theme } from './palette.ts';
-import { EXTENSIONS, FILTERS, MODES, SOURCE_NOTES, modeById } from './registry.ts';
+import { DEFAULT_PHASE, isPhase, PHASES, type Phase } from '../lib/phase.ts';
+import { registryFor } from './registry.ts';
 import { FILTER_GROUPS, h, type AppApi, type ChipFilter, type FilterDef, type FilterGroupId, type ModeDef } from './toolkit.ts';
 import { popupHtml } from './popup.ts';
 import './style.css';
@@ -18,7 +19,74 @@ const ENGLAND: [[number, number], [number, number]] = [
   [1.8, 55.8],
 ];
 const LIST_LIMIT = 30;
-const STORAGE_KEY = 'schools-map-settings';
+const PHASE_KEY = 'schools-map-phase';
+
+// ---------- Phase (secondary or primary schools) ----------
+
+// Each phase is its own dataset, with its own modes, filters and popups. Switching reloads the page with
+// `?phase=...`, so everything below is set up for one phase only. The URL decides, then the saved choice.
+function readPhase(): Phase {
+  const fromUrl = new URLSearchParams(location.search).get('phase');
+  if (isPhase(fromUrl)) return fromUrl;
+  try {
+    const saved = localStorage.getItem(PHASE_KEY);
+    if (isPhase(saved)) return saved;
+  } catch {
+    // storage unavailable
+  }
+  return DEFAULT_PHASE;
+}
+const PHASE = readPhase();
+const hasPhaseInUrl = isPhase(new URLSearchParams(location.search).get('phase'));
+const { MODES, FILTERS, EXTENSIONS, SOURCE_NOTES, modeById } = registryFor(PHASE);
+/** Secondary keeps its original key, so saved settings survive; other phases have their own. */
+const STORAGE_KEY = PHASE === DEFAULT_PHASE ? 'schools-map-settings' : `schools-map-settings-${PHASE}`;
+
+const PHASE_TEXT: Record<Phase, { label: string; title: string; map: string; scope: (count: string) => string }> = {
+  secondary: {
+    label: 'Secondary',
+    title: 'Secondary schools in England',
+    map: 'Map of secondary schools',
+    scope: (n) => `${n} open mainstream secondary schools with GCSE results.`,
+  },
+  primary: {
+    label: 'Primary',
+    title: 'Primary schools in England',
+    map: 'Map of primary schools',
+    scope: (n) => `${n} open state-funded mainstream primary schools. Independent schools aren't shown.`,
+  },
+};
+
+function savePhase(phase: Phase): void {
+  try {
+    localStorage.setItem(PHASE_KEY, phase);
+  } catch {
+    // storage unavailable
+  }
+}
+
+/** Shows the phase in the title and the switch, and turns the switch into a link-free reload to the other phase. */
+function bindPhaseSwitch(): void {
+  const text = PHASE_TEXT[PHASE];
+  document.querySelector('.panel-title')!.textContent = text.title;
+  $('map').setAttribute('aria-label', text.map);
+  $('phase-switch').replaceChildren(
+    ...PHASES.map((phase) => {
+      const button = document.createElement('button');
+      button.type = 'button';
+      button.role = 'radio';
+      button.textContent = PHASE_TEXT[phase].label;
+      button.setAttribute('aria-checked', String(phase === PHASE));
+      button.addEventListener('click', () => {
+        if (phase === PHASE) return;
+        // A school, trust or shortlist from one phase means nothing in the other, so the new view starts clean
+        savePhase(phase);
+        location.assign(`${location.pathname}?phase=${phase}${location.hash}`);
+      });
+      return button;
+    }),
+  );
+}
 
 /** Current value of every filter, by filter id: a boolean for checkboxes, a string for selects and focus filters. */
 type FilterValues = Record<string, boolean | string>;
@@ -365,6 +433,9 @@ function syncUrl(): void {
   const params = new URLSearchParams(location.search);
   for (const chip of CHIPS) params.delete(chip.id);
   params.delete('urn');
+  // Secondary is the default, so its links stay as they always were
+  params.delete('phase');
+  if (PHASE !== DEFAULT_PHASE) params.set('phase', PHASE);
   for (const chip of CHIPS) if (activeFilters[chip.id]) params.set(chip.id, activeFilters[chip.id] as string);
   if (selectedUrn !== null) params.set('urn', String(selectedUrn));
   // Commas stay readable in a shared link (?compare=1,2,3)
@@ -384,7 +455,7 @@ function openSchool(urn: number, fly = false): void {
   hoverTip.remove();
   if (fly) map.flyTo({ center: [lng, lat], zoom: Math.max(map.getZoom(), 12), padding: mapPadding() });
   const render = (failed = false) =>
-    popupHtml(feature.properties, { needs: data.core.needs.popup, ready: (f) => data.hasField(f, urn), failed, metadata: data.core.metadata });
+    popupHtml(feature.properties, { needs: data.core.needs.popup, ready: (f) => data.hasField(f, urn), failed, metadata: data.core.metadata, phase: PHASE });
   detailPopup.setLngLat([lng, lat]).setHTML(render()).addTo(map);
   setSelected(urn);
   if (isNarrow()) {
@@ -513,7 +584,7 @@ function renderAbout(): void {
     .map((item) => `<li>${item.value}</li>`)
     .join('\n      ');
   $('about').innerHTML = `
-    <p>${data.core.count.toLocaleString()} open mainstream secondary schools with GCSE results. Built ${built}.</p>
+    <p>${PHASE_TEXT[PHASE].scope(data.core.count.toLocaleString())} Built ${built}.</p>
     <ul>
       ${items}
     </ul>
@@ -808,7 +879,9 @@ function startExtensions(): void {
 
 async function main(): Promise<void> {
   bindMapEvents();
-  data = await loadCore();
+  bindPhaseSwitch();
+  if (hasPhaseInUrl) savePhase(PHASE);
+  data = await loadCore(PHASE);
   // A link can carry a focus filter (?trust=17396) and a school (?urn=100049)
   const params = new URLSearchParams(location.search);
   for (const chip of CHIPS) {
@@ -835,9 +908,26 @@ async function main(): Promise<void> {
   startExtensions();
 
   const urn = Number(params.get('urn'));
+  // A link to a school from the other phase (made before the phase was in the address) opens in that phase
+  if (urn && !data.byUrn.has(urn) && !hasPhaseInUrl && (await inOtherPhase(urn))) return;
   const focused = CHIPS.filter((c) => activeFilters[c.id]);
   if (urn && data.byUrn.has(urn)) openSchool(urn, true);
   else if (focused.length) fitToSchools(shown.filter((f) => focused.some((c) => c.test(f.properties, activeFilters[c.id] as string))));
+}
+
+/** If this school is in the other phase's data, goes there (keeping the link's own parameters) and returns true. */
+async function inOtherPhase(urn: number): Promise<boolean> {
+  const other = PHASES.find((p) => p !== PHASE)!;
+  try {
+    const { byUrn } = await loadCore(other);
+    if (!byUrn.has(urn)) return false;
+    const params = new URLSearchParams(location.search);
+    params.set('phase', other);
+    location.replace(`${location.pathname}?${params.toString().replaceAll('%2C', ',')}${location.hash}`);
+    return true;
+  } catch {
+    return false;
+  }
 }
 
 main().catch((err: unknown) => {

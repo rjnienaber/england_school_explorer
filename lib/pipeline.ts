@@ -4,7 +4,8 @@ import { existsSync, readFileSync } from 'node:fs';
 import type { DatabaseSync } from 'node:sqlite';
 import { clearSharedCsv, readCsvShared } from './csv.ts';
 import type { BuildContext, BuildResult, ExtraRow, Fields, RowOf, Scope, ScopeSchool, SourceDef } from './dimension.ts';
-import { dataPath, SOURCES_FILE, STORE_FILE } from './paths.ts';
+import { dataPath, SOURCES_FILE, storeFileFor } from './paths.ts';
+import { DEFAULT_PHASE, type Phase } from './phase.ts';
 import type { LoadedDimension } from './registry.ts';
 import { makeStatsToolkit } from './stats.ts';
 import {
@@ -21,6 +22,8 @@ import {
 
 /** A source format change usually shows up as most schools vanishing; fail rather than publish a near-empty map. */
 export const MIN_SCHOOLS = 3500;
+/** The same guard per phase (primary has about 16,800 schools). */
+export const MIN_SCHOOLS_BY_PHASE: Record<Phase, number> = { secondary: MIN_SCHOOLS, primary: 14000 };
 /** Warn when a field is filled for this much fewer schools than in the previous build. */
 const COVERAGE_DROP = 0.2;
 
@@ -52,6 +55,8 @@ function makeScope(schools: ScopeSchool[]): Scope {
 export async function buildStore(
   order: LoadedDimension[],
   opts: {
+    /** The phase to build; `order` should already be filtered with `forPhase`. Default secondary. */
+    phase?: Phase;
     storeFile?: string;
     minSchools?: number;
     log?: (msg: string) => void;
@@ -61,7 +66,7 @@ export async function buildStore(
     moreSources?: SourceDef[];
   } = {},
 ): Promise<BuildOutcome> {
-  const { storeFile = STORE_FILE, minSchools = MIN_SCHOOLS, log = console.log, dataFile = (def) => dataPath(def.file ?? `${def.id}.csv`), moreSources = [] } = opts;
+  const { phase = DEFAULT_PHASE, storeFile = storeFileFor(phase), minSchools = MIN_SCHOOLS_BY_PHASE[phase], log = console.log, dataFile = (def) => dataPath(def.file ?? `${def.id}.csv`), moreSources = [] } = opts;
   const sourceDefs = new Map<string, SourceDef>([...moreSources, ...order.flatMap((d) => d.sources)].map((s) => [s.id, s] as const));
   const sources = readSourceUrls();
   const warnings: string[] = [];
@@ -94,6 +99,7 @@ export async function buildStore(
 
     const ctx: BuildContext = {
       moduleId: id,
+      phase,
       db,
       sources,
       dataPath: (sourceId) => {
@@ -151,6 +157,7 @@ export async function buildStore(
   for (const [key, value] of Object.entries(metadata)) setMeta(db, `metadata.${key}`, value);
   setMeta(db, 'builtAt', new Date().toISOString());
   setMeta(db, 'order', order.map((d) => d.id));
+  setMeta(db, 'phase', phase);
   clearSharedCsv();
   return { db, scope: need(), metadata, warnings };
 }

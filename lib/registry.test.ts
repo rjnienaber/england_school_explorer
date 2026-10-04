@@ -1,14 +1,15 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
-import { defineDimension, type Fields } from './dimension.ts';
-import { loadBuildOrder, sortDimensions, validateDimensions, type LoadedDimension } from './registry.ts';
+import { defineDimension, type Fields, type Phase } from './dimension.ts';
+import { forPhase, loadBuildOrder, sortDimensions, validateDimensions, type LoadedDimension } from './registry.ts';
 
-function fake(id: string, opts: { dependsOn?: string[]; scope?: boolean; fields?: Fields } = {}): LoadedDimension {
+function fake(id: string, opts: { dependsOn?: string[]; scope?: boolean; fields?: Fields; phases?: Phase[] } = {}): LoadedDimension {
   const module = defineDimension({
     id,
     title: id,
     dependsOn: opts.dependsOn,
     scope: opts.scope,
+    phases: opts.phases,
     fields: opts.fields ?? { [`${id.replace(/-/g, '')}Value`]: { type: 'number', placement: 'detail', label: id } },
     build: () => [],
   });
@@ -44,6 +45,20 @@ test('validation: unknown dependency, duplicate field and module id mismatch', (
     (err: Error) =>
       /dependsOn "missing"/.test(err.message) && /field "pupils" is already declared by core/.test(err.message) && /module\.id is "other"/.test(err.message),
   );
+});
+
+test('phases: default to secondary, and forPhase keeps only the modules that declare the phase', () => {
+  const list = [fake('core', { scope: true, phases: ['secondary', 'primary'] }), fake('sec'), fake('prim', { phases: ['primary'], dependsOn: ['core'] })];
+  assert.deepEqual(forPhase(list, 'secondary').map((d) => d.id), ['core', 'sec']);
+  assert.deepEqual(forPhase(list, 'primary').map((d) => d.id), ['core', 'prim']);
+});
+
+test('validation: phases must be known, covered by the scope module and by dependencies', () => {
+  assert.throws(() => validateDimensions([fake('core', { scope: true }), fake('x', { phases: ['nursery' as Phase] })]), /phases must list at least one known phase/);
+  assert.throws(() => validateDimensions([fake('core', { scope: true }), fake('x', { phases: ['primary'] })]), /core/);
+  const both = fake('core', { scope: true, phases: ['secondary', 'primary'] });
+  assert.throws(() => validateDimensions([both, fake('dep'), fake('x', { phases: ['primary'], dependsOn: ['dep'] })]), /dep/);
+  assert.doesNotThrow(() => validateDimensions([both, fake('x', { phases: ['primary'], dependsOn: ['core'] })]));
 });
 
 test('validation: a non-nullable field needs a default; a year must name a declared field', () => {

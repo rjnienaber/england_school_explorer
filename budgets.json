@@ -12,6 +12,14 @@
     "maxGzipKB": 40,
     "why": "Each dist/data/details/<n>.json holds every non-core field for about 32 schools and is fetched when a popup opens. Today the largest is about 8 KB. 40 KB leaves room for about 25 more dimensions of popup fields, yet a popup stays quick on a slow connection. If this is hit, check for long free text or per-subject tables stored as fields."
   },
+  "phases": {
+    "primary": {
+      "core": {
+        "maxGzipKB": 380,
+        "why": "The primary dataset (dist/data/primary/) is loaded only when a visitor switches to Primary, and has about 16,700 schools against 4,150, so its core is about four times the size: 352 KB when set. Nearly all of it is the five columns the map needs before it can draw (coordinates 107 KB, name 117 KB, postcode 69 KB, town 37 KB, local authority 19 KB), which scale with the number of schools and cannot move to a later placement. 380 KB leaves about 8% headroom; a new primary module should still keep its fields out of core."
+      }
+    }
+  },
   "bundle": {
     "files": ["app.js", "maplibre-gl-shared.mjs"],
     "baselineGzipKB": 436,

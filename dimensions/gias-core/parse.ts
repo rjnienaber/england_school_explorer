@@ -11,6 +11,8 @@ export interface GiasSchool {
   website: string | null;
   type: string;
   typeGroup: string;
+  /** GIAS "PhaseOfEducation (name)": Primary, Secondary, All-through, Nursery, ... ('' when the column is empty). */
+  phase: string;
   gender: string | null;
   ageLow: number | null;
   ageHigh: number | null;
@@ -66,6 +68,7 @@ export async function loadGias(file: string): Promise<Map<number, GiasSchool>> {
       website: normaliseWebsite(text(row.SchoolWebsite)),
       type: row['TypeOfEstablishment (name)'].trim(),
       typeGroup: row['EstablishmentTypeGroup (name)'].trim(),
+      phase: (row['PhaseOfEducation (name)'] ?? '').trim(),
       gender: text(row['Gender (name)']),
       ageLow: num(row.StatutoryLowAge),
       ageHigh,

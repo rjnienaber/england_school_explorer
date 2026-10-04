@@ -58,3 +58,12 @@ test('the Markdown summary lists the problems', () => {
   assert.match(md, /\*\*1 over budget\*\*/);
   assert.match(md, /\| core\.json \|/);
 });
+
+test('a phase manifest is checked against its own prefix and override, without the bundle', () => {
+  const primary = { ...budgets, core: { maxGzipKB: 380 } };
+  const ok = evaluate(manifest(350, 7, [8]), [], primary, null, 'primary/');
+  assert.deepEqual(ok.problems, []);
+  assert.deepEqual(ok.rows.map((r) => r.path), ['primary/core.json', 'primary/modes/a.json', 'primary/details/0.json (largest of 1)']);
+  const over = evaluate(manifest(390, 7, [8]), [], primary, null, 'primary/');
+  assert.match(over.problems[0], /^primary\/core\.json is 390\.0 KB gzipped, over the core budget of 380 KB/);
+});
