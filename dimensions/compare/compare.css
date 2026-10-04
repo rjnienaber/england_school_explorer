@@ -1,0 +1,350 @@
+/* Shortlist comparison. Colours follow the page's variables; "better" and "worse" are a blue/orange pair that
+   survives colour blindness, and every verdict also carries a symbol and words, never colour alone. */
+
+:root {
+  --cmp-better: #1c5cab;
+  --cmp-worse: #b45309;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme='light']) {
+    --cmp-better: #5393e0;
+    --cmp-worse: #d17a22;
+  }
+}
+:root[data-theme='dark'] {
+  --cmp-better: #5393e0;
+  --cmp-worse: #d17a22;
+}
+
+/* ---- Panel block ---- */
+.cmp-panel {
+  border: 1px solid var(--hairline);
+  border-radius: var(--radius);
+  padding: 8px 10px;
+  background: var(--page);
+  font-size: 0.9rem;
+}
+.cmp-panel h2 {
+  margin: 0 0 4px;
+  font-size: 0.95rem;
+}
+.cmp-panel ul {
+  list-style: none;
+  margin: 0 0 6px;
+  padding: 0;
+}
+.cmp-panel li {
+  display: flex;
+  justify-content: space-between;
+  gap: 6px;
+  align-items: baseline;
+}
+.cmp-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 12px;
+  align-items: center;
+}
+.cmp-btn {
+  font: inherit;
+  font-size: 0.9rem;
+  font-weight: 600;
+  padding: 5px 12px;
+  border: 1px solid var(--accent);
+  border-radius: 6px;
+  background: var(--accent);
+  color: var(--surface);
+  cursor: pointer;
+}
+.cmp-btn:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+.cmp-btn.quiet {
+  background: var(--surface);
+  color: var(--accent);
+}
+.cmp-x {
+  font: inherit;
+  border: 0;
+  background: none;
+  color: var(--muted);
+  cursor: pointer;
+  padding: 0 4px;
+}
+
+/* ---- Dialog ---- */
+.cmp-dialog {
+  width: min(1100px, 100vw - 24px);
+  max-height: calc(100vh - 24px);
+  padding: 0;
+  border: 1px solid var(--hairline);
+  border-radius: var(--radius);
+  background: var(--surface);
+  color: var(--ink);
+  box-shadow: var(--shadow);
+}
+.cmp-dialog::backdrop {
+  background: rgb(0 0 0 / 0.5);
+}
+.cmp-head {
+  position: sticky;
+  top: 0;
+  z-index: 3;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 16px;
+  background: var(--surface);
+  border-bottom: 1px solid var(--hairline);
+}
+.cmp-head h2 {
+  margin: 0;
+  font-size: 1.1rem;
+}
+.cmp-body {
+  padding: 4px 16px 20px;
+}
+.cmp-body h3 {
+  margin: 22px 0 6px;
+  font-size: 1rem;
+}
+.cmp-body p {
+  margin: 6px 0;
+}
+.cmp-notice {
+  border-left: 4px solid var(--cmp-worse);
+  padding: 4px 10px;
+  background: var(--page);
+}
+.cmp-scroll {
+  overflow-x: auto;
+  border: 1px solid var(--hairline);
+  border-radius: 6px;
+}
+.cmp-table {
+  border-collapse: separate;
+  border-spacing: 0;
+  width: 100%;
+  font-size: 0.9rem;
+}
+.cmp-table th,
+.cmp-table td {
+  padding: 6px 8px;
+  border-bottom: 1px solid var(--hairline);
+  text-align: left;
+  vertical-align: top;
+  min-width: 128px;
+}
+.cmp-table thead th {
+  background: var(--page);
+  position: sticky;
+  top: 0;
+}
+.cmp-table th.cmp-label {
+  position: sticky;
+  left: 0;
+  z-index: 1;
+  min-width: 118px;
+  max-width: 150px;
+  background: var(--surface);
+  font-weight: 600;
+  border-right: 1px solid var(--hairline);
+}
+.cmp-table thead th.cmp-label {
+  z-index: 2;
+  background: var(--page);
+}
+.cmp-table tr.cmp-group th {
+  background: var(--page);
+  position: static;
+  max-width: none;
+}
+.cmp-table tr.cmp-group th span {
+  display: block;
+  font-weight: 400;
+  color: var(--ink-2);
+  font-size: 0.85rem;
+}
+.cmp-table .cmp-avg {
+  color: var(--ink-2);
+  background: var(--page);
+}
+.cmp-sub {
+  display: block;
+  font-size: 0.8rem;
+  color: var(--muted);
+  font-weight: 400;
+}
+.cmp-v {
+  display: block;
+  font-size: 0.8rem;
+  font-weight: 600;
+}
+.cmp-v.best,
+.cmp-v.better {
+  color: var(--cmp-better);
+}
+.cmp-v.worse {
+  color: var(--cmp-worse);
+}
+.cmp-v.mixed,
+.cmp-v.same {
+  color: var(--ink-2);
+}
+td.cmp-best {
+  box-shadow: inset 3px 0 0 var(--cmp-better);
+}
+.cmp-na {
+  color: var(--muted);
+}
+
+/* ---- Matrix ---- */
+.cmp-matrix td,
+.cmp-matrix th {
+  text-align: center;
+  min-width: 78px;
+}
+.cmp-matrix td button {
+  font: inherit;
+  font-size: 0.85rem;
+  width: 100%;
+  min-height: 36px;
+  padding: 2px 4px;
+  border: 1px solid var(--hairline);
+  border-radius: 6px;
+  background: var(--surface);
+  color: var(--ink);
+  cursor: pointer;
+}
+.cmp-matrix td button.better {
+  color: var(--cmp-better);
+  border-color: var(--cmp-better);
+}
+.cmp-matrix td button.worse {
+  color: var(--cmp-worse);
+  border-color: var(--cmp-worse);
+}
+.cmp-matrix td button[aria-pressed='true'] {
+  outline: 2px solid var(--focus);
+}
+.cmp-matrix td.cmp-self {
+  background: var(--page);
+}
+.cmp-pair {
+  min-height: 3em;
+  font-weight: 600;
+}
+
+/* ---- Priorities ---- */
+.cmp-weights {
+  display: grid;
+  gap: 8px;
+}
+.cmp-weight {
+  display: grid;
+  grid-template-columns: minmax(150px, 1.1fr) minmax(120px, 2fr) 2.2em;
+  gap: 8px;
+  align-items: center;
+}
+.cmp-weight label {
+  display: flex;
+  gap: 6px;
+  align-items: baseline;
+}
+.cmp-weight input[type='range'] {
+  width: 100%;
+  min-height: 28px;
+}
+.cmp-weight output {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+.cmp-results {
+  display: grid;
+  gap: 8px;
+  margin-top: 10px;
+}
+.cmp-result {
+  display: grid;
+  grid-template-columns: minmax(130px, 1fr) minmax(100px, 2fr);
+  gap: 4px 10px;
+  align-items: center;
+}
+.cmp-result > span {
+  display: block;
+}
+.cmp-bar {
+  display: block;
+  height: 10px;
+  border-radius: 5px;
+  background: var(--hairline);
+  overflow: hidden;
+}
+.cmp-bar i {
+  display: block;
+  height: 100%;
+  background: var(--accent);
+}
+.cmp-result small {
+  grid-column: 1 / -1;
+  color: var(--ink-2);
+}
+.cmp-badges {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin: 6px 0;
+}
+.cmp-badge {
+  font-size: 0.85rem;
+  font-weight: 600;
+  padding: 2px 8px;
+  border-radius: 999px;
+  border: 1px solid var(--cmp-worse);
+  color: var(--cmp-worse);
+}
+.cmp-rule {
+  border-left: 4px solid var(--accent);
+  padding: 4px 10px;
+  background: var(--page);
+}
+.cmp-body select {
+  font: inherit;
+  max-width: 100%;
+}
+
+@media (max-width: 640px) {
+  .cmp-dialog {
+    width: 100vw;
+    max-height: 100vh;
+    height: 100vh;
+    border-radius: 0;
+    margin: 0;
+    max-width: none;
+  }
+  .cmp-body {
+    padding: 0 12px 20px;
+  }
+  .cmp-weight {
+    grid-template-columns: 1fr 2.2em;
+  }
+  .cmp-weight label {
+    grid-column: 1 / -1;
+  }
+  .cmp-weight input[type='range'] {
+    grid-column: 1;
+  }
+  .cmp-table th,
+  .cmp-table td {
+    min-width: 112px;
+  }
+  .cmp-table th.cmp-label {
+    min-width: 96px;
+    max-width: 110px;
+  }
+  .cmp-result {
+    grid-template-columns: 1fr;
+  }
+}

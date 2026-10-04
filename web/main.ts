@@ -4,8 +4,8 @@ import type { FeatureCollection } from 'geojson';
 import type { SchoolFeature, SchoolRecord } from './types.ts';
 import { loadCore, StaleDataError, type SchoolData } from './data.ts';
 import { drawOrder, PALETTES, type Theme } from './palette.ts';
-import { FILTERS, MODES, SOURCE_NOTES, modeById } from './registry.ts';
-import { h, type ChipFilter, type FilterDef, type ModeDef } from './toolkit.ts';
+import { EXTENSIONS, FILTERS, MODES, SOURCE_NOTES, modeById } from './registry.ts';
+import { h, type AppApi, type ChipFilter, type FilterDef, type ModeDef } from './toolkit.ts';
 import { popupHtml } from './popup.ts';
 import './style.css';
 
@@ -329,7 +329,8 @@ function syncUrl(): void {
   params.delete('urn');
   for (const chip of CHIPS) if (activeFilters[chip.id]) params.set(chip.id, activeFilters[chip.id] as string);
   if (selectedUrn !== null) params.set('urn', String(selectedUrn));
-  const query = params.toString();
+  // Commas stay readable in a shared link (?compare=1,2,3)
+  const query = params.toString().replaceAll('%2C', ',');
   try {
     history.replaceState(null, '', `${location.pathname}${query ? `?${query}` : ''}${location.hash}`);
   } catch {
@@ -697,6 +698,27 @@ function bindMapEvents(): void {
   });
 }
 
+// ---------- Extensions (features with their own interface, such as the shortlist comparison) ----------
+
+function startExtensions(): void {
+  const app: AppApi = {
+    data,
+    addPanelSection: (element) => $('focus').after(element),
+    openSchool,
+    setFocus: (filterId, value) => {
+      const chip = CHIPS.find((c) => c.id === filterId);
+      return chip ? setFocus(chip, value) : Promise.reject(new Error(`no focus filter "${filterId}"`));
+    },
+    focusValue: (filterId) => (activeFilters[filterId] as string | undefined) ?? '',
+    isNarrow,
+    collapsePanel: () => setPanelCollapsed(true),
+  };
+  for (const extension of EXTENSIONS) {
+    // One extension failing must not stop the map
+    Promise.resolve(extension.start(app)).catch((err: unknown) => console.error(`extension ${extension.id}:`, err));
+  }
+}
+
 // ---------- Startup ----------
 
 async function main(): Promise<void> {
@@ -724,6 +746,8 @@ async function main(): Promise<void> {
   else map.once('load', () => !map.getSource('schools') && addLayers());
   renderLegendAndList();
   renderFocus();
+
+  startExtensions();
 
   const urn = Number(params.get('urn'));
   const focused = CHIPS.filter((c) => activeFilters[c.id]);

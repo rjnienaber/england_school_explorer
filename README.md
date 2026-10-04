@@ -469,6 +469,34 @@ qualification. Small community-language entries (Polish, Urdu...) are real but o
 The list of schools in view ranks by the current mode. Differences between neighbouring
 schools in the list are usually not meaningful.
 
+### Comparing a shortlist
+
+"Add to shortlist" in a school's popup builds a list of up to six state-funded schools (kept in your
+browser, and in a shareable `?compare=<urn>,<urn>,...` link) and opens a full-screen comparison
+(`dimensions/compare/`). It is computed in the browser.
+
+- **Table.** Raw values with a 95% range, the England average (state-funded schools, and all schools; our own
+  pupil-weighted averages of the schools on this map, not DfE's official figures) and a verdict beside each value.
+  Only intake-adjusted measures (Progress 8, results vs intake) say a school is "better" in the sense of quality;
+  raw results are labelled "results of pupils at this school (largely reflect intake)". The table says when
+  Progress 8 is missing or older than the other results (it is currently not published for 2024/25).
+- **Probabilities.** P(A > B) = Φ((a − b) / √(seA² + seB²)). Standard errors: Progress 8 from its published
+  interval ((upper − lower) / 3.92); percentages binomial (a rate of exactly 0% is treated as half a pupil off
+  it); Attainment 8 from the pupil-level spread (about 14.5) over √(year group). "Likely better" is 90% or more,
+  "likely worse" 10% or less. These standard errors cover chance variation only and are not inflated for
+  anything else, so they **understate** the real uncertainty; the page says so. Tap a cell of the head-to-head
+  matrix for the probability.
+- **Beaten on every measure.** A school that another is at least as good as on every ticked measure and likely
+  better than on at least one (Ofsted, an ordered grade, can match but never make a school likely better; missing
+  measures are skipped for that pair). Schools not marked are where priorities decide.
+- **Priorities.** Weight sliders feed a seeded simulation (2000 draws): measures become percentiles among
+  state-funded schools, each draw varies every figure within its standard error, and we report the chance of being
+  strongest and a likely place range, or say it is a matter of preference when places overlap.
+- **National rank band (on request).** 400 draws over every state-funded school give a 10th-90th percentile rank
+  range ("roughly top 15-30%"), marked stable if it holds with each weight halved or raised by half. It runs on
+  the main thread in short chunks (no Web Worker) and loads six extra data columns only when asked.
+- **Applying.** The page states the equal-preference rule of the School Admissions Code and links to GOV.UK.
+
 ## Caveats
 
 - Data is a snapshot. Rerun `fetch` and `build` to refresh. Ofsted publishes monthly, GIAS

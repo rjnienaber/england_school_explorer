@@ -5,6 +5,7 @@
 
 import type { SchoolRecord, Metadata } from './types.ts';
 import type { PaletteName } from './palette.ts';
+import type { SchoolData } from './data.ts';
 
 export type { Metadata, PaletteName, SchoolRecord };
 /** One school's properties, typed from the field declarations. */
@@ -306,9 +307,40 @@ export interface SourceNoteDef {
   dates?: (meta: Metadata) => (string | null | undefined | false)[];
 }
 
+// ---------- Extensions: a feature with its own interface ----------
+
+/** What the app hands an extension when it starts. */
+export interface AppApi {
+  /** The loaded data: every school's core fields, `ensureFields` for mode columns and `getDetails(urn)` for popup fields. */
+  data: SchoolData;
+  /** Adds a block to the left panel, under the focus chips. */
+  addPanelSection(element: HTMLElement): void;
+  /** Opens a school's popup (and flies to it). */
+  openSchool(urn: number, fly?: boolean): void;
+  /** Sets a focus filter (see `ChipFilter`) to a value, or '' to clear it, and fits the map to its schools. */
+  setFocus(filterId: string, value: string): Promise<void>;
+  /** The value of a focus filter right now ('' when it is off). */
+  focusValue(filterId: string): string;
+  /** True on a phone-sized screen. */
+  isNarrow(): boolean;
+  /** Folds the panel down to its title bar on a phone, so the map is visible. */
+  collapsePanel(): void;
+}
+
+/**
+ * A feature with a user interface of its own (the shortlist comparison): `start` runs once the map and data are
+ * ready. Keep its code in a file that is only imported from `start` (`web-ui.ts`), so the Node-side build, which
+ * loads every web.ts, never sees DOM or CSS imports.
+ */
+export interface ExtensionDef {
+  id: string;
+  start: (app: AppApi) => void | Promise<void>;
+}
+
 // ---------- What web.ts may export ----------
 
 export interface WebExports {
+  extensions?: ExtensionDef[];
   modes?: ModeDef[];
   filters?: FilterDef[];
   popupSections?: PopupSectionDef[];

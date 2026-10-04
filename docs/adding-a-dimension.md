@@ -437,6 +437,18 @@ The small chips under the school's name (`Independent`, `Sixth form`): see `gias
 'Label')` to link to the downloaded URL), and `dates(meta)` returns strings for the dates line
 under the title (`'Ofsted to 31 August 2026'`). Provide both for every source you add.
 
+### `extensions: ExtensionDef[]`
+
+A feature with an interface of its own rather than a map mode, filter or popup piece (the shortlist
+comparison is one). `start(app)` runs once the map and data are loaded and gets an `AppApi`: the loaded
+`data`, `addPanelSection(el)`, `openSchool(urn)`, `setFocus(filterId, value)`, `focusValue(filterId)`,
+`isNarrow()` and `collapsePanel()`. Keep all DOM and CSS code in `web-ui.ts` and load it from `start` with a
+dynamic `import()`: the Node-side build loads every `web.ts` and must never see DOM or CSS imports (the node
+tsconfig excludes `web.ts` and `web-*.ts`; the web one includes them). CSS imported there is bundled into
+`app.css`. A failing extension is logged and does not stop the map. Fields it needs for every school can be
+`mode` placement even if no mode reads them (the build only notes this); it loads them with
+`data.ensureFields`. See `dimensions/compare/`.
+
 ## Tests (test.ts)
 
 Run with `node:test` and `node:assert/strict`. Every dimension needs a `test.ts`. Tests work from
