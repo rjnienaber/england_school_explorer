@@ -10,7 +10,7 @@ const COLUMNS = [
   'URN', 'EstablishmentName', 'EstablishmentStatus (name)', 'LA (name)', 'Town', 'Postcode', 'SchoolWebsite',
   'TypeOfEstablishment (name)', 'EstablishmentTypeGroup (name)', 'Gender (name)', 'StatutoryLowAge', 'StatutoryHighAge',
   'OfficialSixthForm (name)', 'AdmissionsPolicy (name)', 'ReligiousCharacter (name)', 'ReligiousEthos (name)', 'Diocese (name)',
-  'Trusts (name)', 'NumberOfPupils', 'SchoolCapacity', 'Easting', 'Northing', 'LSOA (code)', 'UrbanRural (name)',
+  'Trusts (name)', 'Trusts (code)', 'NumberOfPupils', 'SchoolCapacity', 'Easting', 'Northing', 'LSOA (code)', 'UrbanRural (name)',
   'OpenDate', 'ReasonEstablishmentOpened (name)', 'Boarders (name)', 'TypeOfResourcedProvision (name)',
   ...Array.from({ length: 13 }, (_, i) => `SEN${i + 1} (name)`), 'ResourcedProvisionCapacity', 'SenUnitCapacity',
 ];
@@ -25,7 +25,7 @@ export const sources: SourceDef[] = [
     publisher: 'Department for Education',
     licence: 'OGL v3',
     updated: 'daily',
-    usedFor: 'Location, type, pupils on roll, capacity, status, age range, gender, sixth form, admissions policy, religion, religious ethos and diocese, trust, website, SEN units and resourced provision, urban or rural area, boarding schools, opening date and reason',
+    usedFor: 'Location, type, pupils on roll, capacity, status, age range, gender, sixth form, admissions policy, religion, religious ethos and diocese, trust (name and code), website, SEN units and resourced provision, urban or rural area, boarding schools, opening date and reason',
     notes: 'Windows-1252. Only open establishments and the columns the modules read are kept (the extract is about 65 MB; about 10 MB is stored). Gives British National Grid easting/northing, which are converted to WGS84 with `proj4`.',
     encoding: 'windows-1252',
     // A dated extract (edubasealldataYYYYMMDD.csv) is published every day; today's may not exist yet early in the morning.

@@ -42,7 +42,8 @@ export const module = defineDimension({
     sixthForm: { type: 'boolean', placement: 'core', label: 'Has a sixth form', source: 'gias', nullable: false, default: false },
     selective: { type: 'boolean', placement: 'core', label: 'Selective (grammar)', source: 'gias', nullable: false, default: false },
     religion: { type: 'string', placement: 'detail', label: 'Religious character', source: 'gias' },
-    trust: { type: 'string', placement: 'detail', label: 'Multi-academy trust', source: 'gias' },
+    // 'mode', not 'detail': the trust view's chip reads the name once a trust is chosen (see dimensions/trust)
+    trust: { type: 'string', placement: 'mode', label: 'Multi-academy trust', description: 'Name of the trust that runs the school', source: 'gias' },
     pupils: { type: 'number', placement: 'detail', label: 'Pupils on roll', source: 'gias' },
   },
 

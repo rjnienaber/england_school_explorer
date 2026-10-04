@@ -392,6 +392,14 @@ While the checkbox is off, the control is greyed out and the filter is ignored: 
 its columns are not loaded. Its saved value is kept. Give it a higher `order` than its checkbox, so it sits
 underneath.
 
+A third kind, `control: { kind: 'chip', label, chipText, summary? }`, is a **focus filter**: a set of schools chosen
+from elsewhere (a popup button made with `h.filterButton(id, value, label)`, or a link `?<id>=<value>`) rather than a
+control in the "Show" list. While set, the map shows only the matching schools and fits to them, and the panel
+shows a "Label: text ✕" chip that clears it plus the optional `summary(schools, value, h, meta)`. It is not saved in
+localStorage; the URL carries it. Its `test` must return true for `''` (off) without reading any field. The fields
+`test`, `chipText` and `summary` read are traced and loaded when it is set. `dimensions/trust/web.ts` is the example;
+a shortlist or "similar schools" view can reuse it. `?urn=<school>` opens a school's popup the same way.
+
 Values are saved per filter id in localStorage and validated on load (unknown ids, wrong
 types and removed options are ignored), so adding or removing filters never breaks a saved visit.
 Keep the default as "show everything" unless the issue says otherwise.

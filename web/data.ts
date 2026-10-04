@@ -153,7 +153,11 @@ export class SchoolData {
     const { needs, fields } = this.core;
     const everything = () => Object.keys(fields).filter((n) => fields[n].placement !== 'detail');
     const out = new Set(needs.modes[modeId] ?? everything());
-    for (const [id, value] of Object.entries(filters)) for (const f of needs.filters[id]?.[String(value)] ?? everything()) out.add(f);
+    for (const [id, value] of Object.entries(filters)) {
+      // A focus filter's needs are under '*' for any value but ''
+      const byValue = needs.filters[id];
+      for (const f of byValue?.[String(value)] ?? byValue?.['*'] ?? everything()) out.add(f);
+    }
     return [...out];
   }
 }

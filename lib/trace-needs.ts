@@ -32,6 +32,7 @@ const union = (...lists: string[][]) => [...new Set(lists.flat())].sort();
  */
 export async function traceNeeds(records: Record_[], fieldNames: string[]): Promise<Needs> {
   const { MODES, FILTERS } = await import('../web/registry.ts');
+  const { h } = await import('../web/toolkit.ts');
   const { PIECES } = await import('../web/popup.ts');
   const names = new Set(fieldNames);
   const t = (fn: (p: never) => unknown) => trace(records, names, fn);
@@ -42,6 +43,17 @@ export async function traceNeeds(records: Record_[], fieldNames: string[]): Prom
   }
   for (const f of FILTERS) {
     // A test that short-circuits (`!on || p.x`) only reads fields for some values, so trace each
+    if (f.control.kind === 'chip') {
+      // A focus filter has no fixed values: '' (off) and '*' (any value). Its chip text and summary are loaded with it.
+      const { chipText, summary } = f.control;
+      const test = f.test as (p: never, v: string) => boolean;
+      const show = (p: never) => {
+        chipText([p as never], 'x');
+        summary?.([p as never], 'x', h);
+      };
+      needs.filters[f.id] = { '': t((p: never) => test(p, '')), '*': union(t((p: never) => test(p, 'x')), t(show)) };
+      continue;
+    }
     const values = f.control.kind === 'checkbox' ? [true, false] : f.control.options.map((o) => o.value);
     needs.filters[f.id] = {};
     for (const value of values) {

@@ -5,7 +5,7 @@ import type { SchoolFeature, SchoolRecord } from './types.ts';
 import { loadCore, StaleDataError, type SchoolData } from './data.ts';
 import { drawOrder, PALETTES, type Theme } from './palette.ts';
 import { FILTERS, MODES, SOURCE_NOTES, modeById } from './registry.ts';
-import { h, type FilterDef, type ModeDef } from './toolkit.ts';
+import { h, type ChipFilter, type FilterDef, type ModeDef } from './toolkit.ts';
 import { popupHtml } from './popup.ts';
 import './style.css';
 
@@ -20,7 +20,7 @@ const ENGLAND: [[number, number], [number, number]] = [
 const LIST_LIMIT = 30;
 const STORAGE_KEY = 'schools-map-settings';
 
-/** Current value of every filter, by filter id: a boolean for checkboxes, a string for selects. */
+/** Current value of every filter, by filter id: a boolean for checkboxes, a string for selects and focus filters. */
 type FilterValues = Record<string, boolean | string>;
 
 interface Settings {
@@ -32,6 +32,10 @@ const $ = <T extends HTMLElement>(id: string) => document.getElementById(id) as 
 
 // ---------- Settings (per-viewer convenience; the page works without storage) ----------
 
+/** Focus filters (a trust, say) are set by a popup button or the URL, not saved and not listed under "Show". */
+const CHIPS = FILTERS.filter((f): f is ChipFilter => f.control.kind === 'chip');
+const isChip = (f: FilterDef): f is ChipFilter => f.control.kind === 'chip';
+
 function filterDefaults(): FilterValues {
   return Object.fromEntries(FILTERS.map((f) => [f.id, f.default]));
 }
@@ -39,6 +43,7 @@ function filterDefaults(): FilterValues {
 /** A saved value is used only if it still suits the filter (right type, and a known option for selects). */
 function validFilterValue(f: FilterDef, value: unknown): boolean {
   if (f.control.kind === 'checkbox') return typeof value === 'boolean';
+  if (f.control.kind === 'chip') return false;
   return typeof value === 'string' && f.control.options.some((o) => o.value === value);
 }
 
@@ -61,7 +66,7 @@ function loadSettings(): Settings {
 
 function saveSettings(): void {
   try {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify({ mode: mode.id, filters: activeFilters } satisfies Settings));
+    localStorage.setItem(STORAGE_KEY, JSON.stringify({ mode: mode.id, filters: Object.fromEntries(Object.entries(activeFilters).filter(([id]) => !CHIPS.some((c) => c.id === id))) } satisfies Settings));
   } catch {
     // storage unavailable (private window etc.)
   }
@@ -231,12 +236,105 @@ async function refresh(): Promise<void> {
   shown = data.features.filter((f) => passesFilters(f.properties));
   (map.getSource('schools') as GeoJSONSource | undefined)?.setData(mapData());
   renderLegendAndList();
+  renderFocus();
+  syncUrl();
   saveSettings();
 }
 
 function setSelected(urn: number | null): void {
   selectedUrn = urn;
+  syncUrl();
   if (map.getLayer('schools-selected')) map.setFilter('schools-selected', ['==', ['get', 'urn'], urn ?? -1]);
+}
+
+/**
+ * Fits the map to a set of schools (a trust, a shortlist...) so all of them are in view, leaving room for the panel.
+ * A single school is flown to instead. Use it after changing what is shown.
+ */
+function fitToSchools(schools: SchoolFeature[]): void {
+  if (schools.length === 0) return;
+  const bounds = new maplibregl.LngLatBounds();
+  for (const f of schools) bounds.extend(f.geometry.coordinates);
+  map.fitBounds(bounds, { padding: mapPadding(), maxZoom: 13, duration: 800 });
+}
+
+/** The schools a focus filter selects, whatever the other filters say. */
+const focusSet = (chip: ChipFilter, value: string) => data.features.filter((f) => chip.test(f.properties, value));
+
+/**
+ * Turns a focus filter on (`value`) or off (''), then fits the map to its schools. A value that matches no school
+ * (an old link) is ignored. Called by popup buttons (`h.filterButton`) and the chip's ✕.
+ */
+async function setFocus(chip: ChipFilter, value: string): Promise<void> {
+  if (value) {
+    // The test reads fields that may not be loaded yet
+    await data.ensureFields(data.viewFields(wanted.id, { [chip.id]: value }));
+    if (focusSet(chip, value).length === 0) return;
+    detailPopup.remove();
+  }
+  filters[chip.id] = value;
+  await refresh();
+  if (value && activeFilters[chip.id] === value) {
+    fitToSchools(shown.filter((f) => chip.test(f.properties, value)));
+    if (isNarrow()) setPanelCollapsed(false);
+  }
+}
+
+/** The chip and summary of each active focus filter, at the top of the panel. */
+function renderFocus(): void {
+  const container = $('focus');
+  const blocks: HTMLElement[] = [];
+  for (const chip of CHIPS) {
+    const value = activeFilters[chip.id] as string;
+    if (!value) continue;
+    const schools = focusSet(chip, value);
+    const records = schools.map((f) => f.properties);
+    const block = document.createElement('div');
+    block.className = 'focus-block';
+    const clear = document.createElement('button');
+    clear.type = 'button';
+    clear.className = 'chip';
+    clear.setAttribute('aria-label', `Clear ${chip.control.label.toLowerCase()} filter`);
+    clear.textContent = `${chip.control.label}: ${chip.control.chipText(records, value)}  ✕`;
+    clear.addEventListener('click', () => void setFocus(chip, ''));
+    block.append(clear);
+    const hidden = schools.length - shown.filter((f) => chip.test(f.properties, value)).length;
+    if (hidden > 0) {
+      const p = document.createElement('p');
+      p.className = 'muted small';
+      p.textContent = `${hidden.toLocaleString()} of these ${schools.length.toLocaleString()} schools are hidden by the other filters under “Show”.`;
+      block.append(p);
+    }
+    const summary = chip.control.summary?.(records, value, h, data.core.metadata);
+    if (summary) {
+      const div = document.createElement('div');
+      div.className = 'focus-summary';
+      div.innerHTML = summary.value;
+      block.append(div);
+    }
+    blocks.push(block);
+  }
+  container.replaceChildren(...blocks);
+  container.hidden = blocks.length === 0;
+}
+
+/**
+ * Keeps the address in step with the view so it can be shared: `?urn=<school>` for the open school and
+ * `?<filter id>=<value>` for each focus filter (for example `?trust=17396`). Read again at start-up.
+ */
+function syncUrl(): void {
+  if (!data) return;
+  const params = new URLSearchParams(location.search);
+  for (const chip of CHIPS) params.delete(chip.id);
+  params.delete('urn');
+  for (const chip of CHIPS) if (activeFilters[chip.id]) params.set(chip.id, activeFilters[chip.id] as string);
+  if (selectedUrn !== null) params.set('urn', String(selectedUrn));
+  const query = params.toString();
+  try {
+    history.replaceState(null, '', `${location.pathname}${query ? `?${query}` : ''}${location.hash}`);
+  } catch {
+    // some embedded browsers refuse
+  }
 }
 
 /** Opens the popup at once with the core fields, then fills in the rest when the school's shard arrives. */
@@ -389,18 +487,19 @@ function renderAbout(): void {
 
 /** Builds the "Show" controls from the registered filters. */
 function bindFilters(): void {
+  const LISTED = FILTERS.filter((f): f is Exclude<FilterDef, ChipFilter> => !isChip(f));
   const container = $('filters');
   const controls = new Map<string, HTMLInputElement | HTMLSelectElement>();
   /** Greys out filters whose checkbox is off. */
   const syncEnabled = () => {
-    for (const f of FILTERS) {
+    for (const f of LISTED) {
       const control = controls.get(f.id)!;
       control.disabled = isSwitchedOff(f, filters);
       control.closest('label')?.classList.toggle('disabled', control.disabled);
     }
   };
   container.replaceChildren(
-    ...FILTERS.map((f) => {
+    ...LISTED.map((f) => {
       const label = document.createElement('label');
       if (f.control.kind === 'checkbox') {
         const input = document.createElement('input');
@@ -545,6 +644,19 @@ $('panel-toggle').addEventListener('click', () => {
   if (isNarrow()) setPanelCollapsed(!$('panel').classList.contains('collapsed'));
 });
 
+// ---------- Popup buttons ----------
+
+// A button made with h.filterButton(id, value, label) turns a focus filter on. Popups are rebuilt as data
+// arrives, so one listener on the document handles every popup.
+document.addEventListener('click', (e) => {
+  const button = (e.target as Element).closest<HTMLElement>('[data-set-filter]');
+  const chip = CHIPS.find((c) => c.id === button?.dataset.setFilter);
+  if (button && chip && button.dataset.value) {
+    const failed = () => ($('view-status').textContent = 'Couldn’t load that view. Check your connection and try again.');
+    setFocus(chip, button.dataset.value).catch(failed);
+  }
+});
+
 // ---------- Map interaction ----------
 
 function bindMapEvents(): void {
@@ -590,8 +702,16 @@ function bindMapEvents(): void {
 async function main(): Promise<void> {
   bindMapEvents();
   data = await loadCore();
+  // A link can carry a focus filter (?trust=17396) and a school (?urn=100049)
+  const params = new URLSearchParams(location.search);
+  for (const chip of CHIPS) {
+    const value = params.get(chip.id);
+    if (value) filters[chip.id] = value;
+  }
   // A saved mode or filter needs its columns before the first draw
   await data.ensureFields(data.viewFields(mode.id, inUse(filters)));
+  for (const chip of CHIPS) if (filters[chip.id] && focusSet(chip, filters[chip.id] as string).length === 0) filters[chip.id] = '';
+  activeFilters = { ...filters };
   shown = data.features.filter((f) => passesFilters(f.properties));
 
   renderAbout();
@@ -603,6 +723,12 @@ async function main(): Promise<void> {
   if (map.isStyleLoaded()) addLayers();
   else map.once('load', () => !map.getSource('schools') && addLayers());
   renderLegendAndList();
+  renderFocus();
+
+  const urn = Number(params.get('urn'));
+  const focused = CHIPS.filter((c) => activeFilters[c.id]);
+  if (urn && data.byUrn.has(urn)) openSchool(urn, true);
+  else if (focused.length) fitToSchools(shown.filter((f) => focused.some((c) => c.test(f.properties, activeFilters[c.id] as string))));
 }
 
 main().catch((err: unknown) => {

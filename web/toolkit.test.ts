@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
-import { ciChart, formatDate, h, html, ordinal, quintile, raw, rows, signed, table } from './toolkit.ts';
+import { ciChart, formatDate, h, html, median, ordinal, quintile, raw, rows, signed, table } from './toolkit.ts';
 
 test('html escapes interpolated text but not nested Html', () => {
   const name = '<img src=x onerror=alert(1)> & "co"';
@@ -41,4 +41,12 @@ test('table: label column, right-hand cells, skipped falsy rows and escaped text
   assert.match(out, /<tr><th>A &lt;a&gt;<\/th><td>3<\/td><\/tr>/);
   assert.match(out, /<tr><th>B<\/th><td>–<\/td><\/tr>/);
   assert.equal(out.match(/<tbody>/g)?.length, 1);
+});
+
+test('median and filterButton', () => {
+  assert.equal(median([3, null, 1, 2]), 2);
+  assert.equal(median([1, 2, 3, 4]), 2.5);
+  assert.equal(median([null]), null);
+  const out = h.filterButton('trust', '1"x', 'See <all>').value;
+  assert.equal(out, '<button type="button" class="link-button" data-set-filter="trust" data-value="1&quot;x">See &lt;all&gt;</button>');
 });

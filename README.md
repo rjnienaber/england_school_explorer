@@ -70,7 +70,7 @@ All are published under the [Open Government Licence v3.0](https://www.nationala
 <!-- sources:start (generated from dimensions/*/source.ts by `npm run generate`; do not edit) -->
 | Source | Used for | Notes |
 | --- | --- | --- |
-| [Get Information About Schools: daily extract of every establishment](https://get-information-schools.service.gov.uk/), Department for Education (OGL v3) | Location, type, pupils on roll, capacity, status, age range, gender, sixth form, admissions policy, religion, religious ethos and diocese, trust, website, SEN units and resourced provision, urban or rural area, boarding schools, opening date and reason | Updated daily. Windows-1252. Only open establishments and the columns the modules read are kept (the extract is about 65 MB; about 10 MB is stored). Gives British National Grid easting/northing, which are converted to WGS84 with `proj4`. |
+| [Get Information About Schools: daily extract of every establishment](https://get-information-schools.service.gov.uk/), Department for Education (OGL v3) | Location, type, pupils on roll, capacity, status, age range, gender, sixth form, admissions policy, religion, religious ethos and diocese, trust (name and code), website, SEN units and resourced provision, urban or rural area, boarding schools, opening date and reason | Updated daily. Windows-1252. Only open establishments and the columns the modules read are kept (the extract is about 65 MB; about 10 MB is stored). Gives British National Grid easting/northing, which are converted to WGS84 with `proj4`. |
 | [DfE pupil absence in schools in England, absence rates by school](https://explore-education-statistics.service.gov.uk/find-statistics/pupil-absence-in-schools-in-england), Department for Education (OGL v3) | Overall, unauthorised, persistent (10%+ of sessions) and severe (50%+) absence rates, with pupil numbers | Updated annually (full academic year, published in the spring). All academic years since 2013/14 in one file (about 120 MB), currently to 2024/25; only the latest year is used. The download is filtered as it arrives: only the latest year, State-funded secondary rows and the columns read are stored. State-funded schools only. Missing values are suppressed (`x`). |
 | [DfE Schools, pupils and their characteristics (January school census), school level](https://explore-education-statistics.service.gov.uk/find-statistics/school-pupils-and-their-characteristics), Department for Education (OGL v3) | Pupils on roll, free school meals eligibility and pupils with English as an additional language, whole school | Updated annually (January census, published in June). The full file is 2.8 GB (every school of every phase, with ethnicity, age and year-group breakdowns), so only the rows used are fetched through the DfE statistics API (about 1 MB): state-funded secondary and independent schools, whole-school totals. The latest census only. Percentages are suppressed (`x`) where numbers are very small. There is no school-level SEN data in the open DfE statistics (the Special educational needs in England data sets stop at local authority level), so SEN is not shown. |
 | [English Indices of Deprivation 2025: all ranks, scores and deciles for each small area (LSOA)](https://www.gov.uk/government/statistics/english-indices-of-deprivation-2025), Ministry of Housing, Communities and Local Government (OGL v3) | Area deprivation (income deprivation affecting children, IDACI) of the neighbourhood each school is in | Updated every few years (previous edition 2019). About 10 MB, of which three columns are kept. Joined to schools through the LSOA (2021) code in the school register. England only. |
@@ -303,6 +303,16 @@ Catholic · Archdiocese of Westminster", 495 schools), and a second "Christian e
 when the register's ethos says something the character does not (it mostly repeats it). A blank
 register entry counts as non-faith, and an "inter- or non-denominational" ethos is not treated as a
 faith. The grouping is ours, not an official label.
+
+**Trust view** (popup button, panel summary and `?trust=` link). A school run by a trust (from the
+register's trust code, 2,802 of the mapped schools in 1,144 trusts) shows "See all 14 schools in this
+trust" in its popup when the trust has other mapped schools. It shows only that trust's schools, fits
+the map to them and puts a "Trust: X ✕" chip at the top of the panel, with the number of schools, the
+median Attainment 8 percentile, the median Progress 8 and a count of our Ofsted summary levels. The
+medians are of each school's own latest results (schools with no value are left out, and the count
+says how many were used). They are our own summary, not an official trust measure, and a school may
+have joined the trust after its latest results or inspection. Trusts also run schools that are not on
+this map. The address carries the view (`?trust=5143`, `?urn=135315`), so it can be shared.
 
 **Opening date** (popup line, from the school register). Under the school's name the popup says
 "Opened Sept 2023 (new school)" for a genuinely new school (a new provision or free school) that

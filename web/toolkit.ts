@@ -80,7 +80,36 @@ export interface SelectFilter extends FilterBase {
   test: (p: School, value: string) => boolean;
 }
 
-export type FilterDef = CheckboxFilter | SelectFilter;
+/**
+ * A "focus" filter: a set of schools picked from somewhere else (a button in a popup, or a link such as
+ * `?trust=17396`) rather than from a control in the "Show" list. While its value is not '' the map shows only
+ * the schools whose `test` passes, fits to them, and the panel shows a chip ("Trust: X ✕") that clears it,
+ * with an optional summary underneath. It is not saved in localStorage (the URL carries it: `?<id>=<value>`).
+ *
+ * Open one from a popup with `h.filterButton(id, value, label)`. Use it for any "these schools" view: a trust, a
+ * shortlist to compare, the schools like this one.
+ *
+ * `chipText` and `summary` get every school that passes `test` (not narrowed by the other filters), and their
+ * field reads are traced like a filter's, so those fields are loaded when the chip is set. The build also runs them
+ * with a single school, so they must cope with that.
+ */
+export interface ChipFilter extends FilterBase {
+  control: {
+    kind: 'chip';
+    /** Chip prefix: "Trust" gives "Trust: <chipText>". */
+    label: string;
+    /** The rest of the chip: usually a name. `schools` are the matching schools, `value` the filter value. */
+    chipText: (schools: School[], value: string) => string;
+    /** Optional block under the chip. Return null for nothing. */
+    summary?: (schools: School[], value: string, h: Helpers, meta?: Metadata) => Html | null;
+  };
+  /** Always '' (no focus). */
+  default: '';
+  /** True to keep the school. Called with '' when the focus is off, and must keep everything then (without reading any field). */
+  test: (p: School, value: string) => boolean;
+}
+
+export type FilterDef = CheckboxFilter | SelectFilter | ChipFilter;
 
 // ---------- Popup ----------
 
@@ -209,8 +238,23 @@ export function ciChart(o: CiChartOptions): Html {
     </svg>`;
 }
 
+/**
+ * A button that sets a focus filter (see `ChipFilter`) to `value`: clicking it closes the popup, filters the map
+ * to those schools and fits the map to them. Looks like a link.
+ */
+export const filterButton = (filterId: string, value: string, label: Interpolable) =>
+  html`<button type="button" class="link-button" data-set-filter="${filterId}" data-value="${value}">${label}</button>`;
+
+/** Median of the numbers, or null if there are none. */
+export function median(values: (number | null | undefined)[]): number | null {
+  const v = values.filter((x): x is number => typeof x === 'number').sort((a, b) => a - b);
+  if (v.length === 0) return null;
+  const mid = Math.floor(v.length / 2);
+  return v.length % 2 ? v[mid] : (v[mid - 1] + v[mid]) / 2;
+}
+
 /** The helpers handed to `render` and the source-note callbacks. */
-export const h = { html, raw, rows, table, note, meta, link, ciChart, escapeHtml, fmt, signed, ordinal, formatDate };
+export const h = { html, raw, rows, table, note, meta, link, ciChart, filterButton, escapeHtml, fmt, signed, ordinal, formatDate };
 export type Helpers = typeof h;
 
 export interface PopupSectionDef {

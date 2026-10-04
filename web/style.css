@@ -615,3 +615,44 @@ input[type='search'] {
 :root[data-theme='dark'] .maplibregl-ctrl-group button .maplibregl-ctrl-icon {
   filter: invert(1);
 }
+
+/* ---------- Focus filters (a trust): chip, summary, and the popup button ---------- */
+
+.focus-block {
+  border: 1px solid var(--hairline);
+  border-radius: var(--radius);
+  padding: 8px 10px;
+  background: var(--page);
+}
+
+.chip {
+  font: inherit;
+  font-size: 0.85rem;
+  font-weight: 600;
+  padding: 3px 10px;
+  border: 1px solid var(--accent);
+  border-radius: 999px;
+  background: var(--surface);
+  color: var(--ink);
+  cursor: pointer;
+  text-align: left;
+}
+
+.focus-summary {
+  margin-top: 6px;
+  font-size: 0.85rem;
+}
+
+.link-button {
+  font: inherit;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--accent);
+  text-decoration: underline;
+  cursor: pointer;
+}
+
+.trust-link {
+  margin: 4px 0 0;
+}

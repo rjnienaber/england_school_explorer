@@ -29,6 +29,7 @@ test('every bucket points at a colour in the palette', () => {
 test('every filter default is valid for its control', () => {
   for (const f of FILTERS) {
     if (f.control.kind === 'checkbox') assert.equal(typeof f.default, 'boolean');
+    else if (f.control.kind === 'chip') assert.equal(f.default, '');
     else assert.ok(f.control.options.some((o) => o.value === f.default), f.id);
   }
 });
