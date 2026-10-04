@@ -378,6 +378,27 @@ says how many were used). They are our own summary, not an official trust measur
 have joined the trust after its latest results or inspection. Trusts also run schools that are not on
 this map. The address carries the view (`?trust=5143`, `?urn=135315`), so it can be shared.
 
+**Similar schools** (our own grouping; popup section, panel summary and `?similar=` link). A school's
+popup says where it stands among its similar schools ("Attainment 8: 4th of 21; persistent absence, lowest
+first: 7th of 21") and offers "See the 20 similar schools on the map", which shows only those schools,
+fits the map to them and puts a "Similar to: X ✕" chip at the top of the panel with this school's figures
+beside the median of the others. A school's similar schools are the 20 state-funded schools that are the
+same kind (selective or not, and boys-only, girls-only or mixed) and closest to it on the share of
+disadvantaged pupils, English as an additional language, low and high prior attainers (the same intake
+figures as Results vs intake) and size (the number of pupils, on a log scale), plus a fixed penalty for
+an urban school against a rural one. Each measure is rescaled by its spread across schools, so one is not
+worth more than another just because its numbers are bigger, and "closest" means the smallest overall
+distance. It is computed when the data is built (`dimensions/similar-schools`; the 20 URNs are stored on
+each school as `similarUrns`) and is not symmetrical: B can be among A's 20 without A being among B's.
+It is not an official grouping. DfE's financial benchmarking service picks its own comparison schools for
+spending, with different rules; we do not use them.
+Similar intake does not mean similar quality, and the grouping cannot see things such as special
+educational needs or how the school admits pupils. Independent schools, and the 11% of state schools that
+lack any of the figures (mostly no prior attainment, because their pupils were not in the last cohort that
+sat KS2 tests), have no group and are in nobody else's. Later features can reuse it:
+`parseSimilar`, `similarFocusValue` and `rankAmong` in `dimensions/similar-schools/shared.ts` read the set back,
+and `findSimilar` in `model.ts` computes it.
+
 **Opening date** (popup line, from the school register). Under the school's name the popup says
 "Opened Sept 2023 (new school)" for a genuinely new school (a new provision or free school) that
 opened in the last five years (88 schools), and, when such a school has no Attainment 8 score, adds
