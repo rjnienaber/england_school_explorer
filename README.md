@@ -27,7 +27,7 @@ Or run the steps separately:
 
 | Command | What it does |
 | --- | --- |
-| `npm run fetch` | Downloads the three source files into `data/` (about 180 MB). Skips files already there; `-- --force` re-downloads. Records URLs in `data/sources.json`. |
+| `npm run fetch` | Downloads the four source files into `data/` (about 190 MB). Skips files already there; `-- --force` re-downloads. Records URLs in `data/sources.json`. |
 | `npm run generate` | Writes the generated browser types and registry, and this README's sources table, from `dimensions/`. The build and typecheck run it for you. |
 | `npm run build:data` | Builds the store from the sources and writes the site's data to `dist/data/` (about 110 KB gzipped to start, 3 MB in all, about 45 s), checks it against the store, and writes `dist/data/manifest.json` with every file's size. |
 | `npm run build:web` | Bundles `web/` with esbuild into `dist/app.js` and `dist/app.css`, and copies `index.html` and MapLibre's worker files. |
@@ -71,6 +71,7 @@ All are published under the [Open Government Licence v3.0](https://www.nationala
 | Source | Used for | Notes |
 | --- | --- | --- |
 | [Get Information About Schools: daily extract of every establishment](https://get-information-schools.service.gov.uk/), Department for Education (OGL v3) | Location, type, pupils on roll, capacity, status, age range, gender, sixth form, admissions policy, religion, religious ethos and diocese, trust, website, SEN units and resourced provision, urban or rural area, boarding schools, opening date and reason | Updated daily. Windows-1252. Gives British National Grid easting/northing, which are converted to WGS84 with `proj4`. |
+| [English Indices of Deprivation 2025: all ranks, scores and deciles for each small area (LSOA)](https://www.gov.uk/government/statistics/english-indices-of-deprivation-2025), Ministry of Housing, Communities and Local Government (OGL v3) | Area deprivation (income deprivation affecting children, IDACI) of the neighbourhood each school is in | Updated every few years (previous edition 2019). About 10 MB. Joined to schools through the LSOA (2021) code in the school register. England only. |
 | [DfE key stage 4 performance, institution-level data set](https://explore-education-statistics.service.gov.uk/find-statistics/key-stage-4-performance), Department for Education (OGL v3) | Attainment 8, Progress 8 with confidence intervals, English and maths grade 5+ and 4+, average English and maths grades, Progress 8 by subject area, value added in science, humanities and languages, EBacc entry, cohort size, % disadvantaged | Updated annually (provisional in autumn, revised in spring). Three years per file (currently 2022/23 to 2024/25). `z` and `c` mark missing or suppressed values. The older compare-school-performance download blocks scripted access. |
 | [Ofsted monthly management information: state-funded schools, latest inspections](https://www.gov.uk/government/statistical-data-sets/monthly-management-information-ofsteds-school-inspections-outcomes), Ofsted (OGL v3) | Inspection outcomes | Updated monthly. Windows-1252. The latest file is found through the GOV.UK content API. Doesn't cover independent schools (most are inspected by the ISI). |
 <!-- sources:end -->
@@ -212,6 +213,18 @@ school's location into six categories (Urban, Larger rural and Smaller rural, ea
 further from a major town or city), based on the ONS 2011 rural-urban classification; we group
 them into urban and rural, and the popup shows the original category under the school's name.
 It describes the area, not the school, and the classification dates from the 2011 census.
+
+**Area deprivation** (filter and popup, from the English Indices of Deprivation 2025). The "Area
+deprivation" box keeps schools whose neighbourhood is in one fifth of England: the most deprived
+fifth through to the least deprived fifth. We use the Income Deprivation Affecting Children Index
+(IDACI): the share of children in income-deprived families in the school's neighbourhood (an LSOA,
+about 1,500 people), ranked against all 33,755 neighbourhoods in England. The register gives each
+school's LSOA, so no postcode lookup is needed; the one extra download is the IoD 2025 "File 7"
+(about 10 MB). The popup shows the fifth and the decile (1 is the most deprived tenth). It describes the area around the school, not its pupils, who may live
+elsewhere, and it covers independent schools as well. Ofsted's own file carries a quintile too, but
+from an older edition (it disagrees with 2025 for more than a third of schools), so we use the
+2025 data. The values are in the data as `idaciDecile` and `idaciScorePct` (the raw rate, not shown because the 2025 edition counts more
+families as income deprived than 2019, so rank is the safer comparison), ready for other measures.
 
 **Boarding schools** (filter and popup tag, from the school register). The "Boarding schools only"
 box keeps the 314 schools the register lists as boarding schools, and the popup shows a "Boarding"
