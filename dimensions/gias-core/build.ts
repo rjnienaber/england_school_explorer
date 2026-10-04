@@ -1,0 +1,99 @@
+// The scope module: decides which schools are on the map, and holds identity, location and
+// school-type fields from the GIAS register. Every other module joins to the schools found here.
+
+import { defineDimension } from '../../lib/dimension.ts';
+import { num, text } from '../../lib/csv.ts';
+import { loadGias, type GiasSchool } from './parse.ts';
+
+const MAINSTREAM_STATE_GROUPS = new Set(['Academies', 'Free Schools', 'Local authority maintained schools']);
+
+/** Mainstream state and independent schools; excludes special schools, alternative provision and colleges. */
+function sectorOf(gias: GiasSchool, ks4TypeGroup: string): 'state' | 'independent' | null {
+  if (/special/i.test(gias.type) || /special/i.test(ks4TypeGroup)) return null;
+  if (MAINSTREAM_STATE_GROUPS.has(gias.typeGroup)) return 'state';
+  if (gias.typeGroup === 'Independent schools') return 'independent';
+  return null;
+}
+
+export const module = defineDimension({
+  id: 'gias-core',
+  title: 'School identity and type (GIAS)',
+  scope: true,
+  fields: {
+    name: { type: 'string', placement: 'core', label: 'Name', source: 'gias', nullable: false, default: '' },
+    la: { type: 'string', placement: 'core', label: 'Local authority', source: 'gias', nullable: false, default: '' },
+    town: { type: 'string', placement: 'core', label: 'Town', source: 'gias' },
+    postcode: { type: 'string', placement: 'core', label: 'Postcode', source: 'gias' },
+    website: { type: 'string', placement: 'detail', label: 'Website', source: 'gias' },
+    sector: {
+      type: 'enum',
+      values: ['state', 'independent'],
+      placement: 'core',
+      label: 'Sector',
+      description: 'State-funded mainstream or independent',
+      source: 'gias',
+      nullable: false,
+      default: 'state',
+    },
+    type: { type: 'string', placement: 'detail', label: 'Type of establishment', source: 'gias', nullable: false, default: '' },
+    gender: { type: 'string', placement: 'core', label: 'Pupil gender', description: 'Mixed, Girls or Boys', source: 'gias' },
+    ageLow: { type: 'number', placement: 'detail', label: 'Lowest age', source: 'gias' },
+    ageHigh: { type: 'number', placement: 'detail', label: 'Highest age', source: 'gias' },
+    sixthForm: { type: 'boolean', placement: 'core', label: 'Has a sixth form', source: 'gias', nullable: false, default: false },
+    selective: { type: 'boolean', placement: 'core', label: 'Selective (grammar)', source: 'gias', nullable: false, default: false },
+    religion: { type: 'string', placement: 'detail', label: 'Religious character', source: 'gias' },
+    trust: { type: 'string', placement: 'detail', label: 'Multi-academy trust', source: 'gias' },
+    pupils: { type: 'number', placement: 'detail', label: 'Pupils on roll', source: 'gias' },
+  },
+
+  async build(ctx) {
+    const gias = await loadGias(ctx.dataPath('gias'));
+
+    // In scope = has KS4 results data (the DfE file lists every school with a GCSE cohort,
+    // including ones with no published scores), then the sector rules above.
+    const ks4TypeGroup = new Map<number, string>();
+    for await (const row of ctx.csv('ks4')) {
+      if (row.breakdown !== 'Total' && row.breakdown !== 'Disadvantaged') continue;
+      const urn = num(row.school_urn);
+      if (urn !== null && !ks4TypeGroup.has(urn)) ks4TypeGroup.set(urn, text(row.establishment_type_group) ?? '');
+    }
+
+    const skipped = { closed: 0, noLocation: 0, outOfScope: 0, notInGias: 0 };
+    const rows = [];
+    const locations = [];
+    for (const [urn, typeGroup] of ks4TypeGroup) {
+      const g = gias.get(urn);
+      if (!g) {
+        skipped.notInGias++;
+        continue;
+      }
+      const sector = sectorOf(g, typeGroup);
+      if (!sector) skipped.outOfScope++;
+      else if (!g.open) skipped.closed++;
+      else if (!g.lngLat) skipped.noLocation++;
+      else {
+        rows.push({
+          urn,
+          name: g.name,
+          la: g.la,
+          town: g.town,
+          postcode: g.postcode,
+          website: g.website,
+          sector,
+          type: g.type,
+          gender: g.gender,
+          ageLow: g.ageLow,
+          ageHigh: g.ageHigh,
+          sixthForm: g.sixthForm,
+          selective: g.selective,
+          religion: g.religion,
+          trust: g.trust,
+          pupils: g.pupils,
+        });
+        locations.push({ urn, lng: g.lngLat[0], lat: g.lngLat[1] });
+      }
+    }
+    ctx.log(`GIAS: ${gias.size} establishments; kept ${rows.length} schools; skipped ${JSON.stringify(skipped)}`);
+    return { rows, locations };
+  },
+});

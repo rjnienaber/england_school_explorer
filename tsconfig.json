@@ -15,6 +15,11 @@
   },
   "include": [
     "scripts/**/*.ts",
-    "shared/**/*.ts"
+    "lib/**/*.ts",
+    "dimensions/**/*.ts"
+  ],
+  "exclude": [
+    "dimensions/**/web.ts",
+    "dimensions/**/web-*.ts"
   ]
 }

@@ -4,8 +4,8 @@ import {
   type OeifGrade,
   type OfstedSummary,
   type ReportCardGrade,
-} from '../../shared/school.ts';
-import { num, readCsv, text } from './csv.ts';
+} from './grades.ts';
+import { num, readCsv, text } from '../../lib/csv.ts';
 
 export interface OfstedRecord {
   url: string | null;

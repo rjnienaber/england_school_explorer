@@ -2,7 +2,9 @@
 import { copyFile, mkdir } from 'node:fs/promises';
 import { join } from 'node:path';
 import * as esbuild from 'esbuild';
-import { DIST_DIR, ROOT, WEB_DIR } from './paths.ts';
+import { generateAll } from '../lib/generate.ts';
+import { loadBuildOrder } from '../lib/registry.ts';
+import { DIST_DIR, ROOT, WEB_DIR } from '../lib/paths.ts';
 
 const watch = process.argv.includes('--watch');
 // --release (used by the GitHub Pages deploy) leaves out sourcemaps
@@ -21,6 +23,8 @@ const options: esbuild.BuildOptions = {
   logLevel: 'info',
 };
 
+// The browser code imports the generated record type and module registry
+await generateAll(await loadBuildOrder());
 await mkdir(DIST_DIR, { recursive: true });
 await copyFile(join(WEB_DIR, 'index.html'), join(DIST_DIR, 'index.html'));
 

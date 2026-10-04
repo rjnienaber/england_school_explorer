@@ -1,0 +1,424 @@
+# Adding a dimension
+
+A **dimension** is one kind of data about schools: GCSE results, Ofsted, absence, school size,
+and so on. Each one lives in its own folder, `dimensions/<id>/`, and **adding one must not
+require editing any file outside that folder**. The framework finds the folder, builds it,
+types it, wires it into the browser and puts its source in the README.
+
+If you find you need to edit a shared file (`lib/`, `web/`, `scripts/`), stop and check
+whether the framework should grow instead. Small, general additions are fine; mention them in
+your commit message.
+
+## The shape of a dimension
+
+```
+dimensions/absence/
+  source.ts   where the data comes from           (optional: only if you download something)
+  parse.ts    reading the downloaded file          (optional; any helper files are fine)
+  build.ts    fields + build(): rows for each school   (required)
+  web.ts      modes, filters, popup sections, About text  (optional: data with no UI is fine)
+  test.ts     tests                                (required)
+```
+
+How the pieces connect:
+
+```
+npm run fetch        source.ts  -> data/<id>.csv        (+ data/sources.json with the URLs)
+npm run build:data   build.ts   -> build/schools.sqlite -> dist/schools.geojson
+npm run generate     build.ts fields -> web/generated/fields.ts   (the SchoolRecord type)
+                     web.ts files    -> web/generated/registry.ts (what the browser imports)
+                     source.ts       -> the README sources table
+npm run build:web    web/ + every dimensions/*/web.ts -> dist/app.js
+```
+
+`build`, `build:web` and `typecheck` all run `generate` first, so you rarely call it yourself.
+`web/generated/` and `build/` are git-ignored.
+
+## Walkthrough: a worked example
+
+Say you are adding "school size" (quintile of pupil numbers). Create `dimensions/school-size/`.
+
+### 1. build.ts
+
+```ts
+import { defineDimension } from '../../lib/dimension.ts';
+
+export const module = defineDimension({
+  id: 'school-size',                 // must equal the folder name
+  title: 'School size',
+  dependsOn: ['gias-core'],          // modules whose rows you read; they are built first
+  fields: {
+    sizeBand: {
+      type: 'number',
+      placement: 'mode',             // see "Placement" below
+      label: 'School size band',
+      description: 'Quintile (0 smallest to 4 largest) of pupil numbers among state schools',
+    },
+    bigSchool: { type: 'boolean', placement: 'mode', label: 'Over 1,500 pupils', nullable: false, default: false },
+  },
+  build(ctx) {
+    const pupils: [number, number][] = [];
+    for (const [urn, r] of ctx.read('gias-core')) if (typeof r.pupils === 'number') pupils.push([urn, r.pupils]);
+    const rank = ctx.stats.percentileAmongState(pupils);
+    return pupils.map(([urn, n]) => ({ urn, sizeBand: Math.min(4, Math.floor(rank(n) / 20)), bigSchool: n > 1500 }));
+  },
+});
+```
+
+`build()` returns one row per school that has data: `{ urn, ...fields }`. Rows for URNs that
+are not in scope are dropped (and counted in the log). Schools you return no row for get `null`
+(or the field's `default` when `nullable: false`). You never need to emit nulls yourself.
+
+`build()` may also return `{ rows, extra, metadata }`; see "Extra tables" and "Metadata".
+
+### 2. web.ts
+
+```ts
+import { h, type FilterDef, type ModeDef, type PopupSectionDef } from '../../web/toolkit.ts';
+
+export const modes: ModeDef[] = [{
+  id: 'size', label: 'School size', order: 900, palette: 'sequential',
+  description: 'Number of pupils, as a quintile among state schools.',
+  buckets: [{ label: 'Largest 20%', colour: 4 }, /* ... down to colour 0 */],
+  bucketOf: (p) => (p.sizeBand === null ? null : 4 - p.sizeBand),   // index into buckets, or null = "No data"
+  sortValue: (p) => p.pupils,                                        // list ranking, higher first
+  formatValue: (p) => (p.pupils === null ? '–' : p.pupils.toLocaleString()),
+}];
+```
+
+`p` is a fully typed `SchoolRecord`, generated from every module's `fields`; a typo in a
+field name is a compile error. See "Web exports" for filters, popup sections and the rest.
+
+### 3. test.ts and run
+
+```bash
+npm run typecheck
+node --disable-warning=ExperimentalWarning --test dimensions/school-size/test.ts
+npm run build                      # then check it in a browser
+node scripts/diff-geojson.ts /path/to/old/schools.geojson dist/schools.geojson --allow-new-properties
+```
+
+The last command proves you changed nothing that existed before (see "Proving you changed
+nothing").
+
+## Naming rules
+
+- Module id and folder: lower-case, digits, single hyphens (`school-size`). Must match.
+- Field names (GeoJSON property names): camelCase, **globally unique across all modules**.
+  Prefix them with the topic (`absencePersistentPct`, not `persistent`). The build fails and
+  lists every clash. `urn` is reserved.
+- Source ids (`SourceDef.id`): lower-case, **globally unique**, and normally the dataset's
+  short name (`ks4`, `ofsted`). The id is also the file name `data/<id>.csv` and the key in
+  `data/sources.json`.
+- Mode, filter, popup section, tag and source-note ids: unique across all modules (duplicates
+  throw when the app starts). Filter ids are also the localStorage key, so never rename one
+  casually. Prefix with your topic if the name is generic.
+- Extra table names: lower_snake_case.
+- A year field: a field that has a year (`xxxYear`, string like `2024/25`) should be declared
+  next to its data and referenced with `year: 'xxxYear'` on each field it describes.
+
+## Fields
+
+```ts
+{ type: 'number' | 'string' | 'boolean' | 'enum', placement, label, description?, source?,
+  year?, nullable?, default?, decimals? (number), unit? (number), values (enum) }
+```
+
+- `label` is plain English; `description` says what it is and any caveat. These feed the data
+  dictionary later, so write them for a reader who has not seen the source.
+- `source` is the id of the `SourceDef` it came from. `year` names the field holding the data year.
+- Values are validated when stored: a number must be finite, an enum value must be in `values`,
+  a boolean must be a boolean. Numbers are rounded to `decimals` when you set it.
+- `nullable: false` means every school has a value; give it a `default` for schools with no row.
+  Use it sparingly: `null` ("no data") is usually the honest answer.
+- Prefer enums to free strings when the set is small and known: they become union types in the browser.
+- Store percentages as 0-100 numbers, dates as ISO strings (`2025-01-29`), and never store
+  derived display text (`"41.5 (27th percentile)"`): format that in `web.ts`.
+
+### Placement
+
+`placement` says how early the browser needs the field. The data is currently one file, but
+#31 splits it by placement, so declare it honestly now. If in doubt, choose `detail`.
+
+| Placement | Meaning | Examples |
+| --- | --- | --- |
+| `core` | Needed at start-up: identity, search, filters, and whatever the **default map mode** (the one with the lowest `order`) uses. Keep this tiny. | `name`, `sector`, `p8`, `p8Band` |
+| `mode` | Needed for every school, but only once a mode, filter or the ranked list uses it. | `att8`, `att8Pct`, `ofstedSummary` |
+| `detail` | Only shown in the popup for one school at a time. | `engMaths5`, `rcInclusion`, `website` |
+
+Rules of thumb:
+
+1. A field used only by a popup section is `detail`.
+2. A field a mode colours by or ranks by (`bucketOf`, `sortValue`, `formatValue`) is `mode`;
+   a filter's field is `mode` too (`core` if the filter is on by default).
+3. If your dimension's mode becomes the default mode (lowest `order`), its fields become
+   `core`. Do not do this casually: it changes the start-up download.
+4. Fields you read from another module are that module's business: don't redeclare them.
+
+## Reading other modules: dependsOn
+
+```ts
+dependsOn: ['gias-core', 'ks4-headline'],
+build(ctx) {
+  const ks4 = ctx.read('ks4-headline');           // Map<urn, { att8: 41.5, ... }>  declared fields, decoded
+  const history = ctx.readExtra('ks4-headline', 'history');
+}
+```
+
+- You may only read modules listed in `dependsOn`; anything else throws. The scope module
+  (`gias-core`) is always built first, whether or not you list it. Dependencies are built
+  before dependents; a cycle fails with the modules named.
+- Reading gives you the **stored** values (rounded, validated), the same as the final output.
+- Avoid depending on another module just to join a column. Dimensions that merely add data for
+  a school should depend only on `gias-core`.
+
+## Extra tables (long-format data)
+
+Use these when a school has several rows: per year, per subject, per destination. Do not
+flatten them into `fooYear1`, `fooYear2` fields.
+
+```ts
+extraTables: {
+  history: {
+    description: 'One row per school and year',
+    columns: { year: 'text', cohort: 'integer', att8: 'real' },   // 'text' | 'integer' | 'real'
+  },
+},
+build(ctx) {
+  return { rows: [...], extra: { history: [{ urn: 1, year: '2024/25', cohort: 146, att8: 41.5 }] } };
+}
+```
+
+`urn` is added for you and an index is created. Extra tables are not in `schools.geojson`;
+they live in the store (`build/schools.sqlite`, table `dim_<id>__<name>`) for other modules and
+for later per-school detail files. Any field you want in the popup today must also be a normal
+field (summarise the table into a few fields).
+
+## The build context
+
+| Member | Use |
+| --- | --- |
+| `ctx.csv(sourceId)` | Streams a downloaded CSV as objects, in the encoding declared on the `SourceDef`. |
+| `ctx.dataPath(sourceId)` | The file path, for non-CSV sources or custom parsing. |
+| `ctx.sources` | Resolved download URLs (put one in the About text via `h.sourceLink`). |
+| `ctx.schools` | The in-scope schools: `.urns`, `.all`, `.get(urn)`, `.isState(urn)`. Use it to ignore rows for schools you do not show. |
+| `ctx.read`, `ctx.readExtra` | See above. |
+| `ctx.stats` | See below. |
+| `ctx.log(msg)` | Progress line, prefixed with your module id. Log counts ("3,812 schools matched"). |
+
+Parse defensively: DfE files mark missing values with `z`, `c`, `x`, `NE`, `SUPP` and similar.
+`lib/csv.ts` has `text()` and `num()` helpers that turn the usual markers into `null`. Look at
+the real file with `head` before writing a parser, and parse by header name, not column position.
+
+### Stats
+
+```ts
+const rank = ctx.stats.percentileAmongState(pairs);           // pairs: [urn, value][]
+const rankLowGood = ctx.stats.percentileAmongState(pairs, { higherIsBetter: false });
+ctx.stats.nationalMedianAmongState(pairs);
+ctx.stats.linearFit(points);   // { intercept, slope, r }
+ctx.stats.mean(values); ctx.stats.round(value, 1);
+```
+
+Percentiles are among **state-funded mainstream schools** only: independent schools can be in
+the pairs but are ignored for the ranking (they are not comparable on most measures). Rank
+within a year, never across years. Derived measures should say so in their `description` and
+in the mode text ("our own estimate, not an official measure").
+
+### Metadata
+
+Return `{ rows, metadata: { absenceYear: '2023/24' } }` to publish dataset-level values.
+They appear as `collection.metadata.absenceYear` in the browser, for mode descriptions, popup
+titles and the About dates. Metadata keys are global; prefix them with your topic. Values
+must be JSON.
+
+## source.ts
+
+```ts
+export const sources: SourceDef[] = [{
+  id: 'absence',
+  describe: 'DfE pupil absence in schools in England',          // README "Source" column
+  homepage: 'https://explore-education-statistics.service.gov.uk/...',
+  publisher: 'Department for Education',
+  licence: 'OGL v3',
+  updated: 'annually',
+  usedFor: 'Overall and persistent absence rates',                // README "Used for" column
+  notes: 'Suppressed values are `x`.',                            // README "Notes" column
+  resolve: async () => eesCsvUrl('<data-set id>'),               // or an array of candidate URLs
+  encoding: 'utf-8',                                              // default; GIAS and Ofsted are 'windows-1252'
+}];
+```
+
+- `npm run fetch` downloads every source that is not already in `data/` and records the URL in
+  `data/sources.json`. `npm run fetch -- absence` fetches only that source; `-- --force`
+  re-downloads.
+- **Explore Education Statistics** data sets: `lib/ees.ts` has `eesCsvUrl(dataSetId)` and
+  `latestEesCsvUrl(dataSetId)`. The catalogue URL is
+  `https://explore-education-statistics.service.gov.uk/data-catalogue/data-set/<file id>/csv`;
+  use the **file id** of the latest version, which `latestDataSetId()` looks up through the public
+  API (its `pageSize` maximum is 20). Check the file exists before relying on it.
+- If the URL changes over time (a date in the name, a link on a GOV.UK page), do the lookup in
+  `resolve()` and return the candidates in order; the first that downloads wins.
+- Sources must be open data you may redistribute (OGL v3 or compatible). Scripts blocked by a
+  site (403 for non-browser clients) mean choose a different published route and say so.
+- One source file may feed several modules; define it in one and use `ctx.csv('<id>')` from the other
+  (add the owner to `dependsOn` only if you need its rows, not just the file).
+- The README sources table is regenerated from all `source.ts` files between its marker
+  comments. Never edit it by hand.
+
+## Web exports (web.ts)
+
+`web.ts` may export only these names (the generator rejects anything else, which catches
+typos). Import helpers from `../../web/toolkit.ts`, and nothing else from outside your folder
+except other `web.ts`-safe modules (pure code, no Node APIs: it runs in the browser). Share
+constants between `build.ts` and `web.ts` through a third file (`bands.ts`, `grades.ts`).
+
+Everything is sorted by `order`. Leave gaps (10, 20, 30) so others can slot in between.
+Existing orders: modes p8 10, intake 20, att8 30, ofsted 40; popup sections progress8 10,
+gcse 20, ofsted 30; filters 10-50. New modes should start at 100 and up unless the issue says
+where they belong.
+
+### `modes: ModeDef[]`
+
+A "Colour by" option: `id`, `label`, `order`, `description` (string, or a function of the
+metadata), `palette` (`'diverging'` default, or `'sequential'`), `buckets`, `bucketOf`,
+`sortValue`, `formatValue`. The mode with the lowest `order` is the default.
+
+- Palette: **diverging** (red to blue) only when there is a good and a bad end. Everything else
+  uses **sequential** (teal, light to dark). A `Bucket.colour` is an index 0-4 into the palette
+  (4 = best or highest, listed first in the legend). For another palette, add it in
+  `web/palette.ts`, validate it with the dataviz validator, and keep light and dark variants.
+- Never rely on colour alone: the legend has labels and counts, the list has values.
+- Five buckets map directly; fewer is fine (use the indices that spread best, e.g. 0, 2, 4).
+  `QUINTILES` and `quintile(pct)` from the toolkit cover percentile fields.
+- `bucketOf` returns `null` for "No data" (grey ring).
+- `description` should say what is measured, the year, and the main caveat in plain language.
+
+### `filters: FilterDef[]`
+
+Controls in the "Show" panel. A filter is `{ id, order, control, default, test }`:
+
+```ts
+{ id: 'big', order: 100, control: { kind: 'checkbox', label: 'Over 1,500 pupils only' }, default: false,
+  test: (p, on) => !on || p.bigSchool }                       // return true to keep the school
+{ id: 'region', order: 110, control: { kind: 'select', label: 'Region', options: [{ value: '', label: 'Any' }, ...] },
+  default: '', test: (p, value) => !value || p.region === value }
+```
+
+Values are saved per filter id in localStorage and validated on load (unknown ids, wrong
+types and removed options are ignored), so adding or removing filters never breaks a saved visit.
+Keep the default as "show everything" unless the issue says otherwise.
+
+### `popupSections: PopupSectionDef[]`
+
+A titled block in the school popup: `{ id, order, title, render }`. `title` is a string or a
+function of the school; `render(p, h, extra)` returns `Html` or `null` (null omits the section,
+title included). Use the `h` helpers; interpolating into `h.html` escapes automatically:
+
+```ts
+render: (p, h) => h.html`${h.rows([['Pupils', p.pupils], ['Size band', p.sizeBand]])}${h.note('Quintiles among state schools.')}`
+```
+
+`h.rows`, `h.note`, `h.meta`, `h.link`, `h.ciChart`, `h.fmt`, `h.signed`, `h.ordinal`,
+`h.formatDate`, `h.html`, `h.raw`. Never build HTML by string concatenation: `Html` marks safe
+markup; plain strings are escaped. `h.raw` is for static markup you wrote yourself, never for data.
+
+### `popupRows: PopupRowDef[]`
+
+Adds a row to **another module's** section without editing it, e.g. `{ id, section: 'gcse', slot:
+'after-average', order: 10, row: (p, h) => ['Label', value] | null }`. The section decides where
+a slot goes by calling `extra('slot-name')` (unslotted rows via `extra()`). A row aimed at a
+section or slot that does not exist is ignored. If your own section would benefit from
+extension by later modules, call `extra()` in your `render`, and document the slot names in a
+comment. `dimensions/ks4-headline/web.ts` and `dimensions/intake-model/web.ts` show both sides.
+
+### `popupTags: PopupTagDef[]`
+
+The small chips under the school's name (`Independent`, `Sixth form`): see `gias-core/web.ts`.
+
+### `sourceNotes: SourceNoteDef[]`
+
+`about(meta, h)` returns an item for the "About the data" list (use `h.sourceLink('<source id>',
+'Label')` to link to the downloaded URL), and `dates(meta)` returns strings for the dates line
+under the title (`'Ofsted to 31 August 2026'`). Provide both for every source you add.
+
+## Tests (test.ts)
+
+Run with `node:test` and `node:assert/strict`. Every dimension needs a `test.ts` that:
+
+1. Tests pure parsing/logic (bands, parsers, mappings) with small inline fixtures, no data needed.
+2. Checks a few known schools against the built store, using the helper:
+
+```ts
+import { moduleRows, skipWithoutStore } from '../../lib/test-store.ts';
+import { module } from './build.ts';
+
+test('a known school', skipWithoutStore, () => {
+  const r = moduleRows('school-size', module.fields).get(100049);
+  assert.equal(r?.bigSchool, false);
+});
+```
+
+`skipWithoutStore` skips those tests when `build/schools.sqlite` does not exist, so
+`npm test` passes on a fresh clone. CI builds first, so they run there. Pick URNs from the real
+output and write the expected values from the source file, not from your own code's output.
+Also assert invariants (values within range, enums valid, expected coverage).
+
+Run one module's tests: `node --disable-warning=ExperimentalWarning --test dimensions/<id>/test.ts`.
+`npm test` runs everything: every `dimensions/*/test.ts`, plus `lib/*.test.ts`, `web/*.test.ts`
+and `scripts/*.test.ts`.
+
+## What the build checks for you
+
+`npm run build:data` fails, with the module and school named, when:
+
+- a row has a field you did not declare, a value of the wrong type, or an enum value not in `values`;
+- two rows have the same URN;
+- two modules declare the same field, source id, or module id;
+- `dependsOn` names an unknown module, or modules depend on each other in a circle;
+- a `year` or `source` names something that does not exist; a non-nullable field has no default;
+- fewer than 3,500 schools come out (usually a changed source format).
+
+It **warns** (and carries on) when a field's coverage drops by more than 20% against the
+previous build: usually a renamed column. Read the warnings.
+
+## Proving you changed nothing
+
+Before you start, build the current output and keep a copy:
+
+```bash
+npm run build:data && cp dist/schools.geojson /tmp/old-schools.geojson
+```
+
+After your change:
+
+```bash
+node --disable-warning=ExperimentalWarning scripts/diff-geojson.ts /tmp/old-schools.geojson dist/schools.geojson --allow-new-properties
+```
+
+It reports every feature and property that differs, ignoring property order and `builtAt`,
+and exits 1 on any difference. `--allow-new-properties` permits your new fields only; every
+existing value must be identical. (If fresh data legitimately changed things, say so in your
+report rather than hiding it.)
+
+## Definition of done
+
+- [ ] `npm run typecheck`, `npm test` and `npm run build` pass; about 4,150 schools still come out.
+- [ ] `diff-geojson --allow-new-properties` shows 0 differences against the previous build.
+- [ ] Browser check (Playwright): the new mode, filter and popup work; no console errors;
+      screenshots in light, dark and 390 px wide.
+- [ ] Data size reported, raw and gzip (`gzip -9c dist/schools.geojson | wc -c`), before and after.
+- [ ] Fields have honest placements, labels and descriptions; derived measures say they are derived.
+- [ ] `test.ts` covers parsing and known schools.
+- [ ] No files outside `dimensions/<id>/` changed, except deliberate framework growth (explain it).
+      The README sources table is regenerated, not hand-edited: commit the result of `npm run generate`.
+- [ ] README "How schools are compared" updated if you added a mode or a derived measure.
+- [ ] `data/`, `build/`, `dist/` and `web/generated/` are not committed.
+
+## Known limitations
+
+- The build parses `ks4.csv` twice (`gias-core` needs it to decide which schools are in scope);
+  the whole build takes about 45 seconds.
+- All fields are still written to one `schools.geojson`. #31 will split it by `placement`, which
+  is why placement must be declared correctly now.
+- Percentile/ranking helpers cover state schools only.

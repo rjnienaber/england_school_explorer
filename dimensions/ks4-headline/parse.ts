@@ -1,4 +1,4 @@
-import { num, readCsv, text } from './csv.ts';
+import { num, readCsv, text } from '../../lib/csv.ts';
 
 export interface Ks4Year {
   cohort: number | null;

@@ -1,5 +1,4 @@
-import type { P8Band } from '../../shared/school.ts';
-
+import type { Scope, StatsToolkit } from './dimension.ts';
 /** Returns a function giving the percentile rank (0–100) of a value within `population`. */
 export function percentileRanker(population: number[]): (value: number) => number {
   const sorted = [...population].sort((a, b) => a - b);
@@ -40,20 +39,37 @@ export function linearFit(points: [x: number, y: number][]): { intercept: number
   return { intercept: meanY - slope * meanX, slope, r: sxy / Math.sqrt(sxx * syy) };
 }
 
-/**
- * DfE's Progress 8 banding. A school is only above or below average when its
- * whole 95% confidence interval is, and "well" above or below when the score
- * itself is also beyond ±0.5.
- */
-export function p8Band(score: number, lower: number, upper: number): P8Band {
-  if (lower > 0) return score >= 0.5 ? 'well-above' : 'above';
-  if (upper < 0) return score <= -0.5 ? 'well-below' : 'below';
-  return 'average';
-}
-
 export const round = (value: number | null, places = 1): number | null =>
   value === null ? null : Math.round(value * 10 ** places) / 10 ** places;
 
 export function mean(values: number[]): number | null {
   return values.length ? values.reduce((s, v) => s + v, 0) / values.length : null;
+}
+
+export function median(values: number[]): number | null {
+  if (values.length === 0) return null;
+  const sorted = [...values].sort((a, b) => a - b);
+  const mid = sorted.length >> 1;
+  return sorted.length % 2 ? sorted[mid] : (sorted[mid - 1] + sorted[mid]) / 2;
+}
+
+/** The stats API handed to modules as `ctx.stats`; the state-school helpers use the build's scope. */
+export function makeStatsToolkit(scope: Scope): StatsToolkit {
+  const stateValues = (population: Iterable<[number, number]>) => {
+    const values: number[] = [];
+    for (const [urn, value] of population) if (scope.isState(urn)) values.push(value);
+    return values;
+  };
+  return {
+    percentileAmongState(population, { higherIsBetter = true } = {}) {
+      const values = stateValues(population);
+      if (higherIsBetter) return percentileRanker(values);
+      const rank = percentileRanker(values.map((v) => -v));
+      return (value) => rank(-value);
+    },
+    nationalMedianAmongState: (population) => median(stateValues(population)),
+    linearFit,
+    mean,
+    round,
+  };
 }

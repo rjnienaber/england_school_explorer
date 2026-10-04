@@ -3,3 +3,6 @@ node_modules
 data
 dist
 tmp
+build
+release
+web/generated

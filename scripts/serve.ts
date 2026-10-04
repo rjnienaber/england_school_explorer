@@ -4,7 +4,7 @@ import { createReadStream } from 'node:fs';
 import { stat } from 'node:fs/promises';
 import { createServer } from 'node:http';
 import { extname, join, normalize } from 'node:path';
-import { DIST_DIR } from './paths.ts';
+import { DIST_DIR } from '../lib/paths.ts';
 
 const PORT = Number(process.env.PORT ?? 8080);
 const TYPES: Record<string, string> = {

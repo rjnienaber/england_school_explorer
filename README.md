@@ -22,13 +22,15 @@ Or run the steps separately:
 | Command | What it does |
 | --- | --- |
 | `npm run fetch` | Downloads the three source files into `data/` (about 180 MB). Skips files already there; `-- --force` re-downloads. Records URLs in `data/sources.json`. |
-| `npm run build:data` | Joins the sources and writes `dist/schools.geojson` (about 5 MB, about 30 s). |
+| `npm run generate` | Writes the generated browser types and registry, and this README's sources table, from `dimensions/`. The build and typecheck run it for you. |
+| `npm run build:data` | Builds the store from the sources and writes `dist/schools.geojson` (about 5 MB, about 45 s). |
 | `npm run build:web` | Bundles `web/` with esbuild into `dist/app.js` and `dist/app.css`, and copies `index.html` and MapLibre's worker files. |
 | `npm run build` | Both build steps. |
 | `npm run build:release` | Both build steps without sourcemaps, as used by the deploy. |
 | `npm run watch` | Rebuilds the web bundle on change. |
 | `npm run serve` | Serves `dist/` locally (`PORT` to override 8080). |
-| `npm run typecheck` | `tsc` over the Node scripts and the browser code. |
+| `npm run typecheck` | Generates, then `tsc` over the Node code and the browser code. |
+| `npm test` | Runs every `test.ts` with `node --test`. Tests that need data skip themselves until `build:data` has run. |
 
 To publish, upload `dist/` to any static host (for example GitHub Pages, Cloudflare Pages
 or DreamHost). Source maps (`*.map`) are optional.
@@ -51,11 +53,13 @@ which usually means a source changed format.
 
 All are published under the [Open Government Licence v3.0](https://www.nationalarchives.gov.uk/doc/open-government-licence/version/3/).
 
+<!-- sources:start (generated from dimensions/*/source.ts by `npm run generate`; do not edit) -->
 | Source | Used for | Notes |
 | --- | --- | --- |
-| [DfE key stage 4 performance](https://explore-education-statistics.service.gov.uk/find-statistics/key-stage-4-performance), institution-level data set on Explore Education Statistics | Attainment 8, Progress 8 with confidence intervals, English and maths grade 5+, EBacc entry, cohort size, % disadvantaged | Three years per file (currently 2022/23 to 2024/25). `z` and `c` mark missing or suppressed values. The older compare-school-performance download blocks scripted access. |
-| [Get Information About Schools](https://get-information-schools.service.gov.uk/) daily extract (`edubasealldataYYYYMMDD.csv`) | Location, type, status, age range, gender, sixth form, admissions policy, religion, trust, website | Windows-1252. Gives British National Grid easting/northing, which are converted to WGS84 with `proj4`. |
-| [Ofsted monthly management information](https://www.gov.uk/government/statistical-data-sets/monthly-management-information-ofsteds-school-inspections-outcomes): state-funded schools, latest inspections | Inspection outcomes | Windows-1252. The latest file is found through the GOV.UK content API. Doesn't cover independent schools (most are inspected by the ISI). |
+| [Get Information About Schools: daily extract of every establishment](https://get-information-schools.service.gov.uk/), Department for Education (OGL v3) | Location, type, status, age range, gender, sixth form, admissions policy, religion, trust, website | Updated daily. Windows-1252. Gives British National Grid easting/northing, which are converted to WGS84 with `proj4`. |
+| [DfE key stage 4 performance, institution-level data set](https://explore-education-statistics.service.gov.uk/find-statistics/key-stage-4-performance), Department for Education (OGL v3) | Attainment 8, Progress 8 with confidence intervals, English and maths grade 5+, EBacc entry, cohort size, % disadvantaged | Updated annually (provisional in autumn, revised in spring). Three years per file (currently 2022/23 to 2024/25). `z` and `c` mark missing or suppressed values. The older compare-school-performance download blocks scripted access. |
+| [Ofsted monthly management information: state-funded schools, latest inspections](https://www.gov.uk/government/statistical-data-sets/monthly-management-information-ofsteds-school-inspections-outcomes), Ofsted (OGL v3) | Inspection outcomes | Updated monthly. Windows-1252. The latest file is found through the GOV.UK content API. Doesn't cover independent schools (most are inspected by the ISI). |
+<!-- sources:end -->
 
 Basemap: [OpenFreeMap](https://openfreemap.org/) vector tiles (OpenStreetMap data), with Positron for light mode and Dark for dark mode.
 Postcode search: [postcodes.io](https://postcodes.io/).
@@ -63,26 +67,26 @@ Postcode search: [postcodes.io](https://postcodes.io/).
 ## Architecture
 
 ```
-scripts/
-  fetch.ts          download sources → data/
-  build-data.ts     join + score → dist/schools.geojson
-  build-web.ts      esbuild bundle → dist/
-  serve.ts          local static server
-  paths.ts
-  lib/
-    csv.ts          streaming CSV reader with encoding support
-    ks4.ts          KS4 performance loader (per school, per year)
-    gias.ts         register loader + BNG → lat/lng
-    ofsted.ts       inspection loader; handles three Ofsted frameworks
-    stats.ts        percentiles, linear fit, Progress 8 bands
-shared/
-  school.ts         SchoolProperties: the GeoJSON contract between build and browser
-web/
-  index.html, style.css
-  main.ts           map, filters, list, search
-  modes.ts          colour modes, legend buckets, palette
-  popup.ts          school detail popup
+dimensions/<id>/      one folder per kind of data; the only place a new dimension touches
+  source.ts           where the data comes from (URL, licence, notes): feeds fetch and the table above
+  build.ts            declares the fields and turns the source into rows
+  web.ts              colour modes, filters, popup sections, About text
+  test.ts             tests for this module
+lib/                  the framework: module types, build store, pipeline, generators
+scripts/              thin runners: fetch, generate, build-data, build-web, serve, diff-geojson
+web/                  the browser shell: map, list, search, popup framework, toolkit, palettes
+  generated/          git-ignored; written by `npm run generate`
+docs/adding-a-dimension.md   the guide for adding a dimension
 ```
+
+Each dimension is self-contained. `npm run build:data` builds the modules in dependency order
+into a SQLite store (`build/schools.sqlite`, git-ignored), checks every row against the declared
+fields, then exports `dist/schools.geojson`. `npm run generate` writes the browser's record type
+and module list from the folders, so adding a dimension means adding a folder and editing no
+other file. See [docs/adding-a-dimension.md](docs/adding-a-dimension.md).
+
+The current dimensions are `gias-core` (the schools themselves), `ks4-headline`, `intake-model`
+and `ofsted`.
 
 In scope: open, mainstream secondary schools in England with a KS4 entry (state-funded and
 independent). Special schools, alternative provision and closed schools are excluded.

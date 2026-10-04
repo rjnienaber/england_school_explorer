@@ -1,8 +1,10 @@
 import * as maplibregl from 'maplibre-gl';
 import type { ExpressionSpecification, GeoJSONSource, MapLayerMouseEvent } from 'maplibre-gl';
 import type { FeatureCollection } from 'geojson';
-import type { SchoolCollection, SchoolFeature, SchoolProperties } from '../shared/school.ts';
-import { MODES, PALETTE, modeById, type Mode, type Theme } from './modes.ts';
+import type { SchoolCollection, SchoolFeature, SchoolRecord } from './types.ts';
+import { drawOrder, PALETTES, type Theme } from './palette.ts';
+import { FILTERS, MODES, SOURCE_NOTES, modeById } from './registry.ts';
+import { h, type FilterDef, type ModeDef } from './toolkit.ts';
 import { popupHtml } from './popup.ts';
 import './style.css';
 
@@ -17,31 +19,40 @@ const ENGLAND: [[number, number], [number, number]] = [
 const LIST_LIMIT = 30;
 const STORAGE_KEY = 'schools-map-settings';
 
-interface Filters {
-  state: boolean;
-  independent: boolean;
-  selective: boolean;
-  sixthForm: boolean;
-  gender: string;
-}
+/** Current value of every filter, by filter id: a boolean for checkboxes, a string for selects. */
+type FilterValues = Record<string, boolean | string>;
 
 interface Settings {
   mode: string;
-  filters: Filters;
+  filters: FilterValues;
 }
 
 const $ = <T extends HTMLElement>(id: string) => document.getElementById(id) as T;
 
 // ---------- Settings (per-viewer convenience; the page works without storage) ----------
 
+function filterDefaults(): FilterValues {
+  return Object.fromEntries(FILTERS.map((f) => [f.id, f.default]));
+}
+
+/** A saved value is used only if it still suits the filter (right type, and a known option for selects). */
+function validFilterValue(f: FilterDef, value: unknown): boolean {
+  if (f.control.kind === 'checkbox') return typeof value === 'boolean';
+  return typeof value === 'string' && f.control.options.some((o) => o.value === value);
+}
+
 function loadSettings(): Settings {
-  const defaults: Settings = {
-    mode: 'p8',
-    filters: { state: true, independent: false, selective: true, sixthForm: false, gender: '' },
-  };
+  const defaults: Settings = { mode: MODES[0].id, filters: filterDefaults() };
   try {
-    const saved = JSON.parse(localStorage.getItem(STORAGE_KEY) ?? 'null') as Partial<Settings> | null;
-    return { mode: saved?.mode ?? defaults.mode, filters: { ...defaults.filters, ...saved?.filters } };
+    const saved = JSON.parse(localStorage.getItem(STORAGE_KEY) ?? 'null') as
+      | { mode?: unknown; filters?: Record<string, unknown> }
+      | null;
+    const filters = filterDefaults();
+    for (const f of FILTERS) {
+      const value = saved?.filters?.[f.id];
+      if (validFilterValue(f, value)) filters[f.id] = value as boolean | string;
+    }
+    return { mode: typeof saved?.mode === 'string' ? saved.mode : defaults.mode, filters };
   } catch {
     return defaults;
   }
@@ -58,8 +69,8 @@ function saveSettings(): void {
 // ---------- State ----------
 
 const settings = loadSettings();
-let mode: Mode = modeById(settings.mode);
-const filters: Filters = settings.filters;
+let mode: ModeDef = modeById(settings.mode);
+const filters: FilterValues = settings.filters;
 const darkQuery = window.matchMedia('(prefers-color-scheme: dark)');
 let theme: Theme = darkQuery.matches ? 'dark' : 'light';
 
@@ -91,18 +102,14 @@ let searchMarker: maplibregl.Marker | null = null;
 
 // ---------- Filtering and map data ----------
 
-function passesFilters(p: SchoolProperties): boolean {
-  if (p.sector === 'state' && !filters.state) return false;
-  if (p.sector === 'independent' && !filters.independent) return false;
-  if (p.selective && !filters.selective) return false;
-  if (filters.sixthForm && !p.sixthForm) return false;
-  if (filters.gender && p.gender !== filters.gender) return false;
-  return true;
+function passesFilters(p: SchoolRecord): boolean {
+  // Each test is typed for its own control kind, which the shared FilterValues record can't express
+  return FILTERS.every((f) => (f.test as (p: SchoolRecord, value: boolean | string) => boolean)(p, filters[f.id]));
 }
 
 /** Map features carry only what styling needs; popups look schools up by URN. */
 function mapData(): FeatureCollection {
-  const middle = 2;
+  const palette = mode.palette ?? 'diverging';
   return {
     type: 'FeatureCollection',
     features: shown.map((f) => {
@@ -112,14 +119,14 @@ function mapData(): FeatureCollection {
         type: 'Feature',
         geometry: f.geometry,
         // Extremes draw on top so they aren't hidden under average schools
-        properties: { urn: f.properties.urn, colour, sortKey: colour < 0 ? -1 : Math.abs(colour - middle) },
+        properties: { urn: f.properties.urn, colour, sortKey: drawOrder(palette, colour) },
       };
     }),
   };
 }
 
 function colourExpression(): ExpressionSpecification {
-  const p = PALETTE[theme];
+  const p = PALETTES[mode.palette ?? 'diverging'][theme];
   return ['match', ['get', 'colour'], 0, p[0], 1, p[1], 2, p[2], 3, p[3], 4, p[4], 'rgba(0,0,0,0)'];
 }
 
@@ -162,6 +169,11 @@ function addLayers(): void {
   }, firstLabel);
 }
 
+function applyColours(): void {
+  if (!map.getLayer('schools')) return;
+  map.setPaintProperty('schools', 'circle-color', colourExpression());
+}
+
 function refresh(): void {
   shown = collection.features.filter((f) => passesFilters(f.properties));
   (map.getSource('schools') as GeoJSONSource | undefined)?.setData(mapData());
@@ -194,24 +206,26 @@ function renderModes(): void {
       const button = document.createElement('button');
       button.type = 'button';
       button.role = 'radio';
-      button.textContent = m.name;
+      button.textContent = m.label;
       button.setAttribute('aria-checked', String(m.id === mode.id));
       button.addEventListener('click', () => {
         mode = m;
         renderModes();
+        // The palette can differ between modes, so restyle the layer along with the data
+        applyColours();
         refresh();
       });
       return button;
     }),
   );
-  const latestKs4 = collection.metadata.ks4Years[0] ?? null;
-  $('mode-description').textContent = mode.description({ p8Year: collection.metadata.p8Year, ks4Year: latestKs4 });
+  const { description } = mode;
+  $('mode-description').textContent = typeof description === 'string' ? description : description(collection.metadata);
 }
 
 function swatch(colour: number): HTMLSpanElement {
   const el = document.createElement('span');
   el.className = colour < 0 ? 'swatch empty' : 'swatch';
-  if (colour >= 0) el.style.background = PALETTE[theme][colour];
+  if (colour >= 0) el.style.background = PALETTES[mode.palette ?? 'diverging'][theme][colour];
   return el;
 }
 
@@ -249,7 +263,7 @@ function renderLegendAndList(): void {
     .filter((f) => mode.sortValue(f.properties) !== null)
     .sort((a, b) => mode.sortValue(b.properties)! - mode.sortValue(a.properties)!);
 
-  $('list-heading').textContent = `Schools in view by ${mode.name}`;
+  $('list-heading').textContent = `Schools in view by ${mode.label}`;
   $('list-caption').textContent =
     visible.length === 0
       ? 'No schools in view. Zoom out or change the filters.'
@@ -284,53 +298,58 @@ function renderLegendAndList(): void {
 function renderAbout(): void {
   const { metadata } = collection;
   const built = new Date(metadata.builtAt).toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' });
-  const link = (key: string, label: string) =>
-    metadata.sources[key] ? `<a href="${metadata.sources[key]}" target="_blank" rel="noopener">${label}</a>` : label;
+  const sourceLink = (key: string, label: string) =>
+    metadata.sources[key] ? h.html`<a href="${metadata.sources[key]}" target="_blank" rel="noopener">${label}</a>` : h.html`${label}`;
+  const items = SOURCE_NOTES.map((n) => n.about?.(metadata, { ...h, sourceLink }) ?? null)
+    .filter((item) => item !== null)
+    .map((item) => `<li>${item.value}</li>`)
+    .join('\n      ');
   $('about').innerHTML = `
     <p>${collection.features.length.toLocaleString()} open mainstream secondary schools with GCSE results. Built ${built}.</p>
     <ul>
-      <li>${link('ks4', 'DfE key stage 4 performance')} (${metadata.ks4Years.join(', ')})</li>
-      <li>${link('gias', 'Get Information About Schools')} register (locations and school details)</li>
-      <li>${link('ofsted', 'Ofsted management information')}${metadata.ofstedAsAt ? ` as at ${metadata.ofstedAsAt}` : ''}</li>
+      ${items}
     </ul>
     <p>Contains public sector information licensed under the Open Government Licence v3.0.</p>
     <p><strong>Read with care.</strong> Special schools and alternative provision aren't shown. Results for small year groups
     are noisy. Living near a school doesn't mean getting a place there: check the admissions criteria and how far
     places went last year with the local authority.</p>`;
 
-  const ks4 = metadata.ks4Years[0];
-  $('data-dates').textContent = [
-    ks4 && `GCSEs ${ks4}`,
-    metadata.p8Year && `Progress 8 ${metadata.p8Year}`,
-    metadata.ofstedAsAt && `Ofsted to ${metadata.ofstedAsAt}`,
-  ]
+  $('data-dates').textContent = SOURCE_NOTES.flatMap((n) => n.dates?.(metadata) ?? [])
     .filter(Boolean)
     .join(' · ');
 }
 
 // ---------- Filters UI ----------
 
+/** Builds the "Show" controls from the registered filters. */
 function bindFilters(): void {
-  const checkboxes: [string, keyof Omit<Filters, 'gender'>][] = [
-    ['f-state', 'state'],
-    ['f-independent', 'independent'],
-    ['f-selective', 'selective'],
-    ['f-sixth', 'sixthForm'],
-  ];
-  for (const [id, key] of checkboxes) {
-    const input = $<HTMLInputElement>(id);
-    input.checked = filters[key];
-    input.addEventListener('change', () => {
-      filters[key] = input.checked;
-      refresh();
-    });
-  }
-  const gender = $<HTMLSelectElement>('f-gender');
-  gender.value = filters.gender;
-  gender.addEventListener('change', () => {
-    filters.gender = gender.value;
-    refresh();
-  });
+  const container = $('filters');
+  container.replaceChildren(
+    ...FILTERS.map((f) => {
+      const label = document.createElement('label');
+      if (f.control.kind === 'checkbox') {
+        const input = document.createElement('input');
+        input.type = 'checkbox';
+        input.checked = filters[f.id] as boolean;
+        input.addEventListener('change', () => {
+          filters[f.id] = input.checked;
+          refresh();
+        });
+        label.append(input, ` ${f.control.label}`);
+      } else {
+        label.className = 'select-label';
+        const select = document.createElement('select');
+        for (const o of f.control.options) select.append(new Option(o.label, o.value));
+        select.value = filters[f.id] as string;
+        select.addEventListener('change', () => {
+          filters[f.id] = select.value;
+          refresh();
+        });
+        label.append(`${f.control.label} `, select);
+      }
+      return label;
+    }),
+  );
 }
 
 // ---------- Search: school names locally, postcodes via postcodes.io ----------
@@ -460,7 +479,7 @@ function bindMapEvents(): void {
     const el = document.createElement('div');
     const strong = document.createElement('strong');
     strong.textContent = p.name;
-    el.append(strong, document.createElement('br'), `${mode.name}: ${mode.formatValue(p)}`);
+    el.append(strong, document.createElement('br'), `${mode.label}: ${mode.formatValue(p)}`);
     hoverTip.setLngLat(feature.geometry.coordinates).setDOMContent(el).addTo(map);
   });
 

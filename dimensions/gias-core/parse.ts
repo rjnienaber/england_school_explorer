@@ -1,5 +1,5 @@
 import proj4 from 'proj4';
-import { num, readCsv, text } from './csv.ts';
+import { num, readCsv, text } from '../../lib/csv.ts';
 
 export interface GiasSchool {
   urn: number;
