@@ -516,6 +516,34 @@ input[type='search'] {
   margin-top: 4px;
 }
 
+.ci-chart.compact {
+  height: 20px;
+  margin-top: 0;
+}
+
+.subject-areas summary {
+  cursor: pointer;
+  color: var(--ink-2);
+  font-size: 0.85rem;
+}
+
+.subject-areas .ci-group {
+  margin: 10px 0 2px;
+  font-size: 0.8rem;
+  color: var(--muted);
+  font-weight: 600;
+}
+
+.ci-head {
+  display: flex;
+  justify-content: space-between;
+  font-size: 0.85rem;
+}
+
+.ci-row {
+  margin-top: 4px;
+}
+
 .ci-chart text {
   fill: var(--muted);
   font-size: 9px;

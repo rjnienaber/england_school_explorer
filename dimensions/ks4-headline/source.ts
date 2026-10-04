@@ -9,7 +9,7 @@ export const sources: SourceDef[] = [
     publisher: 'Department for Education',
     licence: 'OGL v3',
     updated: 'annually (provisional in autumn, revised in spring)',
-    usedFor: 'Attainment 8, Progress 8 with confidence intervals, English and maths grade 5+ and 4+, average English and maths grades, EBacc entry, cohort size, % disadvantaged',
+    usedFor: 'Attainment 8, Progress 8 with confidence intervals, English and maths grade 5+ and 4+, average English and maths grades, Progress 8 by subject area, value added in science, humanities and languages, EBacc entry, cohort size, % disadvantaged',
     notes:
       'Three years per file (currently 2022/23 to 2024/25). `z` and `c` mark missing or suppressed values. ' +
       'The older compare-school-performance download blocks scripted access.',

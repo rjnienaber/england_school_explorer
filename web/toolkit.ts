@@ -171,6 +171,8 @@ export interface CiChartOptions {
   /** Label under the zero line. */
   zeroLabel: string;
   decimals?: number;
+  /** A shorter chart with no axis labels, for several in a row (the line's meaning goes in a note). */
+  compact?: boolean;
 }
 
 /** A value with its 95% confidence interval as a small SVG range chart. */
@@ -178,6 +180,15 @@ export function ciChart(o: CiChartOptions): Html {
   const d = o.decimals ?? 2;
   const x = (v: number) => 4 + ((Math.max(o.min, Math.min(o.max, v)) - o.min) / (o.max - o.min)) * 252;
   const label = `${o.name} ${signed(o.value, d)}, 95% confidence interval ${signed(o.lower, d)} to ${signed(o.upper, d)}`;
+  if (o.compact) {
+    return html`
+    <svg class="ci-chart compact" viewBox="0 0 260 20" role="img" aria-label="${label}">
+      <line class="axis" x1="4" x2="256" y1="10" y2="10" />
+      <line class="zero" x1="${x(0)}" x2="${x(0)}" y1="2" y2="18" />
+      <line class="range" x1="${x(o.lower)}" x2="${x(o.upper)}" y1="10" y2="10" />
+      <circle class="point" cx="${x(o.value)}" cy="10" r="3.5" />
+    </svg>`;
+  }
   return html`
     <svg class="ci-chart" viewBox="0 0 260 34" role="img" aria-label="${label}">
       <line class="axis" x1="4" x2="256" y1="14" y2="14" />
