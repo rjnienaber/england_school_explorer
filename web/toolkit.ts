@@ -223,9 +223,11 @@ export interface PopupSectionDef {
   /**
    * The section's body, or null to leave the whole section out (title included).
    * `extra(slot?)` returns the rows other modules contributed to this section with
-   * `popupRows` (those aimed at `slot`, or the unslotted ones), already sorted.
+   * `popupRows` (those aimed at `slot`, or the unslotted ones), already sorted. `meta` is the dataset-level
+   * metadata (national medians and so on); it is missing while the build traces which fields a section reads,
+   * so treat it as optional.
    */
-  render: (p: School, h: Helpers, extra: (slot?: string) => RowEntry[]) => Html | null;
+  render: (p: School, h: Helpers, extra: (slot?: string) => RowEntry[], meta?: Metadata) => Html | null;
 }
 
 /** A row a module adds to another module's popup section, e.g. a new line in the GCSE results table. */

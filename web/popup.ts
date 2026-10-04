@@ -6,13 +6,13 @@
 // piece's fields are still downloading it shows "Loading…" instead of wrong or missing data.
 
 import { POPUP_ROWS, POPUP_SECTIONS, POPUP_TAGS } from './registry.ts';
-import { escapeHtml, h, html, raw, type Html, type School } from './toolkit.ts';
+import { escapeHtml, h, html, raw, type Html, type Metadata, type School } from './toolkit.ts';
 
 export interface PopupPiece {
   /** 'kind', 'place', 'tags' or 'section:<id>'. The key of `needs.popup`. */
   id: string;
   /** Null omits the piece. */
-  html(p: School): Html | null;
+  html(p: School, meta?: Metadata): Html | null;
   /** Sections get a "Loading…" line while unready; the small header lines just wait. */
   isSection: boolean;
 }
@@ -41,12 +41,12 @@ export const PIECES: PopupPiece[] = [
   ...POPUP_SECTIONS.map((s) => ({
     id: `section:${s.id}`,
     isSection: true,
-    html(p: School): Html | null {
+    html(p: School, meta?: Metadata): Html | null {
       const extra = (slot?: string) =>
         POPUP_ROWS.filter((r) => r.section === s.id && r.slot === slot)
           .map((r) => r.row(p, h))
           .filter((r) => r !== null);
-      const body = s.render(p, h, extra);
+      const body = s.render(p, h, extra, meta);
       if (!body) return null;
       const title = typeof s.title === 'function' ? s.title(p) : s.title;
       return title ? html`<h4>${title}</h4>${body}` : body;
@@ -61,6 +61,8 @@ export interface PopupState {
   ready: (field: string) => boolean;
   /** Loading the missing fields failed. */
   failed?: boolean;
+  /** Dataset-level values (national medians and so on), handed to `render` as its last argument. */
+  metadata?: Metadata;
 }
 
 export function popupHtml(p: School, state: PopupState): string {
@@ -78,7 +80,7 @@ export function popupHtml(p: School, state: PopupState): string {
       }
       continue;
     }
-    const body = piece.html(p);
+    const body = piece.html(p, state.metadata);
     if (body) out.push(body.value);
   }
   return `

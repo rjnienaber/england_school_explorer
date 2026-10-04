@@ -244,7 +244,7 @@ function openSchool(urn: number, fly = false): void {
   hoverTip.remove();
   if (fly) map.flyTo({ center: [lng, lat], zoom: Math.max(map.getZoom(), 12), padding: mapPadding() });
   const render = (failed = false) =>
-    popupHtml(feature.properties, { needs: data.core.needs.popup, ready: (f) => data.hasField(f, urn), failed });
+    popupHtml(feature.properties, { needs: data.core.needs.popup, ready: (f) => data.hasField(f, urn), failed, metadata: data.core.metadata });
   detailPopup.setLngLat([lng, lat]).setHTML(render()).addTo(map);
   setSelected(urn);
   if (isNarrow()) setPanelCollapsed(true);
