@@ -17,6 +17,7 @@ export const module = defineDimension({
   id: 'spending',
   title: 'Spending per pupil (school finance)',
   dependsOn: ['gias-core'],
+  phases: ['secondary', 'primary'],
   fields: {
     spendYear: {
       type: 'string',

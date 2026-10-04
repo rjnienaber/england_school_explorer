@@ -39,3 +39,6 @@ time_period,time_identifier,geographic_level,education_phase,school_name,school_
 202425,Academic year,School,State-funded secondary,Ark Walworth Academy,135315,,843,6.94126,3.75344,20.04745,3.55872
 202425,Academic year,School,State-funded secondary,Maria Fidelis Catholic School FCJ,100055,,741,7.56286,3.21327,18.21862,4.8583
 202425,Academic year,School,State-funded secondary,Highbury Fields School,100455,,704,8.39259,5.53783,22.30114,3.55114
+202425,Academic year,School,State-funded primary,Oakfield Primary School,900001,,212,5.1234,0.9,12.5,0.4
+202425,Academic year,School,State-funded primary,Oakfield Junior School,900003,,198,6.5,1.2,16.1,0.9
+202425,Academic year,School,State-funded primary,Oakfield Infant School,900002,,150,4.2,0.7,x,x

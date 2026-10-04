@@ -7,7 +7,7 @@ import { popupSections } from './web.ts';
 
 const fixture = new URL('./fixtures/exclusions.csv', import.meta.url).pathname;
 
-test('exclusions parser: latest year only, secondary rows only, values as published', async () => {
+test('exclusions parser: latest year only, secondary and primary rows, values as published', async () => {
   const e = await loadExclusions(fixture);
   // 2024/25 row of Haverstock School (the 2023/24 row has 171 suspensions)
   assert.deepEqual(e.get(100049), {
@@ -62,4 +62,11 @@ test('popup: shows school and typical figures, hides suppressed rows, and is hid
   assert.match(partial, /Permanent exclusions/);
   assert.equal(s.render(school({}), h, () => [], meta), null);
   assert.doesNotMatch(String(s.render(school({ suspensionRate: 18 }), h, () => [])), /14\.6/);
+});
+
+test('exclusions: primary phase has its own rows and secondary schools are absent', async () => {
+  const { rows } = await buildFromFixtures('exclusions', 'primary');
+  const all = rows('exclusions');
+  assert.ok(all.has(900001));
+  assert.equal(all.has(108640), false);
 });

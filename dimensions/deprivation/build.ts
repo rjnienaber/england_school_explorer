@@ -10,6 +10,7 @@ export const module = defineDimension({
   id: 'deprivation',
   title: 'Area deprivation (IDACI)',
   dependsOn: ['gias-core'],
+  phases: ['secondary', 'primary'],
   fields: {
     idaciDecile: {
       type: 'number',

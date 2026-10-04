@@ -63,3 +63,10 @@ test('popup: shows school and typical figures, hides missing rows, and is hidden
   assert.doesNotMatch(html, /<th>Teachers without/);
   assert.equal(s.render(school({}), h, () => [], meta), null);
 });
+
+test('workforce: primary phase has its own rows and secondary schools are absent', async () => {
+  const { rows } = await buildFromFixtures('workforce', 'primary');
+  const all = rows('workforce');
+  assert.ok(all.has(900001));
+  assert.equal(all.has(100050), false);
+});

@@ -9,6 +9,7 @@ export const module = defineDimension({
   id: 'religion',
   title: 'Religious ethos and diocese',
   dependsOn: ['gias-core'],
+  phases: ['secondary', 'primary'],
   fields: {
     religiousEthos: {
       type: 'string',

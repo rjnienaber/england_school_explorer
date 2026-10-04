@@ -9,6 +9,7 @@ export const module = defineDimension({
   id: 'absence',
   title: 'Absence',
   dependsOn: ['gias-core'],
+  phases: ['secondary', 'primary'],
   fields: {
     absenceYear: {
       type: 'string',

@@ -36,7 +36,7 @@ export const popupSections: PopupSectionDef[] = [
     render: (p, h) => {
       if (p.pupils === null || p.capacity === null) return null;
       const full = p.fullPct !== null ? ` (${p.fullPct}% full)` : '';
-      return h.html`${h.rows([['Pupils on roll', h.html`${p.pupils.toLocaleString('en-GB')} · capacity ${p.capacity.toLocaleString('en-GB')}${full}`]])}${h.note('Capacity figures can be old and include the sixth form. A full school is not always oversubscribed.')}`;
+      return h.html`${h.rows([['Pupils on roll', h.html`${p.pupils.toLocaleString('en-GB')} · capacity ${p.capacity.toLocaleString('en-GB')}${full}`]])}${h.note('Capacity figures can be old and include the sixth form where there is one. A full school is not always oversubscribed.')}`;
     },
   },
 ];

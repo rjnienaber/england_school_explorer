@@ -65,3 +65,10 @@ test('popup: school against the typical figure of its own kind, a finance tool l
   assert.match(academy, /leaves out the share of the trust/);
   assert.equal(s.render(school({}), h, () => [], meta), null);
 });
+
+test('spending: primary phase has its own rows and secondary schools are absent', async () => {
+  const { rows } = await buildFromFixtures('spending', 'primary');
+  const all = rows('spending');
+  assert.ok(all.has(900001));
+  assert.equal(all.has(100049), false);
+});

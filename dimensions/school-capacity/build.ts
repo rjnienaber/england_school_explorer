@@ -8,6 +8,7 @@ export const module = defineDimension({
   id: 'school-capacity',
   title: 'How full the school is (pupils ÷ capacity)',
   dependsOn: ['gias-core'],
+  phases: ['secondary', 'primary'],
   fields: {
     capacity: {
       type: 'number',

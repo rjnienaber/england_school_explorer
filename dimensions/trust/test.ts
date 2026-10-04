@@ -26,7 +26,7 @@ test('trust: id on every member, and the count of mapped schools', async () => {
   assert.equal(all.has(128340), false); // closed school: not on the map, so not counted
 });
 
-const school = (o: Partial<School>) => ({ trust: null, trustId: null, trustSchools: null, att8Pct: null, p8: null, ofstedSummary: null, ...o }) as School;
+const school = (o: Partial<School>) => ({ trust: null, trustId: null, trustSchools: null, att8Pct: null, p8: null, ks2RwmExpected: null, ofstedSummary: null, ...o }) as School;
 
 test('filter: keeps only the chosen trust', () => {
   const f = filters[0] as ChipFilter;
@@ -66,7 +66,16 @@ test('trust primary phase: counts the primaries in the trust, and the chip has n
   if (f.control.kind !== 'chip') throw new Error('expected a chip filter');
   const html = f.control.summary!([school({ trust: 'T', ofstedSummary: 'good' }), school({ trust: 'T' })], '1', h)!.value;
   assert.match(html, /Ofsted: Good<\/th><td>1</);
-  assert.doesNotMatch(html, /percentile|Progress 8/);
+  assert.doesNotMatch(html, /percentile|Progress 8|Median reaching/); // no KS2 result for either school: no row
+  // The note describes the primary figures (one median, and counts), not the secondary "medians of results and inspection"
+  assert.match(html, /KS2 figure is the median/);
+  assert.doesNotMatch(html, /medians of each school/);
+  const withResults = f.control.summary!(
+    [school({ trust: 'T', ks2RwmExpected: 60 }), school({ trust: 'T', ks2RwmExpected: 80 }), school({ trust: 'T', ks2RwmExpected: 72 }), school({ trust: 'T' })],
+    '1',
+    h,
+  )!.value;
+  assert.match(withResults, /Median reaching the expected standard in KS2<\/th><td>72% \(3 of 4 schools\)/);
 });
 
 test('popup button: only when the trust has other schools, and the id is escaped', () => {

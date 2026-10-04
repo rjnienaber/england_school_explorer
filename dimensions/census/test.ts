@@ -57,3 +57,10 @@ test('popup: shows school and typical figures, hides missing rows, and is hidden
   assert.doesNotMatch(partial, /<th>Free school meals/);
   assert.equal(s.render(school({}), h, () => [], meta), null);
 });
+
+test('census: primary phase has its own rows and secondary schools are absent', async () => {
+  const { rows } = await buildFromFixtures('census', 'primary');
+  const all = rows('census');
+  assert.ok(all.has(900001));
+  assert.equal(all.has(135315), false);
+});

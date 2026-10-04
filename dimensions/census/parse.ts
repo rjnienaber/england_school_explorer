@@ -12,8 +12,8 @@ export interface CensusRow {
   ealPct: number | null;
 }
 
-// Only these phases are kept: the file also holds primary, nursery, special and alternative provision schools
-const PHASES = new Set(['State-funded secondary', 'Independent school']);
+// Only these phases are kept: the file also holds nursery, special and alternative provision schools
+const PHASES = new Set(['State-funded secondary', 'State-funded primary', 'Independent school']);
 
 /**
  * Reads "Schools, pupils and their characteristics: School level". The full file is long format and huge (2.8 GB), so

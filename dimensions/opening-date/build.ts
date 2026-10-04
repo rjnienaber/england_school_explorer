@@ -8,6 +8,7 @@ export const module = defineDimension({
   id: 'opening-date',
   title: 'Opening date',
   dependsOn: ['gias-core'],
+  phases: ['secondary', 'primary'],
   fields: {
     openDate: {
       type: 'string',

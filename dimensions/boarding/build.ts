@@ -8,6 +8,7 @@ export const module = defineDimension({
   id: 'boarding',
   title: 'Boarding schools',
   dependsOn: ['gias-core'],
+  phases: ['secondary', 'primary'],
   fields: {
     boarding: {
       type: 'boolean',

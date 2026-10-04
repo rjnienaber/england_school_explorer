@@ -18,9 +18,12 @@ export interface ExclusionsRow {
   permanentExclusionRate: number | null;
 }
 
+// The phases kept: the file also holds special schools and alternative provision
+const PHASES = new Set(['State-funded secondary', 'State-funded primary']);
+
 /**
- * Reads the latest year's secondary rows of "Suspensions and permanent exclusions - school level". The file holds
- * every year since 2006/07 (and primary and special schools), so the latest year is whichever time_period is
+ * Reads the latest year's secondary and primary rows of "Suspensions and permanent exclusions - school level". The file holds
+ * every year since 2006/07 (and special schools), so the latest year is whichever time_period is
  * highest; only one small row per school is kept while streaming. Rates are per 100 pupils on roll (checked:
  * suspensions / headcount * 100). Schools with no pupils on roll have suppressed rates and are skipped.
  */
@@ -28,7 +31,7 @@ export async function loadExclusions(file: string): Promise<Map<number, Exclusio
   const bySchool = new Map<number, { period: string; row: ExclusionsRow }>();
   let latest = '';
   for await (const r of readCsv(file)) {
-    if (text(r.education_phase) !== 'State-funded secondary') continue;
+    if (!PHASES.has(text(r.education_phase) ?? '')) continue;
     const urn = num(r.school_urn);
     const period = r.time_period;
     const pupils = num(r.headcount);

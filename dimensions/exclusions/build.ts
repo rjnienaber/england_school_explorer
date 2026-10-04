@@ -9,6 +9,7 @@ export const module = defineDimension({
   id: 'exclusions',
   title: 'Suspensions and exclusions',
   dependsOn: ['gias-core'],
+  phases: ['secondary', 'primary'],
   fields: {
     exclusionsYear: {
       type: 'string',

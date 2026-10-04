@@ -13,6 +13,7 @@ export const module = defineDimension({
   id: 'workforce',
   title: 'Staff (school workforce)',
   dependsOn: ['gias-core', 'census'],
+  phases: ['secondary', 'primary'],
   fields: {
     workforceYear: {
       type: 'string',

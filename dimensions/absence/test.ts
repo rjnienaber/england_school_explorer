@@ -7,7 +7,7 @@ import { modes, popupSections } from './web.ts';
 
 const fixture = new URL('./fixtures/absence.csv', import.meta.url).pathname;
 
-test('absence parser: latest year only, secondary rows only, values as published', async () => {
+test('absence parser: latest year only, secondary and primary rows, values as published', async () => {
   const a = await loadAbsence(fixture);
   // 2024/25 row of Haverstock School
   assert.deepEqual(a.get(100049), { year: '2024/25', pupils: 678, overallPct: 13.253, unauthorisedPct: 8.38882, persistentPct: 42.62537, severePct: 7.22714 });
@@ -60,4 +60,13 @@ test('popup: shows the school and national figures, and is hidden without data',
   assert.equal(s.render(school({}), h, () => [], meta), null);
   // Without metadata (as when the build traces fields) it still renders, minus the national column
   assert.doesNotMatch(String(s.render(school({ absenceOverallPct: 13.3 }), h, () => [])), /24\.1/);
+});
+
+test('absence: primary phase has its own rows, medians and secondary schools are absent', async () => {
+  const { rows, metadata } = await buildFromFixtures('absence', 'primary');
+  const all = rows('absence');
+  assert.equal(all.get(900001)!.absencePupils, 212);
+  assert.equal(all.get(900001)!.absenceOverallPct, 5.1);
+  assert.equal(all.has(100049), false);
+  assert.equal(metadata.absenceYear, '2024/25');
 });

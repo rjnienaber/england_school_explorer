@@ -16,16 +16,19 @@ export interface AbsenceRow {
   severePct: number | null;
 }
 
+// The phases kept: the file also holds special schools and alternative provision
+const PHASES = new Set(['State-funded secondary', 'State-funded primary']);
+
 /**
- * Reads the latest year's secondary rows of "Absence rates by school level": one per school (all-through schools
- * have a single row, tagged State-funded secondary, covering the whole school). Primary and special rows are skipped.
+ * Reads the latest year's secondary and primary rows of "Absence rates by school level": one per school (all-through
+ * schools have a single row, tagged State-funded secondary, covering the whole school). Special rows are skipped.
  * The file holds every year since 2013/14, so the latest year is whichever time_period is highest.
  */
 export async function loadAbsence(file: string): Promise<Map<number, AbsenceRow>> {
   const bySchool = new Map<number, { period: string; row: AbsenceRow }>();
   let latest = '';
   for await (const r of readCsv(file)) {
-    if (text(r.education_phase) !== 'State-funded secondary') continue;
+    if (!PHASES.has(text(r.education_phase) ?? '')) continue;
     const urn = num(r.school_urn);
     const period = r.time_period;
     if (urn === null || !period) continue;

@@ -11,8 +11,8 @@ export const sources: SourceDef[] = [
     updated: 'annually (January census, published in June)',
     usedFor: 'Pupils on roll, free school meals eligibility and pupils with English as an additional language, whole school (the latter also feeds the expected score in Results vs intake)',
     notes:
-      'The full file is 2.8 GB (every school of every phase, with ethnicity, age and year-group breakdowns), so only the rows used are fetched through the DfE statistics API (about 1 MB): ' +
-      'state-funded secondary and independent schools, whole-school totals. The latest census only. Percentages are suppressed (`x`) where numbers are very small. ' +
+      'The full file is 2.8 GB (every school of every phase, with ethnicity, age and year-group breakdowns), so only the rows used are fetched through the DfE statistics API (about 6 MB, three-quarters of it primary schools): ' +
+      'state-funded primary and secondary and independent schools, whole-school totals. The latest census only. Percentages are suppressed (`x`) where numbers are very small. ' +
       'There is no school-level SEN data in the open DfE statistics (the Special educational needs in England data sets stop at local authority level), so SEN is not shown.',
     // "School level" in Schools, pupils and their characteristics. The API data-set id stays the same from census to census
     // (the query uses the latest version), unlike the catalogue file id, which changes with each release. If it ever
@@ -23,7 +23,7 @@ export const sources: SourceDef[] = [
         {
           dataSetId: '019e7403-4523-7749-b530-159f451dd83c',
           filters: {
-            phase_type_grouping: ['State-funded secondary', 'Independent school'],
+            phase_type_grouping: ['State-funded secondary', 'State-funded primary', 'Independent school'],
             sex: ['Total'],
             attendance_pattern: ['Total'],
             breakdown: ['Total', 'FSM eligible', 'First language other than English'],

@@ -8,6 +8,7 @@ export const module = defineDimension({
   id: 'urban-rural',
   title: 'Urban or rural area',
   dependsOn: ['gias-core'],
+  phases: ['secondary', 'primary'],
   fields: {
     urbanRural: {
       type: 'enum',

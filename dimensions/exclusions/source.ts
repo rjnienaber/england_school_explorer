@@ -24,7 +24,7 @@ export const sources: SourceDef[] = [
       const url = await eesCsvUrl('a4b5a46f-5bed-42b5-91b8-93620a04001e');
       await downloadFilteredCsv(url, file, {
         columns: ['time_period', 'school_urn', 'education_phase', 'headcount', 'susp_rate', 'suspension', 'one_plus_susp_rate', 'perm_excl', 'perm_excl_rate'],
-        keep: (r) => text(r.education_phase) === 'State-funded secondary' && !!num(r.headcount),
+        keep: (r) => ['State-funded secondary', 'State-funded primary'].includes(text(r.education_phase) ?? '') && !!num(r.headcount),
         latestPeriod: 'newest-first',
       });
       return url;

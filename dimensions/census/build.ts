@@ -18,6 +18,7 @@ export const module = defineDimension({
   id: 'census',
   title: 'Pupil mix (school census)',
   dependsOn: ['gias-core'],
+  phases: ['secondary', 'primary'],
   fields: {
     censusYear: {
       type: 'string',

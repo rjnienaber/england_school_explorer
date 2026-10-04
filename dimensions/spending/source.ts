@@ -49,8 +49,8 @@ const pick = (r: Record<string, string>, start: string) => {
   const key = Object.keys(r).find((k) => k.startsWith(start));
   return key ? r[key] : '';
 };
-// Primary and nursery schools are never on the map, and are most of both files, so they are not kept
-const inScope = (r: Record<string, string>) => !['Primary', 'Nursery'].includes(r['Overall Phase'] ?? '');
+// Nursery schools are never on the map, so they are not kept (primary schools are most of both files, and are on the primary map)
+const inScope = (r: Record<string, string>) => r['Overall Phase'] !== 'Nursery';
 const numeric = (v: string) => (v !== '' && Number.isFinite(Number(v)) ? v : ''); // `n/s` (not supplied) and the like become empty
 
 /** CFR: one sheet, one row per maintained school. Money is in whole pounds. */

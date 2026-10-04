@@ -8,6 +8,7 @@ export const module = defineDimension({
   id: 'sen-provision',
   title: 'SEN units and resourced provision',
   dependsOn: ['gias-core'],
+  phases: ['secondary', 'primary'],
   fields: {
     senProvision: {
       type: 'enum',

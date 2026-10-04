@@ -121,7 +121,7 @@ secondary output is unchanged by phases, so existing paths and caches keep worki
   `trust` filter for different phases.
 - Tests: `buildFromFixtures(id, 'primary')` builds the fixtures for a phase (default: the module's first
   phase). Primary fixtures are the 9000xx rows in `dimensions/gias-core/fixtures/gias.csv`.
-- Primary sizes: the primary core is about 350 KB gzipped (16,700 schools), so it has its own budget under
+- Primary sizes: the primary core is about 365 KB gzipped (16,700 schools), so it has its own budget under
   `phases.primary` in `budgets.json`. Keep new primary fields out of core all the same.
 - `scripts/build-data.ts` builds both phases and `verify-data` checks both. `export-release` and the GeoJSON
   diff only cover secondary.

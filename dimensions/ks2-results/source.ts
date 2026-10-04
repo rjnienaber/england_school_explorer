@@ -14,7 +14,8 @@ const PROGRESS = ['progress_measure_score', 'progress_measure_lower_conf_interva
  * Add a column here when the parser starts reading one.
  */
 export const KS2_COLUMNS = ['time_period', 'school_urn', 'breakdown', 'subject', ...MEASURES, 'average_scaled_score', ...PROGRESS];
-export const KS2_INFO_COLUMNS = ['time_period', 'school_urn', 'telig', 'telig_23', 'telig_3yr'];
+/** The cohort sizes ks2-results reads, and the Year 6 pupil shares ks2-pupils reads (both modules share this file). */
+export const KS2_INFO_COLUMNS = ['time_period', 'school_urn', 'telig', 'telig_23', 'telig_3yr', 'ptfsm6cla1a', 'psenelk', 'psenele', 'ptealgrp2'];
 
 export const sources: SourceDef[] = [
   {
@@ -60,13 +61,13 @@ export const sources: SourceDef[] = [
     publisher: 'Department for Education',
     licence: 'OGL v3',
     updated: 'annually (with the KS2 results)',
-    usedFor: 'Number of pupils who took the tests (the cohort), for this and the two years before',
+    usedFor: 'Number of pupils who took the tests (the cohort), for this and the two years before, and the share of those pupils who are disadvantaged, have special educational needs or speak English as an additional language',
     notes:
       'One row per school for the latest year, with the cohort for that year (`telig`), the year before (`telig_23`) and the total for three years (`telig_3yr`), ' +
-      'so the earliest year is the total less the other two. Fetched through the DfE statistics API (0.4 MB). `z` marks a missing value.',
+      'so the earliest year is the total less the other two, and the share of the Year 6 pupils who are disadvantaged (`ptfsm6cla1a`), have SEN support (`psenelk`) or an EHC plan (`psenele`) or have English as an additional language (`ptealgrp2`). Fetched through the DfE statistics API (about 1 MB). `z` marks a missing value.',
     // "Key stage 2 institution level - Schools (School information)" (catalogue file 3166c43a-c37e-4087-a0ec-4ed703f7a0b2), found the same way as the ks2 source above.
     fetchTo: async (file) => {
-      await downloadEesQuery({ dataSetId: '019afee4-ba17-73cb-85e0-f88c101bb734', filters: {}, indicators: ['telig', 'telig_23', 'telig_3yr'] }, file);
+      await downloadEesQuery({ dataSetId: '019afee4-ba17-73cb-85e0-f88c101bb734', filters: {}, indicators: KS2_INFO_COLUMNS.slice(2) }, file);
       return `${CATALOGUE}/3166c43a-c37e-4087-a0ec-4ed703f7a0b2`;
     },
   },
