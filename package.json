@@ -21,14 +21,16 @@
     "serve": "node --disable-warning=ExperimentalWarning scripts/serve.ts",
     "start": "npm run fetch && npm run build && npm run serve",
     "generate": "node --disable-warning=ExperimentalWarning scripts/generate.ts",
-    "typecheck": "npm run generate && tsc --noEmit && tsc --noEmit -p web",
-    "test": "node --disable-warning=ExperimentalWarning --test 'dimensions/*/test.ts' 'lib/*.test.ts' 'web/*.test.ts' 'scripts/*.test.ts'"
+    "typecheck": "npm run generate && tsc --noEmit && tsc --noEmit -p web && tsc --noEmit -p e2e",
+    "test": "node --disable-warning=ExperimentalWarning --test 'dimensions/*/test.ts' 'lib/*.test.ts' 'web/*.test.ts' 'scripts/*.test.ts'",
+    "test:e2e": "playwright test"
   },
   "dependencies": {
     "csv-parse": "^7.0.3",
     "proj4": "^2.22.0"
   },
   "devDependencies": {
+    "@playwright/test": "^1.63.0",
     "@types/node": "^24.19.1",
     "esbuild": "^0.28.2",
     "maplibre-gl": "^6.12.0",

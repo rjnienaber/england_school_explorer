@@ -664,6 +664,7 @@ report rather than hiding it.)
       screenshots in light, dark and 390 px wide.
 - [ ] Data size reported before and after from `dist/data/manifest.json` (core, largest mode column, largest shard, total; gzipped).
 - [ ] Fields have honest placements, labels and descriptions; derived measures say they are derived.
+- [ ] If you added UI (a mode, filter, popup section or panel), add or extend a browser check in `e2e/` (see README "Testing"); `npm run test:e2e` passes.
 - [ ] `test.ts` and `fixtures/` cover parsing, known schools and suppressed values, without needing `data/`.
 - [ ] No files outside `dimensions/<id>/` changed, except deliberate framework growth (explain it) and rows appended to a shared source's fixture.
       The README sources table is regenerated, not hand-edited: commit the result of `npm run generate`.

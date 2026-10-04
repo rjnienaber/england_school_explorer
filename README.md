@@ -39,13 +39,33 @@ Or run the steps separately:
 | `npm run build:release` | Both build steps without sourcemaps, as used by the deploy. |
 | `npm run watch` | Rebuilds the web bundle on change. |
 | `npm run serve` | Serves `dist/` locally (`PORT` to override 8080). |
-| `npm run typecheck` | Generates, then `tsc` over the Node code and the browser code. |
+| `npm run typecheck` | Generates, then `tsc` over the Node code, the browser code and the browser tests. |
 | `npm test` | Runs every `test.ts` with `node --test`. Module tests build from small committed fixtures (`dimensions/<id>/fixtures/`), so they need no `data/`. |
+| `npm run test:e2e` | Browser tests (Playwright, Chromium) against the built `dist/`. See "Testing". |
 | `npm run export-release` | After `build:data`, writes the downloadable dataset (with its `.gz` copies and the all-in-one zip) to `release/` (see "Download the data"). `-- --month 2026-10` names the month; `-- --previous-fields <fields.csv>` lists fields added or removed since an earlier release. |
 | `npm run check-budgets` | After a build, checks `dist/` against the size budgets in `budgets.json` and prints a table. Fails when one is exceeded. |
 
 To publish, upload `dist/` to any static host (for example GitHub Pages, Cloudflare Pages
 or DreamHost). Source maps (`*.map`) are optional.
+
+## Testing
+
+There are two kinds of test.
+
+- **Unit tests** (`npm test`): each dimension's `test.ts`, run with `node --test` from small committed fixtures. They need no `data/` and no build.
+- **Browser tests** (`npm run test:e2e`): Playwright drives a real Chromium against the built site in `dist/`, for both secondary and primary schools. They cover page load, colour modes and filters, popups (including the lazily loaded details), deep links (`?trust=`, `?urn=`, `?similar=`, `?about`, `?phase=`), the shortlist comparison, dark mode, the 390 px phone layout and keyboard focus. Any page error or `console.error` fails the test.
+
+The browser tests need a build and a browser, once:
+
+```bash
+npm run build                     # the tests read dist/, and pick real schools from it
+npx playwright install chromium   # add --with-deps on a fresh Linux machine
+npm run test:e2e                  # about a minute; add -- --headed to watch, or -- e2e/compare.spec.ts for one file
+```
+
+The tests start `scripts/serve.ts` on a free port themselves. Map tiles and the postcode lookup are stubbed, so they need no network and are repeatable. Schools used in the tests are chosen from the built data (for example the three isolated state schools at the 10th, 50th and 90th percentile of Progress 8), so they keep working after a data refresh. The page objects are in `e2e/support/`: reuse them for new journeys. After a failure, `npx playwright show-report` shows the trace and screenshot. CI runs them after `build:release`, in both `ci.yml` and `deploy.yml` (a deploy does not publish if they fail).
+
+The one hook the page offers the tests is `window.__explorer` (the map and the number of dots shown), and it exists only when `window.__E2E__` is set before the page loads.
 
 ## Deployment
 

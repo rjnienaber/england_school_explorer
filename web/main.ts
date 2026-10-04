@@ -954,19 +954,20 @@ async function main(): Promise<void> {
 
   const urn = Number(params.get('urn'));
   // A link to a school from the other phase (made before the phase was in the address) opens in that phase
-  if (urn && !data.byUrn.has(urn) && !hasPhaseInUrl && (await inOtherPhase(urn))) return;
+  if (urn && !data.byUrn.has(urn) && !hasPhaseInUrl && (await inOtherPhase(urn, params))) return;
   const focused = CHIPS.filter((c) => activeFilters[c.id]);
   if (urn && data.byUrn.has(urn)) openSchool(urn, true);
   else if (focused.length) fitToSchools(shown.filter((f) => focused.some((c) => c.test(f.properties, activeFilters[c.id] as string))));
 }
 
 /** If this school is in the other phase's data, goes there (keeping the link's own parameters) and returns true. */
-async function inOtherPhase(urn: number): Promise<boolean> {
+async function inOtherPhase(urn: number, linkParams: URLSearchParams): Promise<boolean> {
   const other = PHASES.find((p) => p !== PHASE)!;
   try {
     const { byUrn } = await loadCore(other);
     if (!byUrn.has(urn)) return false;
-    const params = new URLSearchParams(location.search);
+    // The link's own parameters, as it came: syncUrl() has already taken ?urn= out of the address bar
+    const params = new URLSearchParams(linkParams);
     params.set('phase', other);
     location.replace(`${location.pathname}?${params.toString().replaceAll('%2C', ',')}${location.hash}`);
     return true;
@@ -974,6 +975,10 @@ async function inOtherPhase(urn: number): Promise<boolean> {
     return false;
   }
 }
+
+// End-to-end tests (e2e/) set `__E2E__` before the page loads and then read the map and the drawn count through this.
+// Nothing in the page uses it, and without the flag it is never created.
+if ((window as { __E2E__?: boolean }).__E2E__) Object.assign(window, { __explorer: { map, shownCount: () => shown.length } });
 
 main().catch((err: unknown) => {
   console.error(err);

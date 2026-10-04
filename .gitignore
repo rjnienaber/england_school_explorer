@@ -6,3 +6,5 @@ tmp
 build
 release
 web/generated
+test-results
+playwright-report
