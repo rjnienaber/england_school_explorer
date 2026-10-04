@@ -1,21 +1,43 @@
 // Turns the build store into the files published as GitHub Release assets (see scripts/export-release.ts):
-// schools.csv, england_schools.sqlite, fields.csv, sources.csv and NOTES.md.
+// schools.csv, england_schools.sqlite, fields.csv, sources.csv and NOTES.md, plus compressed copies:
+// schools.csv.gz, england_schools.sqlite.gz and england_school_explorer-data.zip (all of the above in one download).
 //
 // Everything is generic over the dimension modules: the CSV columns, the `wide` view and the data
 // dictionary come from each module's `fields` and `extraTables`, so a new module needs no change here.
 
-import { mkdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
+import { mkdirSync, readFileSync, rmSync, statSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { DatabaseSync } from 'node:sqlite';
+import { gunzipSync, gzipSync } from 'node:zlib';
 import { parse } from 'csv-parse/sync';
 import type { FieldDef } from './dimension.ts';
 import type { LoadedDimension } from './registry.ts';
 import { extraTableName, getMeta, tableName } from './store.ts';
+import { createZip, readZip } from './zip.ts';
 
 export const LICENCE_STATEMENT = 'Contains public sector information licensed under the Open Government Licence v3.0.';
 export const LICENCE_URL = 'https://www.nationalarchives.gov.uk/doc/open-government-licence/version/3/';
 
-export const FILES = { csv: 'schools.csv', sqlite: 'england_schools.sqlite', fields: 'fields.csv', sources: 'sources.csv', notes: 'NOTES.md' } as const;
+export const FILES = {
+  csv: 'schools.csv',
+  sqlite: 'england_schools.sqlite',
+  fields: 'fields.csv',
+  sources: 'sources.csv',
+  notes: 'NOTES.md',
+  csvGz: 'schools.csv.gz',
+  sqliteGz: 'england_schools.sqlite.gz',
+  zip: 'england_school_explorer-data.zip',
+} as const;
+
+/** What the zip holds: every plain file, so one download is the whole release. */
+export const ZIP_CONTENTS = [FILES.csv, FILES.sqlite, FILES.fields, FILES.sources, FILES.notes] as const;
+
+/** "5.2 MB", "79 KB": sizes for the notes, in the decimal units GitHub shows. */
+export function formatBytes(n: number): string {
+  if (n >= 1e6) return `${(n / 1e6).toFixed(1)} MB`;
+  if (n >= 1e3) return `${Math.round(n / 1e3)} KB`;
+  return `${n} bytes`;
+}
 
 // ---------- Personal data ----------
 
@@ -210,12 +232,15 @@ export interface NotesInput {
   /** false when there was no earlier release to compare with */
   hadPrevious: boolean;
   sources: SourceRow[];
+  /** Sizes in bytes of the files written before the notes (the notes and the zip, which holds them, are not listed). */
+  sizes?: Partial<Record<keyof typeof FILES, number>>;
 }
 
 export function releaseNotes(n: NotesInput): string {
   const sectors = Object.entries(n.counts.bySector).map(([s, c]) => `${c.toLocaleString('en-GB')} ${s}`).join(', ');
   const dates = Object.entries(n.metadata).map(([k, v]) => `- ${DATE_LABELS[k] ?? k}: ${Array.isArray(v) ? v.join(', ') : String(v)}`);
   const list = (items: string[]) => (items.length ? items.map((i) => `\`${i}\``).join(', ') : 'none');
+  const size = (f: keyof typeof FILES) => (n.sizes?.[f] === undefined ? '' : ` (${formatBytes(n.sizes[f])})`);
   const lines = [
     `# Data ${n.month}`,
     '',
@@ -223,10 +248,15 @@ export function releaseNotes(n: NotesInput): string {
     '',
     '## Files',
     '',
-    `- \`${FILES.csv}\`: one row per school, the latest value of every field (UTF-8 with a BOM, so Excel shows accents correctly).`,
-    `- \`${FILES.sqlite}\`: SQLite. \`schools\`, one \`dim_<module>\` table per dimension, long-format tables (\`dim_<module>__<name>\`), a \`wide\` view joining all of them (the same as the CSV), and the \`fields\` and \`sources\` tables.`,
-    `- \`${FILES.fields}\`: the data dictionary: every column with its label, description, type, unit, source and how many schools have a value.`,
-    `- \`${FILES.sources}\`: where each source was downloaded from, and when.`,
+    `- \`${FILES.csv}\`${size('csv')}: one row per school, the latest value of every field (UTF-8 with a BOM, so Excel shows accents correctly).`,
+    `- \`${FILES.sqlite}\`${size('sqlite')}: SQLite. \`schools\`, one \`dim_<module>\` table per dimension, long-format tables (\`dim_<module>__<name>\`), a \`wide\` view joining all of them (the same as the CSV), and the \`fields\` and \`sources\` tables.`,
+    `- \`${FILES.fields}\`${size('fields')}: the data dictionary: every column with its label, description, type, unit, source and how many schools have a value.`,
+    `- \`${FILES.sources}\`${size('sources')}: where each source was downloaded from, and when.`,
+    `- \`${FILES.csvGz}\`${size('csvGz')}: \`${FILES.csv}\`, gzip-compressed. pandas, DuckDB, R and Polars read it directly.`,
+    `- \`${FILES.sqliteGz}\`${size('sqliteGz')}: \`${FILES.sqlite}\`, gzip-compressed. Unzip it with \`gunzip\` before querying.`,
+    `- \`${FILES.zip}\`: the four plain files above and this \`NOTES.md\`, in one download (without the two \`.gz\` copies).`,
+    '',
+    '**Which file should I download?** Excel or Google Sheets: \`schools.csv\`. SQL, Datasette or DuckDB: \`england_schools.sqlite\`. Slow connection, or reading the data from code: the \`.gz\` copies. Everything at once: the zip.',
     '',
     'Empty (CSV) or NULL (SQLite) means no value: the school has no data, or DfE suppressed it. The original suppression codes (`c`, `z`, `x`, `low`) are not kept.',
     '',
@@ -325,12 +355,19 @@ export function exportRelease(opts: {
     );
     if (personalValues.length) throw new Error(`Refusing to export personal data: ${personalValues.slice(0, 5).join(', ')} looks like an email address or telephone number`);
     writeFileSync(join(outDir, FILES.csv), toCsv(columns, csvRows));
+    db.exec('VACUUM'); // the SQLite file is final from here, so its size and compressed copy are too
 
     // 3. Dictionary and sources as CSV
     writeFileSync(join(outDir, FILES.fields), toCsv(FIELD_COLUMNS, dictionary.map((r) => FIELD_COLUMNS.map((c) => r[c]))));
     writeFileSync(join(outDir, FILES.sources), toCsv(SOURCE_COLUMNS, sources.map((r) => SOURCE_COLUMNS.map((c) => r[c]))));
 
-    // 4. Notes
+    // 4. Compressed copies (gzip is deterministic: Node writes no timestamp), then the notes with their sizes
+    writeFileSync(join(outDir, FILES.csvGz), gzipSync(readFileSync(join(outDir, FILES.csv)), { level: 9 }));
+    writeFileSync(join(outDir, FILES.sqliteGz), gzipSync(readFileSync(sqliteFile), { level: 9 }));
+    const sizeOf = (file: string) => statSync(join(outDir, file)).size;
+    const sizes = { csv: sizeOf(FILES.csv), sqlite: sizeOf(FILES.sqlite), fields: sizeOf(FILES.fields), sources: sizeOf(FILES.sources), csvGz: sizeOf(FILES.csvGz), sqliteGz: sizeOf(FILES.sqliteGz) };
+
+    // 5. Notes
     const bySector: Record<string, number> = {};
     for (const r of db.prepare('SELECT sector, COUNT(*) AS n FROM schools GROUP BY sector ORDER BY n DESC').all() as { sector: string; n: number }[]) bySector[r.sector] = r.n;
     const metadata: Record<string, unknown> = {};
@@ -346,9 +383,11 @@ export function exportRelease(opts: {
       added = [...now].filter((k) => !before.has(k));
       removed = [...before].filter((k) => !now.has(k));
     }
-    writeFileSync(join(outDir, FILES.notes), releaseNotes({ month, counts: { total: wide.length, bySector }, metadata, added, removed, hadPrevious, sources }));
+    writeFileSync(join(outDir, FILES.notes), releaseNotes({ month, counts: { total: wide.length, bySector }, metadata, added, removed, hadPrevious, sources, sizes }));
 
-    db.exec('VACUUM');
+    // 6. The zip of every plain file, last because it holds the notes
+    writeFileSync(join(outDir, FILES.zip), createZip(ZIP_CONTENTS.map((name) => ({ name, data: readFileSync(join(outDir, name)) }))));
+
     const problems = verifyRelease(db, order, outDir);
     if (problems.length) throw new Error(`The release files are inconsistent:\n  ${problems.join('\n  ')}`);
     return { files: Object.values(FILES), schools: wide.length, fields: dictionary.length, added, removed };
@@ -369,6 +408,14 @@ export function verifyRelease(db: DatabaseSync, order: LoadedDimension[], outDir
   if (csv.length !== schools) problems.push(`schools.csv has ${csv.length} rows but schools has ${schools}`);
   const header = Object.keys(csv[0] ?? {});
   if (header.join() !== wideColumns(order).join()) problems.push('schools.csv header differs from the wide view columns');
+
+  // the compressed copies hold exactly the plain files
+  const same = (a: Buffer, file: string) => a.equals(readFileSync(join(outDir, file)));
+  if (!same(gunzipSync(readFileSync(join(outDir, FILES.csvGz))), FILES.csv)) problems.push(`${FILES.csvGz} does not decompress to ${FILES.csv}`);
+  if (!same(gunzipSync(readFileSync(join(outDir, FILES.sqliteGz))), FILES.sqlite)) problems.push(`${FILES.sqliteGz} does not decompress to ${FILES.sqlite}`);
+  const zipped = readZip(readFileSync(join(outDir, FILES.zip)));
+  if (zipped.map((e) => e.name).join() !== ZIP_CONTENTS.join()) problems.push(`${FILES.zip} holds ${zipped.map((e) => e.name).join(', ')}, expected ${ZIP_CONTENTS.join(', ')}`);
+  for (const e of zipped) if (!same(e.data, e.name)) problems.push(`${e.name} in ${FILES.zip} differs from the file`);
 
   // every fields row is a real column of its table, and every wide column is described
   const wideCols = new Set((db.prepare('PRAGMA table_info(wide)').all() as { name: string }[]).map((c) => c.name));

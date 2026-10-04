@@ -1,12 +1,15 @@
 import assert from 'node:assert/strict';
-import { mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
+import { randomBytes } from 'node:crypto';
+import { mkdtempSync, readdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { DatabaseSync } from 'node:sqlite';
 import { test } from 'node:test';
+import { gunzipSync } from 'node:zlib';
 import { buildFixtureStore } from './test-fixtures.ts';
-import { csvCell, exportRelease, FILES, looksPersonalValue, parseCsv, personalDataProblems, toCsv } from './release.ts';
+import { csvCell, exportRelease, FILES, formatBytes, looksPersonalValue, parseCsv, personalDataProblems, toCsv, ZIP_CONTENTS } from './release.ts';
 import { loadBuildOrder } from './registry.ts';
+import { createZip, readZip } from './zip.ts';
 
 test('csv: quoting, empty values and the BOM', () => {
   assert.equal(csvCell('plain'), 'plain');
@@ -118,6 +121,16 @@ test('release export: files agree with each other and with the module declaratio
     assert.match(notes, /Removed: `dim_gias-core\.oldField`/);
     assert.ok(result.added.includes('dim_ks4-headline.p8'));
 
+    // compressed copies: the .gz files decompress to exactly the plain files, the zip lists the expected entries
+    assert.ok(gunzipSync(readFileSync(join(outDir, FILES.csvGz))).equals(readFileSync(join(outDir, FILES.csv))));
+    assert.ok(gunzipSync(readFileSync(join(outDir, FILES.sqliteGz))).equals(readFileSync(join(outDir, FILES.sqlite))));
+    const zipped = readZip(readFileSync(join(outDir, FILES.zip)));
+    assert.deepEqual(zipped.map((e) => e.name), [...ZIP_CONTENTS]);
+    for (const e of zipped) assert.ok(e.data.equals(readFileSync(join(outDir, e.name))), e.name);
+    assert.deepEqual(readdirSync(outDir).sort(), Object.values(FILES).sort());
+    assert.match(notes, /`schools\.csv\.gz` \(\d/);
+    assert.match(notes, /Which file should I download\?/);
+
     // no personal-data column anywhere in the SQLite file
     const columns = db.prepare("SELECT p.name AS c FROM sqlite_master m, pragma_table_info(m.name) p WHERE m.type IN ('table', 'view')").all() as { c: string }[];
     assert.deepEqual(personalDataProblems(columns.map((c) => c.c)), []);
@@ -126,4 +139,21 @@ test('release export: files agree with each other and with the module declaratio
     rmSync(out, { recursive: true, force: true });
     dispose();
   }
+});
+
+test('zip: round trip, stored and deflated entries, UTF-8 names, empty file', () => {
+  const noise = randomBytes(2000); // does not compress, so it is stored
+  const entries = [
+    { name: 'a.txt', data: Buffer.from('hello hello hello hello '.repeat(100)) },
+    { name: 'é/ü.bin', data: noise },
+    { name: 'empty', data: Buffer.alloc(0) },
+  ];
+  const back = readZip(createZip(entries, new Date(2026, 9, 3, 12, 30, 10)));
+  assert.deepEqual(back.map((e) => e.name), entries.map((e) => e.name));
+  for (let i = 0; i < entries.length; i++) assert.ok(back[i].data.equals(entries[i].data), entries[i].name);
+  const damaged = createZip([entries[1]]);
+  damaged[damaged.indexOf(entries[1].data)] ^= 1; // a flipped byte in the stored body fails the CRC
+  assert.throws(() => readZip(damaged), /CRC/);
+  assert.equal(formatBytes(5_235_854), '5.2 MB');
+  assert.equal(formatBytes(79_734), '80 KB');
 });

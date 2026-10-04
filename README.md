@@ -40,7 +40,7 @@ Or run the steps separately:
 | `npm run serve` | Serves `dist/` locally (`PORT` to override 8080). |
 | `npm run typecheck` | Generates, then `tsc` over the Node code and the browser code. |
 | `npm test` | Runs every `test.ts` with `node --test`. Module tests build from small committed fixtures (`dimensions/<id>/fixtures/`), so they need no `data/`. |
-| `npm run export-release` | After `build:data`, writes the downloadable dataset to `release/` (see "Download the data"). `-- --month 2026-10` names the month; `-- --previous-fields <fields.csv>` lists fields added or removed since an earlier release. |
+| `npm run export-release` | After `build:data`, writes the downloadable dataset (with its `.gz` copies and the all-in-one zip) to `release/` (see "Download the data"). `-- --month 2026-10` names the month; `-- --previous-fields <fields.csv>` lists fields added or removed since an earlier release. |
 | `npm run check-budgets` | After a build, checks `dist/` against the size budgets in `budgets.json` and prints a table. Fails when one is exceeded. |
 
 To publish, upload `dist/` to any static host (for example GitHub Pages, Cloudflare Pages
@@ -154,6 +154,9 @@ Release each month, tagged `data-YYYY-MM`. These links always give the newest:
 | --- | --- |
 | [`schools.csv`](https://github.com/rjnienaber/england_school_explorer/releases/latest/download/schools.csv) | Spreadsheets. One row per school, the latest value of every field. UTF-8 with a BOM, so Excel shows accents correctly. |
 | [`england_schools.sqlite`](https://github.com/rjnienaber/england_school_explorer/releases/latest/download/england_schools.sqlite) | SQL, Datasette, DuckDB, pandas. Same data, plus the long-format tables. |
+| [`schools.csv.gz`](https://github.com/rjnienaber/england_school_explorer/releases/latest/download/schools.csv.gz) | The same CSV, gzip-compressed (about 30% of the size). pandas, DuckDB, R and Polars read it directly. |
+| [`england_schools.sqlite.gz`](https://github.com/rjnienaber/england_school_explorer/releases/latest/download/england_schools.sqlite.gz) | The same SQLite file, gzip-compressed (about 30% of the size). Run `gunzip` before querying. |
+| [`england_school_explorer-data.zip`](https://github.com/rjnienaber/england_school_explorer/releases/latest/download/england_school_explorer-data.zip) | Everything in one download: `schools.csv`, `england_schools.sqlite`, `fields.csv`, `sources.csv` and `NOTES.md`. |
 | [`fields.csv`](https://github.com/rjnienaber/england_school_explorer/releases/latest/download/fields.csv) | The data dictionary: every column with its label, description, type, unit, year field, source, and the number of schools that have a value. |
 | [`sources.csv`](https://github.com/rjnienaber/england_school_explorer/releases/latest/download/sources.csv) | Each source: publisher, download URL, when it was fetched, licence. |
 

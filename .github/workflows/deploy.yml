@@ -117,7 +117,7 @@ jobs:
           path: release
       - name: Create or update the release
         run: |
-          assets=(release/schools.csv release/england_schools.sqlite release/fields.csv release/sources.csv)
+          assets=(release/schools.csv release/schools.csv.gz release/england_schools.sqlite release/england_schools.sqlite.gz release/fields.csv release/sources.csv release/england_school_explorer-data.zip)
           if gh release view "$TAG" > /dev/null 2>&1; then
             gh release upload "$TAG" "${assets[@]}" --clobber
             gh release edit "$TAG" --title "Data $MONTH" --notes-file release/NOTES.md --latest
