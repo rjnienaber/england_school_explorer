@@ -16,7 +16,9 @@ const section = (phase: Phase): PopupSectionDef => ({
     if (p.censusPupils === null && p.fsmPct === null && p.ealPctAll === null) return null;
     const typical = (key: string) => {
       const m = (meta?.[key] as number | null | undefined) ?? null;
-      return m === null ? null : fmt(m, key === 'censusMedianPupils' ? 0 : 1, key === 'censusMedianPupils' ? '' : '%');
+      if (m === null) return null;
+      // Same thousands separator as the school's own count
+      return key === 'censusMedianPupils' ? Math.round(m).toLocaleString('en-GB') : fmt(m, 1, '%');
     };
     const shares: [string, number | null, string][] = [
       ['Free school meals', p.fsmPct, 'censusMedianFsmPct'],
