@@ -16,8 +16,8 @@ import type { LoadedDimension } from './registry.ts';
 import { getMeta, readModuleRows } from './store.ts';
 import { traceNeeds } from './trace-needs.ts';
 
-/** Secondary schools spread over this many popup shards (about 65 schools, 10-20 KB gzipped, each). */
-export const SHARDS = 64;
+/** Secondary schools spread over this many popup shards (about 32 schools, 5-20 KB gzipped, each; raised from 64 to 128 when the staff fields took the largest to 35 KB of the 40 KB budget). */
+export const SHARDS = 128;
 /** What search, the list and hover tips read directly, so they must always be loaded. */
 export const CLIENT_CORE = ['name', 'la', 'town'];
 

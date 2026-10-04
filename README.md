@@ -79,6 +79,8 @@ All are published under the [Open Government Licence v3.0](https://www.nationala
 | [DfE key stage 4 performance, institution-level data set](https://explore-education-statistics.service.gov.uk/find-statistics/key-stage-4-performance), Department for Education (OGL v3) | Attainment 8, Progress 8 with confidence intervals, English and maths grade 5+ and 4+, average English and maths grades, Progress 8 by subject area, value added in science, humanities and languages, EBacc entry, cohort size, % disadvantaged | Updated annually (provisional in autumn, revised in spring). Three years per file (currently 2022/23 to 2024/25). `z` and `c` mark missing or suppressed values. The older compare-school-performance download blocks scripted access. |
 | [Ofsted monthly management information: state-funded schools, latest inspections](https://www.gov.uk/government/statistical-data-sets/monthly-management-information-ofsteds-school-inspections-outcomes), Ofsted (OGL v3) | Inspection outcomes | Updated monthly. Windows-1252. The latest file is found through the GOV.UK content API. Doesn't cover independent schools (most are inspected by the ISI). |
 | [DfE A level and other 16 to 18 results, schools and colleges](https://explore-education-statistics.service.gov.uk/find-statistics/a-level-and-other-16-to-18-results), Department for Education (OGL v3) | Sixth form results: average A level grade, best three A levels, AAB share, value added and retention | Updated annually (final results are published each January or February; a revised-results release follows in the autumn). Four years in one file (about 59 MB), and every exam cohort and disadvantage group; only the latest year and the all-students A level rows are used. Suppressed values are `c`, not applicable `z`. |
+| [DfE School workforce in England: size of the school workforce, school level (November census)](https://explore-education-statistics.service.gov.uk/find-statistics/school-workforce-in-england), Department for Education (OGL v3) | Teachers (full-time equivalent) and teachers without qualified teacher status, for pupil-teacher ratios | Updated annually (November census, published in June). The full file (143 MB) holds every year since 2010/11; the newest year is first, so only that part is downloaded. Numbers are rounded by the DfE and `x` means suppressed. The publication has no school-level pupil-teacher ratio, so the ratio is our own calculation. |
+| [DfE School workforce in England: teacher sickness absence, school level](https://explore-education-statistics.service.gov.uk/find-statistics/school-workforce-in-england), Department for Education (OGL v3) | Days of sickness absence per teacher, and the share of teachers with any absence | Updated annually (a year behind the workforce size figures). Full file is 60 MB with every year since 2009/10; only the newest year (currently one year older than the workforce size file) is downloaded. |
 <!-- sources:end -->
 
 Basemap: [OpenFreeMap](https://openfreemap.org/) vector tiles (OpenStreetMap data), with Positron for light mode and Dark for dark mode.
@@ -118,7 +120,7 @@ The data is split so a visit downloads only what it uses (`lib/columnar.ts` desc
 | --- | --- | --- |
 | `dist/data/core.json` | every school's id, position and `core` fields as columns (about 110 KB gzipped) | at start |
 | `dist/data/modes/<field>.json` | one `mode` field for every school | first time a mode or filter reads it |
-| `dist/data/details/<n>.json` | every non-core field for ~65 schools (`urn % 64 == n`) | when a popup in that shard opens |
+| `dist/data/details/<n>.json` | every non-core field for ~32 schools (`urn % 128 == n`) | when a popup in that shard opens |
 
 Which fields a mode, filter or popup section reads is found at build time by running them over
 every school (`lib/trace-needs.ts`), so modules declare nothing beyond each field's `placement`.
@@ -227,6 +229,16 @@ whole school, unlike the GCSE-year English as an additional language figure furt
 intake, not quality, so there is no map colour. DfE publishes no school-level figures for special educational
 needs (its SEN data sets stop at local authority level), so SEN is not shown. Independent schools have a
 pupil count only. The full DfE file is about 2.8 GB, so the fetch asks the DfE statistics API for just the rows used (about 2 MB).
+
+**Staff: teachers, pupils per teacher and sickness** (official figures, popup only). The popup shows full-time-equivalent
+teachers, pupils per teacher, the share of teachers without qualified teacher status, the share working part time, days of
+sickness absence per teacher and the share of teachers with any sickness absence, each beside the median state secondary
+(workforce census November 2025, sickness 2024/25). DfE publishes no school-level pupil-teacher ratio, so **pupils per teacher is
+our own calculation**: pupils on roll (January census) divided by full-time-equivalent teachers. It is usually a little higher than
+the DfE national figure, which uses full-time-equivalent pupils and qualified teachers only. Not shown on the map: a low ratio can
+simply mean a small school, and some academies employ able teachers who lack qualified teacher status. State-funded schools only. The two
+DfE files are 143 MB and 60 MB with every year since 2010, but they list the newest year first, so the fetch stops reading after it
+(about 3 MB downloaded in a few seconds).
 
 **After GCSEs: where pupils go next** (official figures, popup only). The popup shows the share of Year 11
 leavers who stayed in education, an apprenticeship or work (the DfE "sustained destination" measure),

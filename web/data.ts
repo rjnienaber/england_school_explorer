@@ -1,7 +1,7 @@
 // The browser's data layer. core.json (small) loads at start-up and holds every school's
 // identity and position. Everything else loads on demand and is cached for the session:
 //   ensureFields(fields)  the column of a `mode` field for all schools (modes, filters, list)
-//   getDetails(urn)       the shard with every non-core field of ~65 schools (the popup)
+//   getDetails(urn)       the shard with every non-core field of ~32 schools (the popup)
 // Files are requested as <file>?v=<buildId> and each carries that id, so a deploy that lands
 // while the page is open can never mix old columns with new ones: positions only line up
 // within one build.
@@ -122,7 +122,7 @@ export class SchoolData {
     return Promise.all(requests).then(() => undefined);
   }
 
-  /** Loads the shard holding this school (and ~65 neighbours by URN). Fills in every non-core field for them. */
+  /** Loads the shard holding this school (and ~32 neighbours by URN). Fills in every non-core field for them. */
   getDetails(urn: number): Promise<void> {
     const shard = shardOf(urn, this.core.shards);
     if (this.loadedShards.has(shard)) return Promise.resolve();

@@ -1,5 +1,8 @@
 // Helpers for Explore Education Statistics (EES), where most DfE data sets live.
 import { rename, writeFile } from 'node:fs/promises';
+import { Readable } from 'node:stream';
+import type { ReadableStream } from 'node:stream/web';
+import { parse } from 'csv-parse';
 
 const CATALOGUE = 'https://explore-education-statistics.service.gov.uk/data-catalogue/data-set';
 const API = 'https://api.education.gov.uk/statistics/v1';
@@ -128,6 +131,50 @@ export async function downloadEesQuery(query: EesQuery, file: string): Promise<n
     }
     if (page >= res.paging.totalPages) break;
   }
+  await writeFile(`${file}.part`, lines.join('\n') + '\n');
+  await rename(`${file}.part`, file);
+  return lines.length - 1;
+}
+
+// ---------- Latest year only, from a catalogue CSV ----------
+
+/**
+ * For a data set that is not in the EES query API (the school workforce files are not): streams the catalogue CSV
+ * and keeps only the newest time period and the wanted columns, so the file on disk is a few MB instead of
+ * hundreds. These files list the newest year first, so the download is stopped as soon as an older period appears,
+ * which also saves most of the transfer. If the file is ever not newest-first (a newer period turns up after an older
+ * one), this throws rather than quietly keeping the wrong year. Returns the number of rows written.
+ */
+export async function downloadLatestPeriodCsv(url: string, file: string, columns: string[]): Promise<number> {
+  const abort = new AbortController();
+  const res = await fetch(url, { signal: abort.signal });
+  if (!res.ok || !res.body) throw new Error(`Download failed (${res.status}) for ${url}`);
+  const parser = parse({ columns: true, bom: true, relax_column_count: true });
+  Readable.fromWeb(res.body as ReadableStream<Uint8Array>).on('error', () => {}).pipe(parser);
+  const quote = (v: string) => `"${v.replaceAll('"', '""')}"`;
+  const lines = [['time_period', ...columns].map(quote).join(',')];
+  let period = '';
+  let checked = false;
+  try {
+    for await (const r of parser as AsyncIterable<Record<string, string>>) {
+      if (!checked) {
+        const missing = columns.filter((c) => !(c in r));
+        if (missing.length) throw new Error(`${url} has no column ${missing.join(', ')}`);
+        checked = true;
+      }
+      const t = r.time_period;
+      if (!period) period = t;
+      if (t > period) throw new Error(`${url} is not newest-first (${t} after ${period})`);
+      if (t < period) {
+        abort.abort();
+        break;
+      }
+      lines.push([t, ...columns.map((c) => r[c] ?? '')].map(quote).join(','));
+    }
+  } catch (e) {
+    if (!abort.signal.aborted) throw e;
+  }
+  if (lines.length < 2) throw new Error(`No rows in ${url}`);
   await writeFile(`${file}.part`, lines.join('\n') + '\n');
   await rename(`${file}.part`, file);
   return lines.length - 1;

@@ -19,7 +19,7 @@ test('columns round-trip: enums as indexes, booleans as 0/1, nulls kept', () => 
 
 test('urns decode from differences; shards by remainder; defaults only for non-nullable fields', () => {
   assert.deepEqual(decodeUrns({ urnDeltas: [100000, 5, 1] }), [100000, 100005, 100006]);
-  assert.equal(shardOf(100006, 64), 100006 % 64);
+  assert.equal(shardOf(100006, 128), 100006 % 128);
   assert.equal(missingValue(field('detail')), null);
   assert.equal(missingValue(field('detail', { type: 'boolean', default: false })), false);
 });

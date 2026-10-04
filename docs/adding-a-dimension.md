@@ -179,8 +179,8 @@ Rules of thumb:
   found above. Budget: 200 KB gzipped (see "Size budgets").
 - `modes/<field>.json`: one column per `mode` field, in core's order. Fetched when a mode or
   filter first reads it; a second use costs nothing.
-- `details/<n>.json`: **all** non-core fields (`mode` ones too) for the ~65 schools whose
-  `urn % 64 == n`. A popup is one request however many fields it reads. Missing values (null or
+- `details/<n>.json`: **all** non-core fields (`mode` ones too) for the ~32 schools whose
+  `urn % 128 == n`. A popup is one request however many fields it reads. Missing values (null or
   the field's default) are left out.
 - `manifest.json`: raw and gzipped size of every file, for budget checks.
 
