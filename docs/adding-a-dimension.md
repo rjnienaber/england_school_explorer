@@ -133,6 +133,9 @@ nothing").
   a boolean must be a boolean. Numbers are rounded to `decimals` when you set it.
 - `nullable: false` means every school has a value; give it a `default` for schools with no row.
   Use it sparingly: `null` ("no data") is usually the honest answer.
+- Several fields with the same shape (a measure for each of three groups) can come from a small helper that
+  returns the fields; give it a typed return (`Record<\`prior${G}Pct\`, NumberField>`) so the generated
+  `SchoolRecord` keeps exact names. `dimensions/ks4-prior-attainment/build.ts` shows it.
 - Prefer enums to free strings when the set is small and known: they become union types in the browser.
 - Store percentages as 0-100 numbers, dates as ISO strings (`2025-01-29`), and never store
   derived display text (`"41.5 (27th percentile)"`): format that in `web.ts`.
@@ -373,7 +376,7 @@ title included). Use the `h` helpers; interpolating into `h.html` escapes automa
 render: (p, h) => h.html`${h.rows([['Pupils', p.pupils], ['Size band', p.sizeBand]])}${h.note('Quintiles among state schools.')}`
 ```
 
-`h.rows`, `h.note`, `h.meta`, `h.link`, `h.ciChart`, `h.fmt`, `h.signed`, `h.ordinal`,
+`h.rows` (label and one value), `h.table` (a heading row and several value columns), `h.note`, `h.meta`, `h.link`, `h.ciChart`, `h.fmt`, `h.signed`, `h.ordinal`,
 `h.formatDate`, `h.html`, `h.raw`. Never build HTML by string concatenation: `Html` marks safe
 markup; plain strings are escaped. `h.raw` is for static markup you wrote yourself, never for data.
 
@@ -415,6 +418,9 @@ ASCII is fine. Keep the real header names (or at least every column you read) an
   (percentiles, as `intake-model` does);
 - include a school with **suppressed values** (`z`, `c`, `x`, `SUPP`...), one that is independent, and one
   that has no row at all in your source;
+- when your module reads a source another module owns (as `ks4-prior-attainment` reads `ks4`), there is only one
+  fixture file, the owner's: append your rows to it (same header; keep the existing rows, whose tests depend on
+  them) and run the owner's tests too;
 - extract rows with a throwaway script from the real file, and write the expected values from the source
   rows, not from your own parser's output. Do not commit full files (more than a few dozen KB is too many).
 
@@ -530,7 +536,7 @@ report rather than hiding it.)
 - [ ] Data size reported before and after from `dist/data/manifest.json` (core, largest mode column, largest shard, total; gzipped).
 - [ ] Fields have honest placements, labels and descriptions; derived measures say they are derived.
 - [ ] `test.ts` and `fixtures/` cover parsing, known schools and suppressed values, without needing `data/`.
-- [ ] No files outside `dimensions/<id>/` changed, except deliberate framework growth (explain it).
+- [ ] No files outside `dimensions/<id>/` changed, except deliberate framework growth (explain it) and rows appended to a shared source's fixture.
       The README sources table is regenerated, not hand-edited: commit the result of `npm run generate`.
 - [ ] README "How schools are compared" updated if you added a mode or a derived measure.
 - [ ] `data/`, `build/`, `dist/` and `web/generated/` are not committed.

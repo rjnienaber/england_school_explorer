@@ -140,6 +140,18 @@ export function rows(entries: (RowEntry | null | false | undefined)[]): Html {
   return html`<table class="stats">${body}</table>`;
 }
 
+/**
+ * A table with a heading row: the first cell of each row is its label, the rest are right-aligned values.
+ * Use it when `rows` (label and one value) is too narrow. Falsy rows are skipped; a null cell shows "–".
+ */
+export function table(head: Interpolable[], entries: (Interpolable[] | null | false | undefined)[]): Html {
+  const body = entries
+    .filter((e): e is Interpolable[] => !!e)
+    .map(([label, ...cells]) => html`<tr><th>${label}</th>${cells.map((c) => html`<td>${c === null || c === undefined ? '–' : c}</td>`)}</tr>`);
+  const [corner, ...columns] = head;
+  return html`<table class="stats grid"><thead><tr><th>${corner}</th>${columns.map((c) => html`<th>${c}</th>`)}</tr></thead><tbody>${body}</tbody></table>`;
+}
+
 /** A muted explanatory paragraph. */
 export const note = (text: Interpolable) => html`<p class="note">${text}</p>`;
 /** A small grey line (dates, links). */
@@ -179,7 +191,7 @@ export function ciChart(o: CiChartOptions): Html {
 }
 
 /** The helpers handed to `render` and the source-note callbacks. */
-export const h = { html, raw, rows, note, meta, link, ciChart, escapeHtml, fmt, signed, ordinal, formatDate };
+export const h = { html, raw, rows, table, note, meta, link, ciChart, escapeHtml, fmt, signed, ordinal, formatDate };
 export type Helpers = typeof h;
 
 export interface PopupSectionDef {

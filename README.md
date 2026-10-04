@@ -188,6 +188,12 @@ don't count, so some top schools score near zero.
   inspection is in the current data.
 - A school in special measures or with serious weaknesses is always "serious".
 
+**Results by starting point** (popup only, official figures). Attainment 8 and Progress 8 for
+pupils who were low, middle or high attainers at the end of primary school, so a parent can
+see how children like theirs do. Bands use the same confidence-interval rule as Progress 8.
+It needs KS2 results, so it shows 2023/24 (the latest with data) even where the GCSE results
+are newer, and groups of a few pupils are noisy or hidden when suppressed.
+
 The list of schools in view ranks by the current mode. Differences between neighbouring
 schools in the list are usually not meaningful.
 

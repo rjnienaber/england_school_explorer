@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
-import { ciChart, formatDate, h, html, ordinal, quintile, raw, rows, signed } from './toolkit.ts';
+import { ciChart, formatDate, h, html, ordinal, quintile, raw, rows, signed, table } from './toolkit.ts';
 
 test('html escapes interpolated text but not nested Html', () => {
   const name = '<img src=x onerror=alert(1)> & "co"';
@@ -33,4 +33,12 @@ test('ciChart clamps to the axis and describes the interval', () => {
   const svg = ciChart({ value: 5, lower: -5, upper: 9, min: -1.5, max: 1.5, name: 'Progress 8', zeroLabel: 'zero' }).value;
   assert.ok(svg.includes('aria-label="Progress 8 +5.00, 95% confidence interval −5.00 to +9.00"'));
   assert.ok(svg.includes('x1="4"') && svg.includes('x2="256"'));
+});
+
+test('table: label column, right-hand cells, skipped falsy rows and escaped text', () => {
+  const out = table(['Group', 'N'], [['A <a>', 3], false, ['B', null]]).value;
+  assert.match(out, /<thead><tr><th>Group<\/th><th>N<\/th><\/tr><\/thead>/);
+  assert.match(out, /<tr><th>A &lt;a&gt;<\/th><td>3<\/td><\/tr>/);
+  assert.match(out, /<tr><th>B<\/th><td>–<\/td><\/tr>/);
+  assert.equal(out.match(/<tbody>/g)?.length, 1);
 });

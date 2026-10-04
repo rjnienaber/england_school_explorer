@@ -115,3 +115,24 @@ time_period,school_urn,school_name,establishment_type_group,breakdown,pupil_coun
 202223,116430,The Clere School,Community school,Disadvantaged,16,21.1,26.9,12.5,0,-1.22,-1.91,-0.52
 202223,135897,The Basildon Upper Academy,Sponsored academies,Total,257,100,29.4,23,6.2,-1.25,-1.44,-1.07
 202223,135897,The Basildon Upper Academy,Sponsored academies,Disadvantaged,128,49.8,22.7,10.9,5.5,-1.73,-1.99,-1.48
+202324,100001,City of London School for Girls,Independent schools,High prior attainment,z,z,z,z,z,z,z,z
+202324,100001,City of London School for Girls,Independent schools,Low prior attainment,z,z,z,z,z,z,z,z
+202324,100001,City of London School for Girls,Independent schools,Mid prior attainment,z,z,z,z,z,z,z,z
+202223,100049,Haverstock School,Community school,High prior attainment,17,11.3,58.6,76.5,76.5,-0.4,-1.07,0.27
+202223,100049,Haverstock School,Community school,Low prior attainment,34,22.5,22.2,2.9,8.8,-0.45,-0.92,0.03
+202223,100049,Haverstock School,Community school,Mid prior attainment,64,42.4,45,53.1,43.8,-0.17,-0.51,0.18
+202324,100049,Haverstock School,Community school,High prior attainment,24,15.4,68,95.8,70.8,0.18,-0.39,0.75
+202324,100049,Haverstock School,Community school,Low prior attainment,26,16.7,22.1,7.7,0,-0.58,-1.12,-0.03
+202324,100049,Haverstock School,Community school,Mid prior attainment,86,55.1,43.8,45.3,25.6,-0.19,-0.49,0.11
+202324,100050,Parliament Hill School,Community school,High prior attainment,63,35.6,70.3,85.7,57.1,0.59,0.24,0.94
+202324,100050,Parliament Hill School,Community school,Low prior attainment,14,7.9,30.9,7.1,28.6,0.48,-0.26,1.22
+202324,100050,Parliament Hill School,Community school,Mid prior attainment,85,48,52.3,64.7,30.6,0.43,0.13,0.74
+202223,100055,Maria Fidelis Catholic School FCJ,Voluntary aided school,High prior attainment,21,15.7,60.6,81,57.1,-0.47,-1.07,0.14
+202223,100055,Maria Fidelis Catholic School FCJ,Voluntary aided school,Low prior attainment,29,21.6,21.1,6.9,27.6,-0.51,-1.03,0
+202223,100055,Maria Fidelis Catholic School FCJ,Voluntary aided school,Mid prior attainment,76,56.7,43.7,40.8,42.1,-0.22,-0.53,0.1
+202324,100193,St Ursula's Convent School,Voluntary aided school,High prior attainment,37,28.7,59.6,81.1,100,-0.46,-0.92,0
+202324,100193,St Ursula's Convent School,Voluntary aided school,Low prior attainment,10,7.8,31.2,20,80,0.08,-0.79,0.96
+202324,100193,St Ursula's Convent School,Voluntary aided school,Mid prior attainment,73,56.6,50.9,63,83.6,0.36,0.04,0.69
+202324,101361,St Michael's Catholic Grammar School,Voluntary aided school,High prior attainment,112,87.5,80.4,99.1,74.1,0.9,0.64,1.16
+202324,101361,St Michael's Catholic Grammar School,Voluntary aided school,Low prior attainment,0,0,z,z,z,z,z,z
+202324,101361,St Michael's Catholic Grammar School,Voluntary aided school,Mid prior attainment,13,10.2,70.7,92.3,61.5,1.63,0.86,2.4

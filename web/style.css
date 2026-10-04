@@ -482,6 +482,27 @@ input[type='search'] {
   padding: 2px 0;
 }
 
+.stats.grid thead th {
+  text-align: right;
+  font-size: 0.75rem;
+  color: var(--muted);
+  padding-bottom: 4px;
+  border-bottom: 1px solid var(--hairline);
+}
+
+.stats.grid thead th:first-child {
+  text-align: left;
+}
+
+.stats.grid td {
+  padding-left: 8px;
+  vertical-align: top;
+}
+
+.stats.grid th {
+  vertical-align: top;
+}
+
 .note {
   color: var(--muted);
   font-size: 0.8rem;
