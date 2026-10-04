@@ -65,3 +65,6 @@ export function num(value: string | undefined): number | null {
   const n = Number(v);
   return Number.isFinite(n) ? n : null;
 }
+
+/** A CSV cell, quoted only when it has to be (the files are big enough for the quote marks to matter). */
+export const csvCell = (v: string) => (/[",\r\n]/.test(v) ? `"${v.replaceAll('"', '""')}"` : v);

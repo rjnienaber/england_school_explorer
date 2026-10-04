@@ -29,7 +29,8 @@ export interface SourceDef {
   /**
    * For a source that is not one file at one URL (a filtered or paged API query, for example): writes the file
    * itself and returns the page to record in data/sources.json (what the About text links to). Used instead of
-   * `resolve`. `downloadEesQuery` in lib/ees.ts is one; the census uses it to fetch 1 MB instead of a 2.8 GB file.
+   * `resolve`. `downloadEesQuery` in lib/ees.ts is one (the census uses it to fetch 1 MB instead of a 2.8 GB file), and
+   * `downloadFilteredCsv` in lib/filter-csv.ts keeps only the rows and columns wanted from a CSV that has no API.
    */
   fetchTo?: (file: string) => Promise<string>;
   /** Text encoding of the file, as a WHATWG label. Default 'utf-8'. */

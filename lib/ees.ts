@@ -1,8 +1,8 @@
 // Helpers for Explore Education Statistics (EES), where most DfE data sets live.
 import { rename, writeFile } from 'node:fs/promises';
-import { Readable } from 'node:stream';
-import type { ReadableStream } from 'node:stream/web';
-import { parse } from 'csv-parse';
+import { csvCell } from './csv.ts';
+import { fetchJson } from './download.ts';
+import { downloadFilteredCsv } from './filter-csv.ts';
 
 const CATALOGUE = 'https://explore-education-statistics.service.gov.uk/data-catalogue/data-set';
 const API = 'https://api.education.gov.uk/statistics/v1';
@@ -60,76 +60,112 @@ interface ApiMeta {
   locations: { level: { code: string }; options: { id: string; urn?: string }[] }[];
 }
 
-export interface EesQuery {
-  /** The API data-set id (not the catalogue file id). Stays the same as releases are added; the query uses the latest version. */
-  dataSetId: string;
-  /** Filter column name -> option labels to keep, e.g. { sex: ['Total'] }. Filter columns not listed are not restricted. */
-  filters: Record<string, string[]>;
+/** One set of rows to fetch from a data set. */
+export interface EesRowSet {
+  /**
+   * Filter column name -> option labels to keep, e.g. { sex: ['Total'] }. `true` keeps every option but still writes the column.
+   * Filter columns not listed are not restricted (the column is still written if another row set lists it).
+   */
+  filters: Record<string, string[] | true>;
   /** Indicator column names to return. */
   indicators: string[];
+}
+
+export interface EesQuery extends EesRowSet {
+  /** The API data-set id (not the catalogue file id). Stays the same as releases are added; the query uses the latest version. */
+  dataSetId: string;
+  /**
+   * More row sets, fetched with their own filters and indicators into the same file. The file has the columns of all the
+   * sets together; a row has an empty value for an indicator its set did not ask for. For a file where some rows need
+   * every column and many rows need a few (the KS4 file: school totals against pupil groups), this is much smaller than
+   * asking for every column of every row. The sets must not overlap, or rows repeat.
+   */
+  also?: EesRowSet[];
+  /** Filter columns used to pick rows (or for `derive`) that are not worth a column in the file. */
+  hide?: string[];
+  /** How many of the newest time periods to fetch, or 'all'. Default 1 (the latest). */
+  periods?: number | 'all';
+  /**
+   * Extra columns worked out from each row, named by key. `values` holds the row's filter labels and indicator values
+   * by column name. Used where the catalogue CSV has a column the API doesn't: the KS4 file's `breakdown` is the one
+   * filter that is not "Total" in that row.
+   */
+  derive?: Record<string, (values: Record<string, string>) => string>;
   /** Rows per request. Default 10000. */
   pageSize?: number;
 }
 
-const apiJson = async (url: string, body?: unknown): Promise<any> => {
-  const res = await fetch(url, body === undefined ? undefined : { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(body) });
-  if (!res.ok) throw new Error(`EES API ${res.status} for ${url}: ${(await res.text()).slice(0, 300)}`);
-  return res.json();
-};
-
 /**
  * Downloads only the wanted rows of a school-level data set through the EES query API, instead of the whole CSV
- * (the census file is 2.8 GB; the rows used are about 1 MB). Latest time period only. Writes a CSV with columns
- * `time_period` (e.g. 202526), `school_urn`, one column per filter named in `query.filters` and per indicator, holding
- * the labels / values as in the catalogue CSV. Pages through the results. Returns the number of rows written.
+ * (the census file is 2.8 GB; the rows used are about 1 MB). The latest time period only, unless `periods` says
+ * otherwise. Writes a CSV with columns `time_period` (e.g. 202526), `school_urn`, one column per filter named in
+ * `query.filters` and per indicator, then the `derive`d ones, holding the labels / values as in the catalogue CSV.
+ * Pages through the results. Returns the number of rows written.
  */
 export async function downloadEesQuery(query: EesQuery, file: string): Promise<number> {
   const base = `${API}/data-sets/${query.dataSetId}`;
-  const meta = (await apiJson(`${base}/meta`)) as ApiMeta;
-  const period = meta.timePeriods[meta.timePeriods.length - 1];
+  const meta = (await fetchJson(`${base}/meta`)) as ApiMeta;
+  const wantedPeriods = query.periods === 'all' ? meta.timePeriods : meta.timePeriods.slice(-(query.periods ?? 1));
   const schools = new Map<string, string>(
     (meta.locations.find((l) => l.level.code === 'SCH')?.options ?? []).map((o) => [o.id, o.urn ?? '']),
   );
-  const filterCols = meta.filters.filter((f) => f.column in query.filters);
-  const missing = Object.keys(query.filters).filter((c) => !filterCols.some((f) => f.column === c));
+  const sets = [query, ...(query.also ?? [])];
+  const filterNames = [...new Set(sets.flatMap((set) => Object.keys(set.filters)))];
+  const filterCols = meta.filters.filter((f) => filterNames.includes(f.column));
+  const missing = filterNames.filter((c) => !filterCols.some((f) => f.column === c));
   if (missing.length) throw new Error(`EES data set ${query.dataSetId} has no filter column ${missing.join(', ')}`);
-  const indicators = query.indicators.map((c) => {
+  const indicators = [...new Set(sets.flatMap((set) => set.indicators))].map((c) => {
     const i = meta.indicators.find((x) => x.column === c);
     if (!i) throw new Error(`EES data set ${query.dataSetId} has no indicator ${c}`);
     return i;
   });
   const optionLabel = new Map<string, string>();
-  const clauses = filterCols.map((f) => {
-    const wanted = query.filters[f.column];
-    const ids = wanted.map((label) => {
-      const o = f.options.find((x) => x.label === label);
-      if (!o) throw new Error(`EES filter ${f.column} has no option "${label}"`);
-      return o.id;
-    });
-    for (const o of f.options) optionLabel.set(o.id, o.label);
-    return { filters: { in: ids } };
-  });
-  const criteria = { and: [{ timePeriods: { in: [{ period: period.period, code: period.code }] } }, { geographicLevels: { in: ['SCH'] } }, ...clauses] };
+  for (const f of filterCols) for (const o of f.options) optionLabel.set(o.id, o.label);
 
-  const quote = (v: string) => `"${v.replaceAll('"', '""')}"`;
-  const header = ['time_period', 'school_urn', ...filterCols.map((f) => f.column), ...indicators.map((i) => i.column)];
-  const lines = [header.map(quote).join(',')];
+  const derived = Object.entries(query.derive ?? {});
+  const shown = filterCols.filter((f) => !query.hide?.includes(f.column));
+  const header = ['time_period', 'school_urn', ...shown.map((f) => f.column), ...indicators.map((i) => i.column), ...derived.map(([name]) => name)];
+  const lines = [header.map(csvCell).join(',')];
+  // "2024/2025" → "202425"
+  const periodCode = (period: string) => period.slice(0, 4) + period.slice(-2);
   const pageSize = query.pageSize ?? 10000;
-  for (let page = 1; ; page++) {
-    const res = await apiJson(`${base}/query`, { criteria, indicators: indicators.map((i) => i.id), page, pageSize });
-    for (const r of res.results as { locations: Record<string, string>; filters: Record<string, string>; values: Record<string, string> }[]) {
-      lines.push(
-        [
-          period.period.slice(0, 4) + period.period.slice(-2),
-          schools.get(r.locations.SCH) ?? '',
-          ...filterCols.map((f) => optionLabel.get(r.filters[f.id]) ?? ''),
-          ...indicators.map((i) => r.values[i.id] ?? ''),
-        ]
-          .map(quote)
-          .join(','),
-      );
+
+  for (const set of sets) {
+    const clauses = filterCols.flatMap((f) => {
+      const wanted = set.filters[f.column];
+      if (wanted === undefined || wanted === true) return [];
+      const ids = wanted.map((label) => {
+        const o = f.options.find((x) => x.label === label);
+        if (!o) throw new Error(`EES filter ${f.column} has no option "${label}"`);
+        return o.id;
+      });
+      return [{ filters: { in: ids } }];
+    });
+    const criteria = {
+      and: [{ timePeriods: { in: wantedPeriods.map((p) => ({ period: p.period, code: p.code })) } }, { geographicLevels: { in: ['SCH'] } }, ...clauses],
+    };
+    const asked = set.indicators.map((c) => indicators.find((i) => i.column === c)!);
+    for (let page = 1; ; page++) {
+      const res = await fetchJson(`${base}/query`, { criteria, indicators: asked.map((i) => i.id), page, pageSize });
+      for (const r of res.results as { timePeriod: { period: string }; locations: Record<string, string>; filters: Record<string, string>; values: Record<string, string> }[]) {
+        const filterCells: Record<string, string> = {};
+        for (const f of filterCols) filterCells[f.column] = optionLabel.get(r.filters[f.id]) ?? '';
+        const cells: Record<string, string> = { ...filterCells };
+        for (const i of indicators) cells[i.column] = r.values[i.id] ?? '';
+        lines.push(
+          [
+            periodCode(r.timePeriod.period),
+            schools.get(r.locations.SCH) ?? '',
+            ...shown.map((f) => cells[f.column]),
+            ...indicators.map((i) => cells[i.column]),
+            ...derived.map(([, fn]) => fn(cells)),
+          ]
+            .map(csvCell)
+            .join(','),
+        );
+      }
+      if (page >= res.paging.totalPages) break;
     }
-    if (page >= res.paging.totalPages) break;
   }
   await writeFile(`${file}.part`, lines.join('\n') + '\n');
   await rename(`${file}.part`, file);
@@ -144,38 +180,8 @@ export async function downloadEesQuery(query: EesQuery, file: string): Promise<n
  * hundreds. These files list the newest year first, so the download is stopped as soon as an older period appears,
  * which also saves most of the transfer. If the file is ever not newest-first (a newer period turns up after an older
  * one), this throws rather than quietly keeping the wrong year. Returns the number of rows written.
+ * For other row filters, or files in another order, use `downloadFilteredCsv` (lib/filter-csv.ts) directly.
  */
-export async function downloadLatestPeriodCsv(url: string, file: string, columns: string[]): Promise<number> {
-  const abort = new AbortController();
-  const res = await fetch(url, { signal: abort.signal });
-  if (!res.ok || !res.body) throw new Error(`Download failed (${res.status}) for ${url}`);
-  const parser = parse({ columns: true, bom: true, relax_column_count: true });
-  Readable.fromWeb(res.body as ReadableStream<Uint8Array>).on('error', () => {}).pipe(parser);
-  const quote = (v: string) => `"${v.replaceAll('"', '""')}"`;
-  const lines = [['time_period', ...columns].map(quote).join(',')];
-  let period = '';
-  let checked = false;
-  try {
-    for await (const r of parser as AsyncIterable<Record<string, string>>) {
-      if (!checked) {
-        const missing = columns.filter((c) => !(c in r));
-        if (missing.length) throw new Error(`${url} has no column ${missing.join(', ')}`);
-        checked = true;
-      }
-      const t = r.time_period;
-      if (!period) period = t;
-      if (t > period) throw new Error(`${url} is not newest-first (${t} after ${period})`);
-      if (t < period) {
-        abort.abort();
-        break;
-      }
-      lines.push([t, ...columns.map((c) => r[c] ?? '')].map(quote).join(','));
-    }
-  } catch (e) {
-    if (!abort.signal.aborted) throw e;
-  }
-  if (lines.length < 2) throw new Error(`No rows in ${url}`);
-  await writeFile(`${file}.part`, lines.join('\n') + '\n');
-  await rename(`${file}.part`, file);
-  return lines.length - 1;
+export function downloadLatestPeriodCsv(url: string, file: string, columns: string[]): Promise<number> {
+  return downloadFilteredCsv(url, file, { columns: ['time_period', ...columns], latestPeriod: 'newest-first' });
 }

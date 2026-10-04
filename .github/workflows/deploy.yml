@@ -2,9 +2,14 @@
 # GitHub Pages. Runs monthly (after Ofsted's monthly data and before the new month's
 # inspections pile up), on pushes to master, and on demand from the Actions tab.
 #
-# Production always gets freshly downloaded data: the cache is never restored here (`fetch
-# --force` re-downloads everything). The downloaded files are saved afterwards so that pull
-# request runs (ci.yml) start warm.
+# The monthly schedule and manual runs always get freshly downloaded data: the cache is not
+# restored and `fetch --force` downloads everything again. A push to master restores the
+# data/ cache for this month and these source.ts files and runs `fetch` without --force, which
+# skips files already there, so a push downloads nothing when a cache exists (the data is at
+# most a month old, and the next scheduled run refreshes it). The cache key has the hash of
+# every dimensions/*/source.ts, so changing a source refetches everything; there are no
+# restore-keys on purpose, so an old copy of a source whose query changed is never reused.
+# The downloaded files are saved afterwards so that pull request runs (ci.yml) start warm.
 #
 # On the monthly schedule and on manual runs (never on a push) the joined dataset is also
 # published as a GitHub Release, data-YYYY-MM, marked latest (see the `release` job).
@@ -40,9 +45,18 @@ jobs:
       - run: npm ci
       - run: npm run typecheck
       - run: npm test
-      - run: npm run fetch -- --force
       - id: month
         run: echo "month=$(date -u +%Y-%m)" >> "$GITHUB_OUTPUT"
+      - if: github.event_name == 'push'
+        uses: actions/cache/restore@v6
+        with:
+          path: data
+          key: data-${{ steps.month.outputs.month }}-${{ hashFiles('dimensions/*/source.ts') }}
+      # Both write the per-source download sizes to the run summary
+      - if: github.event_name == 'push'
+        run: npm run fetch
+      - if: github.event_name != 'push'
+        run: npm run fetch -- --force
       # Same key as ci.yml. A cache can't be overwritten, so this only adds one when none exists
       # for this month and these sources (a "Unable to reserve cache" warning is normal otherwise).
       - uses: actions/cache/save@v6

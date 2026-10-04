@@ -2,14 +2,14 @@
 // school-type fields from the GIAS register. Every other module joins to the schools found here.
 
 import { defineDimension } from '../../lib/dimension.ts';
-import { num, text } from '../../lib/csv.ts';
+import { num } from '../../lib/csv.ts';
 import { loadGias, type GiasSchool } from './parse.ts';
 
 const MAINSTREAM_STATE_GROUPS = new Set(['Academies', 'Free Schools', 'Local authority maintained schools']);
 
 /** Mainstream state and independent schools; excludes special schools, alternative provision and colleges. */
-function sectorOf(gias: GiasSchool, ks4TypeGroup: string): 'state' | 'independent' | null {
-  if (/special/i.test(gias.type) || /special/i.test(ks4TypeGroup)) return null;
+function sectorOf(gias: GiasSchool): 'state' | 'independent' | null {
+  if (/special/i.test(gias.type)) return null;
   if (MAINSTREAM_STATE_GROUPS.has(gias.typeGroup)) return 'state';
   if (gias.typeGroup === 'Independent schools') return 'independent';
   return null;
@@ -51,23 +51,23 @@ export const module = defineDimension({
 
     // In scope = has KS4 results data (the DfE file lists every school with a GCSE cohort,
     // including ones with no published scores), then the sector rules above.
-    const ks4TypeGroup = new Map<number, string>();
+    const ks4Urns = new Set<number>();
     for await (const row of ctx.csv('ks4')) {
       if (row.breakdown !== 'Total' && row.breakdown !== 'Disadvantaged') continue;
       const urn = num(row.school_urn);
-      if (urn !== null && !ks4TypeGroup.has(urn)) ks4TypeGroup.set(urn, text(row.establishment_type_group) ?? '');
+      if (urn !== null) ks4Urns.add(urn);
     }
 
     const skipped = { closed: 0, noLocation: 0, outOfScope: 0, notInGias: 0 };
     const rows = [];
     const locations = [];
-    for (const [urn, typeGroup] of ks4TypeGroup) {
+    for (const urn of ks4Urns) {
       const g = gias.get(urn);
       if (!g) {
         skipped.notInGias++;
         continue;
       }
-      const sector = sectorOf(g, typeGroup);
+      const sector = sectorOf(g);
       if (!sector) skipped.outOfScope++;
       else if (!g.open) skipped.closed++;
       else if (!g.lngLat) skipped.noLocation++;

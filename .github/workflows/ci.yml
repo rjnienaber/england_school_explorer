@@ -30,7 +30,8 @@ jobs:
       # data/ is large and slow to download. The key changes every month (data refreshes monthly)
       # and whenever any module's source.ts changes. A cache from earlier in the same month is
       # still used when only a source changed: `npm run fetch` skips files it already has and
-      # downloads the missing or new ones. The Deploy workflow fills the cache on master.
+      # downloads the missing or new ones. The Deploy workflow fills the cache on master (and reuses it on
+      # pushes; only its monthly and manual runs download everything again).
       - id: month
         run: echo "month=$(date -u +%Y-%m)" >> "$GITHUB_OUTPUT"
       - uses: actions/cache@v6

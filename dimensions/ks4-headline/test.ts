@@ -3,6 +3,8 @@ import { test } from 'node:test';
 import { buildFromFixtures } from '../../lib/test-fixtures.ts';
 import { p8Band } from './bands.ts';
 import { loadKs4, yearLabel } from './parse.ts';
+import { KS4_INDICATORS } from './source.ts';
+import { readFileSync, readdirSync } from 'node:fs';
 
 const fixture = new URL('./fixtures/ks4.csv', import.meta.url).pathname;
 
@@ -74,4 +76,20 @@ test('ks4-headline: history has a row per school and year', async () => {
   const mine = extra('ks4-headline', 'history').filter((h) => h.urn === 100049);
   assert.equal(mine.length, 3);
   assert.equal(mine.find((h) => h.year === '2023/24')?.att8, 44.2);
+});
+
+test('ks4 source: stores every column the ks4-* parsers read, and the fixture has the same shape', () => {
+  const dimensions = new URL('..', import.meta.url).pathname;
+  const stored = new Set(['time_period', 'school_urn', 'breakdown', ...KS4_INDICATORS]);
+  const read = new Set<string>();
+  for (const dir of readdirSync(dimensions).filter((d) => d.startsWith('ks4-'))) {
+    const code = readFileSync(`${dimensions}${dir}/parse.ts`, 'utf-8');
+    // Only the parsers that stream the ks4 file name their row `row`
+    if (!code.includes('readCsvShared(file)')) continue;
+    for (const m of code.matchAll(/\brow\.([a-z0-9_]+)|\brow\['([a-z0-9_]+)'\]/g)) read.add(m[1] ?? m[2]);
+  }
+  assert.ok(read.size > 10, 'found the columns the parsers read');
+  assert.deepEqual([...read].filter((c) => !stored.has(c)), [], 'columns read but not fetched');
+  const header = readFileSync(fixture, 'utf-8').split('\n')[0].split(',');
+  assert.deepEqual(header.filter((c) => !stored.has(c)), [], 'fixture columns the download does not produce');
 });

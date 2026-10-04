@@ -325,12 +325,20 @@ export const sources: SourceDef[] = [{
   API (its `pageSize` maximum is 20). Check the file exists before relying on it.
 - If the URL changes over time (a date in the name, a link on a GOV.UK page), do the lookup in
   `resolve()` and return the candidates in order; the first that downloads wins.
+- **Download only what you read.** Every run that refetches pays for the whole file, so a new source should
+  keep just the rows and columns its modules use: a source in the EES API goes through `downloadEesQuery`
+  (below); any other CSV through `downloadFilteredCsv(url, file, { columns, keep, latestPeriod, encoding })`
+  in `lib/filter-csv.ts`, which streams it and writes only those (`latestPeriod: 'newest-first'` stops the
+  transfer after the newest year; `encoding` keeps GIAS and Ofsted as Windows-1252). A column a module starts
+  reading must be added to the source's list: the download fails on a missing column rather than hiding it.
 - **Large EES data sets**: if a file is too big to download on every deploy (the school census is
   2.8 GB), use `fetchTo` instead of `resolve`. `fetchTo: async (file) => pageUrl` writes the CSV
   to `file` itself and returns the page URL to record in `data/sources.json`. For EES data sets,
   `downloadEesQuery({ dataSetId, filters, indicators }, file)` in `lib/ees.ts` posts to the
-  public API's `/query` endpoint for the latest period at School level, pages through the results
-  and writes a CSV with `time_period`, `school_urn`, the filter columns and the indicator columns.
+  public API's `/query` endpoint at School level (the latest period, or `periods: 'all'` / a number),
+  pages through the results and writes a CSV with `time_period`, `school_urn`, the filter columns and the
+  indicator columns. `also` adds row sets with fewer indicators, `hide` drops filter columns, and `derive`
+  adds computed columns (see `dimensions/ks4-headline/source.ts`).
   Data-set ids in the API are stable, unlike catalogue file ids. See `dimensions/census/source.ts`.
 - Sources must be open data you may redistribute (OGL v3 or compatible). Scripts blocked by a
   site (403 for non-browser clients) mean choose a different published route and say so.

@@ -1,4 +1,18 @@
 import type { SourceDef } from '../../lib/dimension.ts';
+import { downloadFilteredCsv } from '../../lib/filter-csv.ts';
+
+/** The Ofsted columns `parse.ts` reads. A column the parser starts to read is added here. */
+const COLUMNS = [
+  'URN', 'Web Link (opens in new window)', 'Safeguarding standards', 'Inclusion', 'Curriculum and teaching', 'Achievement',
+  'Attendance and behaviour', 'Personal development and wellbeing', 'Post-16 provision (where applicable)', 'Leadership and governance',
+  'Latest OEIF overall effectiveness', 'Latest OEIF quality of education', 'Latest OEIF behaviour and attitudes',
+  'Latest OEIF personal development', 'Latest OEIF effectiveness of leadership and management',
+  'Latest OEIF sixth form provision (where applicable)', 'Publication date of latest OEIF graded inspection', 'Publication date',
+  'Most recent category of concern', 'Ungraded inspection overall outcome', 'Ungraded inspection publication date',
+  'Does the latest full inspection relate to the URN of the current school?',
+  'Does the latest OEIF graded inspection relate to the URN of the current school?',
+  'Does the ungraded inspection relate to the URN of the current school?',
+];
 
 const OFSTED_PAGE_API =
   'https://www.gov.uk/api/content/government/statistical-data-sets/monthly-management-information-ofsteds-school-inspections-outcomes';
@@ -37,12 +51,14 @@ export const sources: SourceDef[] = [
     updated: 'monthly',
     usedFor: 'Inspection outcomes',
     notes:
-      'Windows-1252. The latest file is found through the GOV.UK content API. ' +
+      'Windows-1252. Only the columns read are kept (17 MB downloaded, under 5 MB stored). The latest file is found through the GOV.UK content API. ' +
       "Doesn't cover independent schools (most are inspected by the ISI).",
     encoding: 'windows-1252',
-    resolve: async () => {
+    // The whole file is downloaded (it can't be filtered on the server), but only the columns read are stored.
+    fetchTo: async (file) => {
       const { title, url } = await latestOfstedUrl();
       console.log(`  ${title}`);
+      await downloadFilteredCsv(url, file, { columns: COLUMNS, encoding: 'windows-1252' });
       return url;
     },
   },

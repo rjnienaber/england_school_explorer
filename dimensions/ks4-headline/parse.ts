@@ -1,4 +1,4 @@
-import { num, readCsvShared, text } from '../../lib/csv.ts';
+import { num, readCsvShared } from '../../lib/csv.ts';
 
 export interface Ks4Year {
   cohort: number | null;
@@ -14,8 +14,6 @@ export interface Ks4Year {
 
 export interface Ks4School {
   urn: number;
-  /** DfE establishment type group, e.g. "Converter academies", "Independent special schools". */
-  typeGroup: string;
   /** Keyed by academic year label, e.g. "2024/25". */
   years: Map<string, Ks4Year>;
 }
@@ -51,7 +49,7 @@ export async function loadKs4(file: string): Promise<Map<number, Ks4School>> {
 
     let school = schools.get(urn);
     if (!school) {
-      school = { urn, typeGroup: text(row.establishment_type_group) ?? '', years: new Map() };
+      school = { urn, years: new Map() };
       schools.set(urn, school);
     }
 

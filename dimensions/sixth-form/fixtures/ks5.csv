@@ -1,65 +1,65 @@
-"time_period","time_identifier","geographic_level","country_code","country_name","version","old_la_code","new_la_code","la_name","school_name","school_urn","school_laestab","disadvantage_status","exam_cohort","end1618_student_count","aps_per_entry","aps_per_entry_grade","aps_per_entry_student_count","retained_percent","retained_assessed_percent","retained_student_count","retained_2nd_year_percent","retained_2nd_year_student_count","value_added","value_added_upper_ci","value_added_lower_ci","progress_banding","best_three_alevels_aps","best_three_alevels_grade","best_three_alevels_student_count","aab_percent","aab_student_count","level_3_maths_percent","level_3_maths_student_count","vocational_percent","vocational_student_count","maths_progress","maths_progress_entries_percent","maths_progress_inscope_count","english_progress","english_progress_entries_percent","english_progress_inscope_count"
-"202425","Academic year","School","E92000001","England","Final","201","E09000001","City of London","City of London School for Girls","100001","2016005","Total","Academic","96","51.60","A","96","z","z","z","z","z","0.12","0.24","0.01","Above average","z","z","z","z","z","z","z","z","z","z","z","z","z","z","z"
-"202425","Academic year","School","E92000001","England","Final","201","E09000001","City of London","City of London School for Girls","100001","2016005","Total","A level","96","51.53","A","96","z","z","z","z","z","0.12","0.24","0","Average","51.91","A+","96","70.8","96","z","z","z","z","z","z","z","z","z","z"
-"202425","Academic year","School","E92000001","England","Final","201","E09000001","City of London","City of London School for Girls","100001","2016005","Disadvantaged","A level","z","z","z","z","z","z","z","z","z","z","z","z","z","z","z","z","z","z","z","z","z","z","z","z","z","z","z","z"
-"202425","Academic year","School","E92000001","England","Final","202","E09000007","Camden","Hampstead School","100052","2024275","Total","Academic","152","28.28","C-","104","81.5","80.0","65","82.8","64","-0.08","0.06","-0.22","Average","z","z","z","z","z","z","z","z","z","z","z","z","z","z","z"
-"202425","Academic year","School","E92000001","England","Final","202","E09000007","Camden","Hampstead School","100052","2024275","Total","A level","152","28.67","C","100","81.5","80.0","65","82.8","64","-0.06","0.08","-0.2","Average","29.36","C","52","9.6","52","z","z","z","z","z","z","z","z","z","z"
-"202425","Academic year","School","E92000001","England","Final","202","E09000007","Camden","Hampstead School","100052","2024275","Disadvantaged","A level","62","30.18","C","38","77.8","z","27","z","z","0.09","0.32","-0.15","z","z","z","z","z","z","z","z","z","z","z","z","z","z","z","z"
-"202425","Academic year","School","E92000001","England","Final","202","E09000007","Camden","Haverstock School","100049","2024104","Total","Academic","136","32.52","C+","87","89.6","88.3","77","89.6","77","0.07","0.22","-0.08","Average","z","z","z","z","z","z","z","z","z","z","z","z","z","z","z"
-"202425","Academic year","School","E92000001","England","Final","202","E09000007","Camden","Haverstock School","100049","2024104","Total","A level","136","32.52","C+","87","89.6","88.3","77","89.6","77","0.07","0.22","-0.08","Average","35.10","B-","49","14.3","49","z","z","z","z","z","z","z","z","z","z"
-"202425","Academic year","School","E92000001","England","Final","202","E09000007","Camden","Haverstock School","100049","2024104","Disadvantaged","A level","79","34.26","C+","53","88.9","z","45","z","z","0.18","0.38","-0.03","z","z","z","z","z","z","z","z","z","z","z","z","z","z","z","z"
-"202425","Academic year","School","E92000001","England","Final","202","E09000007","Camden","Maria Fidelis Catholic School FCJ","100055","2024652","Total","Academic","68","26.65","C-","60","86.0","86.0","57","86.0","57","-0.25","-0.09","-0.41","Below average","z","z","z","z","z","z","z","z","z","z","z","z","z","z","z"
-"202425","Academic year","School","E92000001","England","Final","202","E09000007","Camden","Maria Fidelis Catholic School FCJ","100055","2024652","Total","A level","68","26.37","C-","60","86.0","86.0","57","86.0","57","-0.27","-0.11","-0.43","Below average","26.90","C-","43","2.3","43","z","z","z","z","z","z","z","z","z","z"
-"202425","Academic year","School","E92000001","England","Final","202","E09000007","Camden","Maria Fidelis Catholic School FCJ","100055","2024652","Disadvantaged","A level","28","24.15","D+","23","90.0","z","20","z","z","-0.24","0.02","-0.51","z","z","z","z","z","z","z","z","z","z","z","z","z","z","z","z"
-"202425","Academic year","School","E92000001","England","Final","202","E09000007","Camden","Parliament Hill School","100050","2024166","Total","Academic","158","34.48","C+","119","97.4","88.8","116","90.5","116","-0.21","-0.1","-0.32","Below average","z","z","z","z","z","z","z","z","z","z","z","z","z","z","z"
-"202425","Academic year","School","E92000001","England","Final","202","E09000007","Camden","Parliament Hill School","100050","2024166","Total","A level","158","34.45","C+","114","97.4","89.6","115","91.3","115","-0.24","-0.12","-0.35","Below average","34.62","C+","101","5.9","101","z","z","z","z","z","z","z","z","z","z"
-"202425","Academic year","School","E92000001","England","Final","202","E09000007","Camden","Parliament Hill School","100050","2024166","Disadvantaged","A level","56","26.58","C-","29","96.4","z","28","z","z","-0.66","-0.4","-0.91","z","z","z","z","z","z","z","z","z","z","z","z","z","z","z","z"
-"202425","Academic year","School","E92000001","England","Final","206","E09000019","Islington","Highbury Fields School","100455","2064307","Total","Academic","29","40.00","B","19","94.4","94.4","18","94.4","18","0.34","0.62","0.07","Above average","z","z","z","z","z","z","z","z","z","z","z","z","z","z","z"
-"202425","Academic year","School","E92000001","England","Final","206","E09000019","Islington","Highbury Fields School","100455","2064307","Total","A level","29","40.00","B","19","94.4","94.4","18","94.4","18","0.34","0.62","0.07","Above average","40.78","B","17","17.6","17","z","z","z","z","z","z","z","z","z","z"
-"202425","Academic year","School","E92000001","England","Final","206","E09000019","Islington","Highbury Fields School","100455","2064307","Disadvantaged","A level","23","c","c","c","c","z","c","z","z","0.29","0.63","-0.04","z","z","z","z","z","z","z","z","z","z","z","z","z","z","z","z"
-"202425","Academic year","School","E92000001","England","Final","210","E09000028","Southwark","Ark Walworth Academy","135315","2106909","Total","Academic","97","32.16","C+","38","94.9","94.9","39","94.9","39","-0.02","0.18","-0.22","Average","z","z","z","z","z","z","z","z","z","z","z","z","z","z","z"
-"202425","Academic year","School","E92000001","England","Final","210","E09000028","Southwark","Ark Walworth Academy","135315","2106909","Total","A level","97","32.16","C+","38","94.9","94.9","39","94.9","39","-0.02","0.18","-0.22","Average","32.86","C+","35","11.4","35","z","z","z","z","z","z","z","z","z","z"
-"202425","Academic year","School","E92000001","England","Final","210","E09000028","Southwark","Ark Walworth Academy","135315","2106909","Disadvantaged","A level","53","32.36","C+","18","94.7","z","19","z","z","0.12","0.42","-0.18","z","z","z","z","z","z","z","z","z","z","z","z","z","z","z","z"
-"202425","Academic year","School","E92000001","England","Final","211","E09000030","Tower Hamlets","Stepney All Saints Church of England Secondary School","100977","2114722","Total","Academic","163","35.44","B-","91","97.8","97.8","91","97.8","91","-0.14","-0.01","-0.27","Below average","z","z","z","z","z","z","z","z","z","z","z","z","z","z","z"
-"202425","Academic year","School","E92000001","England","Final","211","E09000030","Tower Hamlets","Stepney All Saints Church of England Secondary School","100977","2114722","Total","A level","163","35.44","B-","91","97.8","97.8","91","97.8","91","-0.14","-0.01","-0.27","Below average","35.56","B-","90","12.2","90","z","z","z","z","z","z","z","z","z","z"
-"202425","Academic year","School","E92000001","England","Final","211","E09000030","Tower Hamlets","Stepney All Saints Church of England Secondary School","100977","2114722","Disadvantaged","A level","70","37.90","B-","40","100.0","z","38","z","z","0.07","0.28","-0.14","z","z","z","z","z","z","z","z","z","z","z","z","z","z","z","z"
-"202425","Academic year","School","E92000001","England","Final","302","E09000003","Barnet","St Michael's Catholic Grammar School","101361","3025404","Total","Academic","108","46.93","A-","102","100.0","96.2","106","96.2","106","0.11","0.23","-0.02","Average","z","z","z","z","z","z","z","z","z","z","z","z","z","z","z"
-"202425","Academic year","School","E92000001","England","Final","302","E09000003","Barnet","St Michael's Catholic Grammar School","101361","3025404","Total","A level","108","46.94","A-","102","100.0","96.2","106","96.2","106","0.11","0.23","-0.02","Average","47.03","A-","102","52.0","102","z","z","z","z","z","z","z","z","z","z"
-"202425","Academic year","School","E92000001","England","Final","302","E09000003","Barnet","St Michael's Catholic Grammar School","101361","3025404","Disadvantaged","A level","6","c","c","c","100.0","z","6","z","z","0.22","0.89","-0.46","z","z","z","z","z","z","z","z","z","z","z","z","z","z","z","z"
-"202425","Academic year","School","E92000001","England","Final","330","E08000025","Birmingham","Moseley School and Sixth Form","103519","3304245","Total","Academic","99","27.64","C-","75","75.6","75.6","41","75.6","41","-0.06","0.11","-0.23","Average","z","z","z","z","z","z","z","z","z","z","z","z","z","z","z"
-"202425","Academic year","School","E92000001","England","Final","330","E08000025","Birmingham","Moseley School and Sixth Form","103519","3304245","Total","A level","99","27.14","C-","75","75.6","75.6","41","75.6","41","-0.09","0.08","-0.26","Average","32.14","C+","28","17.9","28","z","z","z","z","z","z","z","z","z","z"
-"202425","Academic year","School","E92000001","England","Final","330","E08000025","Birmingham","Moseley School and Sixth Form","103519","3304245","Disadvantaged","A level","46","27.52","C-","34","72.2","z","18","z","z","-0.11","0.16","-0.39","z","z","z","z","z","z","z","z","z","z","z","z","z","z","z","z"
-"202425","Academic year","School","E92000001","England","Final","333","E08000028","Sandwell","The Phoenix Collegiate","136091","3334028","Total","Academic","118","28.54","C","96","100.0","100.0","61","100.0","60","-0.48","-0.33","-0.62","Below average","z","z","z","z","z","z","z","z","z","z","z","z","z","z","z"
-"202425","Academic year","School","E92000001","England","Final","333","E08000028","Sandwell","The Phoenix Collegiate","136091","3334028","Total","A level","118","29.13","C","93","100.0","100.0","61","100.0","60","-0.45","-0.3","-0.6","Below average","30.94","C","39","7.7","39","z","z","z","z","z","z","z","z","z","z"
-"202425","Academic year","School","E92000001","England","Final","333","E08000028","Sandwell","The Phoenix Collegiate","136091","3334028","Disadvantaged","A level","34","29.27","C","31","100.0","z","18","z","z","-0.5","-0.22","-0.79","z","z","z","z","z","z","z","z","z","z","z","z","z","z","z","z"
-"202425","Academic year","School","E92000001","England","Final","383","E08000035","Leeds","Allerton Grange School","108058","3834040","Total","Academic","130","31.26","C","115","92.3","92.3","117","92.3","117","-0.06","0.06","-0.18","Average","z","z","z","z","z","z","z","z","z","z","z","z","z","z","z"
-"202425","Academic year","School","E92000001","England","Final","383","E08000035","Leeds","Allerton Grange School","108058","3834040","Total","A level","130","31.18","C","115","92.3","92.3","117","92.3","117","-0.04","0.08","-0.17","Average","31.60","C","79","15.2","79","z","z","z","z","z","z","z","z","z","z"
-"202425","Academic year","School","E92000001","England","Final","383","E08000035","Leeds","Allerton Grange School","108058","3834040","Disadvantaged","A level","24","24.51","D+","20","89.5","z","19","z","z","-0.66","-0.34","-0.97","z","z","z","z","z","z","z","z","z","z","z","z","z","z","z","z"
-"202425","Academic year","School","E92000001","England","Final","392","E08000022","North Tyneside","Burnside College","108640","3924032","Total","Academic","36","39.78","B","17","84.2","84.2","19","84.2","19","0.48","0.77","0.19","Well above average","z","z","z","z","z","z","z","z","z","z","z","z","z","z","z"
-"202425","Academic year","School","E92000001","England","Final","392","E08000022","North Tyneside","Burnside College","108640","3924032","Total","A level","36","39.78","B","17","84.2","84.2","19","84.2","19","0.48","0.77","0.19","Well above average","37.14","B-","14","14.3","14","z","z","z","z","z","z","z","z","z","z"
-"202425","Academic year","School","E92000001","England","Final","392","E08000022","North Tyneside","Burnside College","108640","3924032","Disadvantaged","A level","9","c","c","c","c","z","c","z","z","0.4","1.18","-0.38","z","z","z","z","z","z","z","z","z","z","z","z","z","z","z","z"
-"202425","Academic year","School","E92000001","England","Final","803","E06000025","South Gloucestershire","Brimsham Green School","109319","8034146","Total","Academic","70","29.37","C","58","91.5","91.5","59","91.5","59","-0.47","-0.31","-0.63","Below average","z","z","z","z","z","z","z","z","z","z","z","z","z","z","z"
-"202425","Academic year","School","E92000001","England","Final","803","E06000025","South Gloucestershire","Brimsham Green School","109319","8034146","Total","A level","70","29.42","C","58","91.5","91.5","59","91.5","59","-0.45","-0.29","-0.61","Below average","30.49","C","41","12.2","41","z","z","z","z","z","z","z","z","z","z"
-"202425","Academic year","School","E92000001","England","Final","803","E06000025","South Gloucestershire","Brimsham Green School","109319","8034146","Disadvantaged","A level","c","c","c","c","c","z","c","z","z","-1.5","-0.72","-2.28","z","z","z","z","z","z","z","z","z","z","z","z","z","z","z","z"
-"202425","Academic year","School","E92000001","England","Final","821","E06000032","Luton","Queen Elizabeth School","109707","8215403","Total","Academic","37","24.10","D+","26","87.5","87.5","24","83.3","24","-0.42","-0.13","-0.7","Below average","z","z","z","z","z","z","z","z","z","z","z","z","z","z","z"
-"202425","Academic year","School","E92000001","England","Final","821","E06000032","Luton","Queen Elizabeth School","109707","8215403","Total","A level","37","24.11","D+","26","87.5","87.5","24","83.3","24","-0.39","-0.1","-0.68","Below average","24.92","D+","21","0.0","21","z","z","z","z","z","z","z","z","z","z"
-"202425","Academic year","School","E92000001","England","Final","821","E06000032","Luton","Queen Elizabeth School","109707","8215403","Disadvantaged","A level","6","c","c","c","c","z","c","z","z","-1.11","-0.5","-1.71","z","z","z","z","z","z","z","z","z","z","z","z","z","z","z","z"
-"202425","Academic year","School","E92000001","England","Final","881","E10000012","Essex","The Basildon Upper Academy","135897","8816909","Total","Academic","145","17.00","D-","69","88.9","77.8","45","86.7","45","-0.83","-0.64","-1.02","Well below average","z","z","z","z","z","z","z","z","z","z","z","z","z","z","z"
-"202425","Academic year","School","E92000001","England","Final","881","E10000012","Essex","The Basildon Upper Academy","135897","8816909","Total","A level","145","16.91","D-","69","88.9","77.8","45","86.7","45","-0.83","-0.64","-1.03","Well below average","15.05","D-","33","3.0","33","z","z","z","z","z","z","z","z","z","z"
-"202425","Academic year","School","E92000001","England","Final","881","E10000012","Essex","The Basildon Upper Academy","135897","8816909","Disadvantaged","A level","46","16.89","D-","19","100.0","z","8","z","z","-0.69","-0.28","-1.1","z","z","z","z","z","z","z","z","z","z","z","z","z","z","z","z"
-"202324","Academic year","School","E92000001","England","Final","201","E09000001","City of London","City of London School for Girls","100001","2016005","Total","A level","99","52.21","A+","97","z","z","z","z","z","0.15","0.27","0.04","Above average","z","z","z","z","z","z","z","z","z","z","z","z","z","z","z"
-"202324","Academic year","School","E92000001","England","Final","202","E09000007","Camden","Hampstead School","100052","2024275","Total","A level","156","26.57","C-","94","77.8","z","81","z","z","-0.18","-0.03","-0.34","Below average","z","z","z","z","z","z","z","z","z","z","z","z","z","z","z"
-"202324","Academic year","School","E92000001","England","Final","202","E09000007","Camden","Haverstock School","100049","2024104","Total","A level","125","30.15","C","88","96.4","z","83","z","z","-0.27","-0.12","-0.42","Below average","z","z","z","z","z","z","z","z","z","z","z","z","z","z","z"
-"202324","Academic year","School","E92000001","England","Final","202","E09000007","Camden","Maria Fidelis Catholic School FCJ","100055","2024652","Total","A level","73","27.35","C-","54","81.8","z","55","z","z","-0.11","0.08","-0.3","Average","z","z","z","z","z","z","z","z","z","z","z","z","z","z","z"
-"202324","Academic year","School","E92000001","England","Final","202","E09000007","Camden","Parliament Hill School","100050","2024166","Total","A level","194","38.39","B","145","98.7","z","156","z","z","-0.01","0.09","-0.11","Average","z","z","z","z","z","z","z","z","z","z","z","z","z","z","z"
-"202324","Academic year","School","E92000001","England","Final","206","E09000019","Islington","Highbury Fields School","100455","2064307","Total","A level","45","32.98","C+","31","97.0","z","33","z","z","-0.35","-0.13","-0.56","Below average","z","z","z","z","z","z","z","z","z","z","z","z","z","z","z"
-"202324","Academic year","School","E92000001","England","Final","210","E09000028","Southwark","Ark Walworth Academy","135315","2106909","Total","A level","115","33.79","C+","49","98.0","z","49","z","z","0.04","0.22","-0.13","Average","z","z","z","z","z","z","z","z","z","z","z","z","z","z","z"
-"202324","Academic year","School","E92000001","England","Final","211","E09000030","Tower Hamlets","Stepney All Saints Church of England Secondary School","100977","2114722","Total","A level","188","35.35","B-","103","96.1","z","103","z","z","0.02","0.14","-0.11","Average","z","z","z","z","z","z","z","z","z","z","z","z","z","z","z"
-"202324","Academic year","School","E92000001","England","Final","302","E09000003","Barnet","St Michael's Catholic Grammar School","101361","3025404","Total","A level","105","46.84","A-","101","98.1","z","105","z","z","0.31","0.43","0.18","Above average","z","z","z","z","z","z","z","z","z","z","z","z","z","z","z"
-"202324","Academic year","School","E92000001","England","Final","330","E08000025","Birmingham","Moseley School and Sixth Form","103519","3304245","Total","A level","111","30.36","C","78","87.5","z","56","z","z","-0.11","0.05","-0.27","Average","z","z","z","z","z","z","z","z","z","z","z","z","z","z","z"
-"202324","Academic year","School","E92000001","England","Final","333","E08000028","Sandwell","The Phoenix Collegiate","136091","3334028","Total","A level","151","30.07","C","94","95.8","z","71","z","z","-0.32","-0.17","-0.46","Below average","z","z","z","z","z","z","z","z","z","z","z","z","z","z","z"
-"202324","Academic year","School","E92000001","England","Final","383","E08000035","Leeds","Allerton Grange School","108058","3834040","Total","A level","146","29.75","C","137","100.0","z","133","z","z","0.01","0.13","-0.1","Average","z","z","z","z","z","z","z","z","z","z","z","z","z","z","z"
-"202324","Academic year","School","E92000001","England","Final","392","E08000022","North Tyneside","Burnside College","108640","3924032","Total","A level","67","35.25","B-","39","92.5","z","40","z","z","-0.06","0.14","-0.27","Average","z","z","z","z","z","z","z","z","z","z","z","z","z","z","z"
-"202324","Academic year","School","E92000001","England","Final","803","E06000025","South Gloucestershire","Brimsham Green School","109319","8034146","Total","A level","55","30.76","C","48","95.7","z","46","z","z","-0.23","-0.06","-0.41","Below average","z","z","z","z","z","z","z","z","z","z","z","z","z","z","z"
-"202324","Academic year","School","E92000001","England","Final","821","E06000032","Luton","Queen Elizabeth School","109707","8215403","Total","A level","z","z","z","z","z","z","z","z","z","z","z","z","z","z","z","z","z","z","z","z","z","z","z","z","z","z","z","z"
-"202324","Academic year","School","E92000001","England","Final","881","E10000012","Essex","The Basildon Upper Academy","135897","8816909","Total","A level","108","14.14","E+","45","83.7","z","43","z","z","-0.58","-0.32","-0.83","Below average","z","z","z","z","z","z","z","z","z","z","z","z","z","z","z"
+time_period,school_urn,disadvantage_status,exam_cohort,aps_per_entry_student_count,aps_per_entry,aps_per_entry_grade,best_three_alevels_aps,best_three_alevels_grade,aab_percent,value_added,value_added_lower_ci,value_added_upper_ci,progress_banding,retained_percent
+202425,100001,Total,Academic,96,51.60,A,z,z,z,0.12,0.01,0.24,Above average,z
+202425,100001,Total,A level,96,51.53,A,51.91,A+,70.8,0.12,0,0.24,Average,z
+202425,100001,Disadvantaged,A level,z,z,z,z,z,z,z,z,z,z,z
+202425,100052,Total,Academic,104,28.28,C-,z,z,z,-0.08,-0.22,0.06,Average,81.5
+202425,100052,Total,A level,100,28.67,C,29.36,C,9.6,-0.06,-0.2,0.08,Average,81.5
+202425,100052,Disadvantaged,A level,38,30.18,C,z,z,z,0.09,-0.15,0.32,z,77.8
+202425,100049,Total,Academic,87,32.52,C+,z,z,z,0.07,-0.08,0.22,Average,89.6
+202425,100049,Total,A level,87,32.52,C+,35.10,B-,14.3,0.07,-0.08,0.22,Average,89.6
+202425,100049,Disadvantaged,A level,53,34.26,C+,z,z,z,0.18,-0.03,0.38,z,88.9
+202425,100055,Total,Academic,60,26.65,C-,z,z,z,-0.25,-0.41,-0.09,Below average,86.0
+202425,100055,Total,A level,60,26.37,C-,26.90,C-,2.3,-0.27,-0.43,-0.11,Below average,86.0
+202425,100055,Disadvantaged,A level,23,24.15,D+,z,z,z,-0.24,-0.51,0.02,z,90.0
+202425,100050,Total,Academic,119,34.48,C+,z,z,z,-0.21,-0.32,-0.1,Below average,97.4
+202425,100050,Total,A level,114,34.45,C+,34.62,C+,5.9,-0.24,-0.35,-0.12,Below average,97.4
+202425,100050,Disadvantaged,A level,29,26.58,C-,z,z,z,-0.66,-0.91,-0.4,z,96.4
+202425,100455,Total,Academic,19,40.00,B,z,z,z,0.34,0.07,0.62,Above average,94.4
+202425,100455,Total,A level,19,40.00,B,40.78,B,17.6,0.34,0.07,0.62,Above average,94.4
+202425,100455,Disadvantaged,A level,c,c,c,z,z,z,0.29,-0.04,0.63,z,c
+202425,135315,Total,Academic,38,32.16,C+,z,z,z,-0.02,-0.22,0.18,Average,94.9
+202425,135315,Total,A level,38,32.16,C+,32.86,C+,11.4,-0.02,-0.22,0.18,Average,94.9
+202425,135315,Disadvantaged,A level,18,32.36,C+,z,z,z,0.12,-0.18,0.42,z,94.7
+202425,100977,Total,Academic,91,35.44,B-,z,z,z,-0.14,-0.27,-0.01,Below average,97.8
+202425,100977,Total,A level,91,35.44,B-,35.56,B-,12.2,-0.14,-0.27,-0.01,Below average,97.8
+202425,100977,Disadvantaged,A level,40,37.90,B-,z,z,z,0.07,-0.14,0.28,z,100.0
+202425,101361,Total,Academic,102,46.93,A-,z,z,z,0.11,-0.02,0.23,Average,100.0
+202425,101361,Total,A level,102,46.94,A-,47.03,A-,52.0,0.11,-0.02,0.23,Average,100.0
+202425,101361,Disadvantaged,A level,c,c,c,z,z,z,0.22,-0.46,0.89,z,100.0
+202425,103519,Total,Academic,75,27.64,C-,z,z,z,-0.06,-0.23,0.11,Average,75.6
+202425,103519,Total,A level,75,27.14,C-,32.14,C+,17.9,-0.09,-0.26,0.08,Average,75.6
+202425,103519,Disadvantaged,A level,34,27.52,C-,z,z,z,-0.11,-0.39,0.16,z,72.2
+202425,136091,Total,Academic,96,28.54,C,z,z,z,-0.48,-0.62,-0.33,Below average,100.0
+202425,136091,Total,A level,93,29.13,C,30.94,C,7.7,-0.45,-0.6,-0.3,Below average,100.0
+202425,136091,Disadvantaged,A level,31,29.27,C,z,z,z,-0.5,-0.79,-0.22,z,100.0
+202425,108058,Total,Academic,115,31.26,C,z,z,z,-0.06,-0.18,0.06,Average,92.3
+202425,108058,Total,A level,115,31.18,C,31.60,C,15.2,-0.04,-0.17,0.08,Average,92.3
+202425,108058,Disadvantaged,A level,20,24.51,D+,z,z,z,-0.66,-0.97,-0.34,z,89.5
+202425,108640,Total,Academic,17,39.78,B,z,z,z,0.48,0.19,0.77,Well above average,84.2
+202425,108640,Total,A level,17,39.78,B,37.14,B-,14.3,0.48,0.19,0.77,Well above average,84.2
+202425,108640,Disadvantaged,A level,c,c,c,z,z,z,0.4,-0.38,1.18,z,c
+202425,109319,Total,Academic,58,29.37,C,z,z,z,-0.47,-0.63,-0.31,Below average,91.5
+202425,109319,Total,A level,58,29.42,C,30.49,C,12.2,-0.45,-0.61,-0.29,Below average,91.5
+202425,109319,Disadvantaged,A level,c,c,c,z,z,z,-1.5,-2.28,-0.72,z,c
+202425,109707,Total,Academic,26,24.10,D+,z,z,z,-0.42,-0.7,-0.13,Below average,87.5
+202425,109707,Total,A level,26,24.11,D+,24.92,D+,0.0,-0.39,-0.68,-0.1,Below average,87.5
+202425,109707,Disadvantaged,A level,c,c,c,z,z,z,-1.11,-1.71,-0.5,z,c
+202425,135897,Total,Academic,69,17.00,D-,z,z,z,-0.83,-1.02,-0.64,Well below average,88.9
+202425,135897,Total,A level,69,16.91,D-,15.05,D-,3.0,-0.83,-1.03,-0.64,Well below average,88.9
+202425,135897,Disadvantaged,A level,19,16.89,D-,z,z,z,-0.69,-1.1,-0.28,z,100.0
+202324,100001,Total,A level,97,52.21,A+,z,z,z,0.15,0.04,0.27,Above average,z
+202324,100052,Total,A level,94,26.57,C-,z,z,z,-0.18,-0.34,-0.03,Below average,77.8
+202324,100049,Total,A level,88,30.15,C,z,z,z,-0.27,-0.42,-0.12,Below average,96.4
+202324,100055,Total,A level,54,27.35,C-,z,z,z,-0.11,-0.3,0.08,Average,81.8
+202324,100050,Total,A level,145,38.39,B,z,z,z,-0.01,-0.11,0.09,Average,98.7
+202324,100455,Total,A level,31,32.98,C+,z,z,z,-0.35,-0.56,-0.13,Below average,97.0
+202324,135315,Total,A level,49,33.79,C+,z,z,z,0.04,-0.13,0.22,Average,98.0
+202324,100977,Total,A level,103,35.35,B-,z,z,z,0.02,-0.11,0.14,Average,96.1
+202324,101361,Total,A level,101,46.84,A-,z,z,z,0.31,0.18,0.43,Above average,98.1
+202324,103519,Total,A level,78,30.36,C,z,z,z,-0.11,-0.27,0.05,Average,87.5
+202324,136091,Total,A level,94,30.07,C,z,z,z,-0.32,-0.46,-0.17,Below average,95.8
+202324,108058,Total,A level,137,29.75,C,z,z,z,0.01,-0.1,0.13,Average,100.0
+202324,108640,Total,A level,39,35.25,B-,z,z,z,-0.06,-0.27,0.14,Average,92.5
+202324,109319,Total,A level,48,30.76,C,z,z,z,-0.23,-0.41,-0.06,Below average,95.7
+202324,109707,Total,A level,z,z,z,z,z,z,z,z,z,z,z
+202324,135897,Total,A level,45,14.14,E+,z,z,z,-0.58,-0.83,-0.32,Below average,83.7
