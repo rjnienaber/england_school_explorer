@@ -1,5 +1,5 @@
 // The school popup: opened from the map, from a link and from the list; its groups; the lazily loaded detail.
-import { aPrimary, comparableSecondary, loadBuiltCore } from './support/data.ts';
+import { aPrimary, comparablePrimary, comparableSecondary, loadBuiltCore } from './support/data.ts';
 import { expect, test } from './support/fixtures.ts';
 
 const [school, other] = comparableSecondary();
@@ -30,6 +30,34 @@ test.describe('secondary', () => {
     await expect(groups.first()).toHaveJSProperty('open', false);
     await summary.click();
     await expect(groups.first()).toHaveJSProperty('open', true);
+  });
+
+  test('clicking a second dot with a popup open opens that school’s popup at once', async ({ explorer }) => {
+    await explorer.open();
+    await explorer.clickDot(school);
+    await explorer.detailsLoaded();
+    await explorer.clickDot(other);
+    await explorer.detailsLoaded();
+    await expect(explorer.popup).toHaveCount(1);
+    await expect(explorer.popup.getByRole('heading', { level: 3, name: other.name })).toBeVisible();
+  });
+
+  test('clicking empty map closes the popup, but clicking the open school’s own dot keeps it', async ({ explorer, page }) => {
+    await explorer.open();
+    await explorer.clickDot(school);
+    await explorer.detailsLoaded();
+    // Its own dot again: still open
+    const point = await page.evaluate(({ lng, lat }) => {
+      const { x, y } = window.__explorer!.map.project([lng, lat]);
+      const box = window.__explorer!.map.getCanvas().getBoundingClientRect();
+      return { x: box.left + x, y: box.top + y };
+    }, school);
+    await page.mouse.click(point.x, point.y);
+    await expect(explorer.popup).toBeVisible();
+    // Empty map (the isolated school has nothing within 400 m, so 150 px at zoom 14 away is clear)
+    await page.mouse.click(point.x, point.y + 150);
+    await expect(explorer.popup).toHaveCount(0);
+    expect(explorer.query().get('urn')).toBeNull();
   });
 
   test('the popup shows at once and the lazy detail fills in when it arrives', async ({ explorer }) => {
@@ -115,6 +143,16 @@ test.describe('primary', () => {
     await expect(explorer.popup).toContainText(/KS2/);
     // No secondary-only wording
     await expect(explorer.popup).not.toContainText(/Progress 8|Attainment 8/);
+  });
+
+  test('clicking a second dot with a popup open opens that school’s popup at once', async ({ explorer }) => {
+    const [first, second] = comparablePrimary();
+    await explorer.open('phase=primary');
+    await explorer.clickDot(first);
+    await explorer.detailsLoaded();
+    await explorer.clickDot(second);
+    await explorer.detailsLoaded();
+    await expect(explorer.popup.getByRole('heading', { level: 3, name: second.name })).toBeVisible();
   });
 
   test('every popup piece loads for a spread of primary schools', async ({ explorer }) => {

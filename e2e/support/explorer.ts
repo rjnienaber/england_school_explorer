@@ -143,13 +143,6 @@ export class Explorer {
     );
     const point = (await handle.jsonValue()) as { x: number; y: number };
     await this.page.mouse.click(point.x, point.y);
-    // With another school's popup already open, the map's own "click closes the popup" runs after ours and closes the new
-    // popup as well, so the dot needs a second click (a known quirk of the page, tracked in the final report of #48).
-    // The retry costs nothing once that is fixed.
-    const opened = await this.page
-      .waitForFunction((urn) => new URLSearchParams(location.search).get('urn') === String(urn), school.urn, { timeout: 1500 })
-      .then(() => true, () => false);
-    if (!opened) await this.page.mouse.click(point.x, point.y);
     await expect.poll(() => this.query().get('urn')).toBe(String(school.urn));
     await expect(this.popup).toBeVisible();
   }

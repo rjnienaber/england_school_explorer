@@ -187,7 +187,14 @@ map.addControl(new maplibregl.GeolocateControl({ fitBoundsOptions: { maxZoom: 12
 map.addControl(new maplibregl.ScaleControl({ unit: 'metric' }), 'bottom-right');
 
 const hoverTip = new maplibregl.Popup({ closeButton: false, closeOnClick: false, className: 'hover-tip', offset: 10 });
-const detailPopup = new maplibregl.Popup({ maxWidth: '340px', offset: 10, focusAfterOpen: false });
+const detailPopup = new maplibregl.Popup({
+  maxWidth: '340px',
+  offset: 10,
+  focusAfterOpen: false,
+  // The built-in close-on-click runs after the dot's click handler, so it would close the popup just opened for a second
+  // school. The map's click handler closes it instead, when the click is not on a dot.
+  closeOnClick: false,
+});
 detailPopup.on('close', () => {
   setSelected(null);
   setSheetOpen(false);
@@ -869,6 +876,12 @@ function bindMapEvents(): void {
   map.on('click', 'schools', (e: MapLayerMouseEvent) => {
     const urn = e.features?.[0]?.properties.urn as number | undefined;
     if (urn !== undefined) openSchool(urn);
+  });
+
+  // A click on empty map closes the popup (a click on a dot is handled above, and replaces it)
+  map.on('click', (e) => {
+    if (!detailPopup.isOpen()) return;
+    if (map.queryRenderedFeatures(e.point, { layers: ['schools'] }).length === 0) detailPopup.remove();
   });
 
   map.on('moveend', renderLegendAndList);
