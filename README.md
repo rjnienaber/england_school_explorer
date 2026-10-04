@@ -65,7 +65,7 @@ All are published under the [Open Government Licence v3.0](https://www.nationala
 | Source | Used for | Notes |
 | --- | --- | --- |
 | [Get Information About Schools: daily extract of every establishment](https://get-information-schools.service.gov.uk/), Department for Education (OGL v3) | Location, type, status, age range, gender, sixth form, admissions policy, religion, trust, website | Updated daily. Windows-1252. Gives British National Grid easting/northing, which are converted to WGS84 with `proj4`. |
-| [DfE key stage 4 performance, institution-level data set](https://explore-education-statistics.service.gov.uk/find-statistics/key-stage-4-performance), Department for Education (OGL v3) | Attainment 8, Progress 8 with confidence intervals, English and maths grade 5+, EBacc entry, cohort size, % disadvantaged | Updated annually (provisional in autumn, revised in spring). Three years per file (currently 2022/23 to 2024/25). `z` and `c` mark missing or suppressed values. The older compare-school-performance download blocks scripted access. |
+| [DfE key stage 4 performance, institution-level data set](https://explore-education-statistics.service.gov.uk/find-statistics/key-stage-4-performance), Department for Education (OGL v3) | Attainment 8, Progress 8 with confidence intervals, English and maths grade 5+ and 4+, average English and maths grades, EBacc entry, cohort size, % disadvantaged | Updated annually (provisional in autumn, revised in spring). Three years per file (currently 2022/23 to 2024/25). `z` and `c` mark missing or suppressed values. The older compare-school-performance download blocks scripted access. |
 | [Ofsted monthly management information: state-funded schools, latest inspections](https://www.gov.uk/government/statistical-data-sets/monthly-management-information-ofsteds-school-inspections-outcomes), Ofsted (OGL v3) | Inspection outcomes | Updated monthly. Windows-1252. The latest file is found through the GOV.UK content API. Doesn't cover independent schools (most are inspected by the ISI). |
 <!-- sources:end -->
 
@@ -218,6 +218,13 @@ resit and sixth-form threshold), 5+ GCSEs at grade 4+ including English and math
 passes including English and maths", the old headline), and the EBacc achieved at grade 4+ and 5+.
 All are shares of the whole year group, not just those entering. Independent schools often show 0%
 or low figures because IGCSEs don't count.
+
+**English and maths grades** (popup only, derived from official figures). One row in the GCSE
+results: the average grade (1-9) in English and in maths across the year group. DfE publishes each
+as Attainment 8 points over two slots (English and maths are double-weighted), so we halve them to
+get a grade; English and maths plus the EBacc and open slots add up to the Attainment 8 score.
+Independent and special schools often have no figure, because IGCSEs don't count and a published
+0 means "no counted results", which we treat as missing.
 
 **Curriculum** (popup and a filter, official figures). A "Curriculum" section with the share of
 the year group entered for triple science, a language, more than one language, and history or
