@@ -1,0 +1,39 @@
+time_period,school_urn,breakdown,subject,expected_standard_pupil_percent,higher_standard_pupil_percent,average_scaled_score,progress_measure_score,progress_measure_lower_conf_interval,progress_measure_upper_conf_interval
+202425,900001,Total,"Reading, writing and maths",71,12,z,z,z,z
+202425,900001,Total,Reading,75,20,106,z,z,z
+202425,900001,Total,Writing,78,10,z,z,z,z
+202425,900001,Total,Maths,80,15,105,z,z,z
+202324,900001,Total,"Reading, writing and maths",64,8,z,z,z,z
+202324,900001,Total,Reading,70,18,104,z,z,z
+202324,900001,Total,Writing,72,9,z,z,z,z
+202324,900001,Total,Maths,75,12,103,z,z,z
+202223,900001,Total,"Reading, writing and maths",60,6,z,z,z,z
+202223,900001,Total,Reading,z,z,103,-1.2,-3.5,1.1
+202223,900001,Total,Writing,z,z,z,0.5,-1.9,2.9
+202223,900001,Total,Maths,z,z,102,2.1,-0.2999999999999998,4.5
+202425,900003,Total,"Reading, writing and maths",84,30,z,z,z,z
+202425,900003,Total,Reading,90,40,108,z,z,z
+202425,900003,Total,Writing,88,22,z,z,z,z
+202425,900003,Total,Maths,91,35,108,z,z,z
+202324,900003,Total,"Reading, writing and maths",80,25,z,z,z,z
+202324,900003,Total,Reading,85,35,107,z,z,z
+202324,900003,Total,Writing,84,20,z,z,z,z
+202324,900003,Total,Maths,88,30,107,z,z,z
+202223,900003,Total,"Reading, writing and maths",78,22,z,z,z,z
+202223,900003,Total,Reading,z,z,107,3.0,0.6000000000000001,5.4
+202223,900003,Total,Writing,z,z,z,2.8,0.3999999999999999,5.199999999999999
+202223,900003,Total,Maths,z,z,107,4.0,1.6,6.4
+202425,900007,Total,"Reading, writing and maths",55,5,z,z,z,z
+202425,900007,Total,Reading,60,12,102,z,z,z
+202425,900007,Total,Writing,62,6,z,z,z,z
+202425,900007,Total,Maths,66,9,101,z,z,z
+202324,900007,Total,"Reading, writing and maths",50,c,z,z,z,z
+202324,900007,Total,Reading,c,c,c,z,z,z
+202324,900007,Total,Writing,c,c,z,z,z,z
+202324,900007,Total,Maths,c,c,c,z,z,z
+202425,900001,3 year average,"Reading, writing and maths",66,9,z,z,z,z
+202425,900003,3 year average,"Reading, writing and maths",81,26,z,z,z,z
+202425,900007,3 year average,"Reading, writing and maths",52,5,z,z,z,z
+202425,900002,Total,"Reading, writing and maths",0,0,z,z,z,z
+202324,900002,Total,"Reading, writing and maths",0,0,z,z,z,z
+202223,900002,Total,"Reading, writing and maths",0,0,z,z,z,z
