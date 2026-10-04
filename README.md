@@ -202,6 +202,11 @@ see how children like theirs do. Bands use the same confidence-interval rule as 
 It needs KS2 results, so it shows 2023/24 (the latest with data) even where the GCSE results
 are newer, and groups of a few pupils are noisy or hidden when suppressed.
 
+**Boys and girls** (popup only, official figures). One row in the GCSE results: Attainment 8
+for boys and for girls, with pupil numbers. Only mixed schools with at least 10 boys and 10
+girls in the year group; single-sex schools show nothing. Small groups swing a lot from year
+to year, so treat differences of a point or two as noise.
+
 The list of schools in view ranks by the current mode. Differences between neighbouring
 schools in the list are usually not meaningful.
 
