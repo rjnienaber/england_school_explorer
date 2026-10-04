@@ -26,7 +26,7 @@ const section = (phase: Phase): PopupSectionDef => ({
     const lines: [string, string, string | null][] = [];
     if (p.censusPupils !== null) lines.push(['Pupils on roll', p.censusPupils.toLocaleString('en-GB'), typical('censusMedianPupils')]);
     for (const [label, value, key] of shares) if (value !== null) lines.push([label, fmt(value, 1, '%'), typical(key)]);
-    return h.html`${h.table(['', 'This school', `Typical ${phase}`], lines)}${h.note(`Whole school, all year groups. Free school meals means eligible on census day, whether or not the pupil takes the meal. These describe the pupils, not how good the school is; a school with many pupils from low-income families can do very well. ${phase === 'secondary' ? 'There is no school-level SEN figure in the open DfE data. ' : 'SEN for the Year 6 pupils is shown separately. '}Typical is the median state ${phase}.`)}`;
+    return h.html`${h.table(['', 'This school', `Typical ${phase}`], lines)}${h.note(`Whole school, all year groups. Free school meals means eligible on census day, whether or not the pupil takes the meal. These describe the pupils, not how good the school is; a school with many pupils from low-income families can do very well. Typical is the median state ${phase}.`)}`;
   },
 });
 

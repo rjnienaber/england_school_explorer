@@ -9,7 +9,7 @@
 //   - ks4-disadvantaged covers the GCSE year group and a wider definition (also includes children in care).
 //     `fsmPct` is the whole school, for every school in the census.
 //   - GIAS `PercentageFSM` is only filled for a subset of schools and can be older, so it is not used.
-// SEN shares are not here: no open school-level source exists (see the source notes).
+// SEN shares are not here: they come from a different file (see the sen-pupils module).
 
 import { defineDimension } from '../../lib/dimension.ts';
 import { loadCensus, type CensusRow } from './parse.ts';

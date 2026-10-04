@@ -13,7 +13,7 @@ export const sources: SourceDef[] = [
     notes:
       'The full file is 2.8 GB (every school of every phase, with ethnicity, age and year-group breakdowns), so only the rows used are fetched through the DfE statistics API (about 6 MB, three-quarters of it primary schools): ' +
       'state-funded primary and secondary and independent schools, whole-school totals. The latest census only. Percentages are suppressed (`x`) where numbers are very small. ' +
-      'There is no school-level SEN data in the open DfE statistics (the Special educational needs in England data sets stop at local authority level), so SEN is not shown.',
+      'SEN shares are in the `sen-pupils` module, from a different file.',
     // "School level" in Schools, pupils and their characteristics. The API data-set id stays the same from census to census
     // (the query uses the latest version), unlike the catalogue file id, which changes with each release. If it ever
     // does change, find it with `curl https://api.education.gov.uk/statistics/v1/publications/a91d9e05-be82-474c-85ae-4913158406d0/data-sets`
