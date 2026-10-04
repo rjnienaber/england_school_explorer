@@ -503,6 +503,10 @@ plumbing to `web/main.ts`.
 - `fitToSchools` and `syncUrl` are internal to `main.ts`; a module only needs to add the chip filter. The value's
   format is yours (trust: a trust code; similar: URNs joined by `-`; compare: URNs joined by `,`). Cache the parsed
   set in a `Map` as `similar-schools/web.ts` and `compare/web.ts` do, because `test` runs once per school on each redraw.
+- A value that needs a detail field can keep the link short with two optional members of the chip filter:
+  `resolve(value, load)` completes a short link value at start-up (and in `setFocus`), where `load(urn)` fetches that
+  school's detail shard and returns its record, and `urlValue(value)` gives the short form `syncUrl` writes. A full
+  value must pass through `resolve` unchanged, so old links keep working. `similar-schools` uses both: `?similar=<urn>`.
 
 **The similar-schools set.** `dimensions/similar-schools/shared.ts` is browser-safe and shared by that module's
 build and web code and by `compare`. A school's `similarUrns` field holds the URNs of its nearest schools joined by

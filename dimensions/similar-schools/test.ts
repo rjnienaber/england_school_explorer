@@ -103,3 +103,26 @@ test('popup section: places and a button; nothing without a group', () => {
   assert.match(html, /See the 2 similar schools/);
   assert.doesNotMatch(html, /Persistent absence/);
 });
+
+test('short links: ?similar=<urn> is completed from that school, old long links are kept, and the address gets the short form', async () => {
+  const f = filters[0] as ChipFilter;
+  const loaded: number[] = [];
+  const load = async (urn: number) => {
+    loaded.push(urn);
+    return urn === 5 ? school({ urn, similarUrns: '6-7' }) : undefined;
+  };
+  assert.equal(await f.resolve!('5', load), '5-6-7');
+  assert.deepEqual(loaded, [5]);
+  // An old link already has the full set: nothing is fetched and it is kept as it is
+  assert.equal(await f.resolve!('5-6-7', load), '5-6-7');
+  assert.equal(await f.resolve!('5-9', load), '5-9');
+  assert.deepEqual(loaded, [5]);
+  // A school with no similar schools, an unknown school and junk
+  assert.equal(await f.resolve!('8', load), '8');
+  assert.equal(await f.resolve!('junk', load), 'junk');
+  assert.equal(await f.resolve!('05', load), '05');
+  assert.equal(f.urlValue!('5-6-7'), '5');
+  assert.equal(f.urlValue!('5'), '5');
+  // The short value written by the address resolves back to what the popup button sets
+  assert.equal(await f.resolve!(f.urlValue!(similarFocusValue(5, '6-7')), load), similarFocusValue(5, '6-7'));
+});

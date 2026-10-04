@@ -469,7 +469,9 @@ this map. The address carries the view (`?trust=5143`, `?urn=135315`), so it can
 popup says where it stands among its similar schools ("Attainment 8: 4th of 21; persistent absence, lowest
 first: 7th of 21") and offers "See the 20 similar schools on the map", which shows only those schools,
 fits the map to them and puts a "Similar to: X ✕" chip at the top of the panel with this school's figures
-beside the median of the others. A school's similar schools are the 20 state-funded schools that are the
+beside the median of the others. The link is short, `?similar=<urn>`: on opening, the page reads that
+school's similar set from its detail data, and an old long link (`?similar=<urn>-<20 urns>`) still works and is
+rewritten short. A school's similar schools are the 20 state-funded schools that are the
 same kind (selective or not, and boys-only, girls-only or mixed) and closest to it on the share of
 disadvantaged pupils, English as an additional language, low and high prior attainers (the same intake
 figures as Results vs intake) and size (the number of pupils, on a log scale), plus a fixed penalty for
@@ -580,7 +582,7 @@ measure says what it is. Differences from secondary:
   school from its intake and on probabilities from their standard errors. Primary has no such measure, so ranking
   two primaries on raw KS2 results would say more about their pupils than about the schools, and the comparison is
   hidden (a note in "About the data" explains why). Phases never share a shortlist: the shortlist and the
-  similar-schools lists are loaded only in secondary, a `?compare=` link without a phase opens in secondary, and switching phase
+  similar-schools lists are loaded only in secondary, a `?compare=` or `?similar=` link without a phase opens in secondary, and switching phase
   starts a clean view.
 - **Which schools.** The open, state-funded mainstream schools GIAS lists as Primary or Middle deemed primary
   (about 16,700). Independent primaries, nurseries and special schools are not on the map. Missing values (for

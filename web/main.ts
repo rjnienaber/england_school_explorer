@@ -30,7 +30,9 @@ function readPhase(): Phase {
   const fromUrl = new URLSearchParams(location.search).get('phase');
   if (isPhase(fromUrl)) return fromUrl;
   // Shortlists exist only in the default phase, so a shared ?compare= link opens there whatever phase was last used
-  if (new URLSearchParams(location.search).has('compare')) return DEFAULT_PHASE;
+  // (the same goes for ?similar=)
+  const query = new URLSearchParams(location.search);
+  if (query.has('compare') || query.has('similar')) return DEFAULT_PHASE;
   try {
     const saved = localStorage.getItem(PHASE_KEY);
     if (isPhase(saved)) return saved;
@@ -369,12 +371,23 @@ function fitToSchools(schools: SchoolFeature[]): void {
 /** The schools a focus filter selects, whatever the other filters say. */
 const focusSet = (chip: ChipFilter, value: string) => data.features.filter((f) => chip.test(f.properties, value));
 
+/** Completes a short link value (see `ChipFilter.resolve`), reading the school's detail shard if needed. */
+async function resolveFocus(chip: ChipFilter, value: string): Promise<string> {
+  if (!chip.resolve) return value;
+  return chip.resolve(value, async (urn) => {
+    if (!data.byUrn.has(urn)) return undefined;
+    await data.getDetails(urn);
+    return data.byUrn.get(urn)?.properties;
+  });
+}
+
 /**
  * Turns a focus filter on (`value`) or off (''), then fits the map to its schools. A value that matches no school
  * (an old link) is ignored. Called by popup buttons (`h.filterButton`) and the chip's ✕.
  */
 async function setFocus(chip: ChipFilter, value: string): Promise<void> {
   if (value) {
+    value = await resolveFocus(chip, value);
     // The test reads fields that may not be loaded yet
     await data.ensureFields(data.viewFields(wanted.id, { [chip.id]: value }));
     if (focusSet(chip, value).length === 0) return;
@@ -439,7 +452,7 @@ function syncUrl(): void {
   // Secondary is the default, so its links stay as they always were
   params.delete('phase');
   if (PHASE !== DEFAULT_PHASE) params.set('phase', PHASE);
-  for (const chip of CHIPS) if (activeFilters[chip.id]) params.set(chip.id, activeFilters[chip.id] as string);
+  for (const chip of CHIPS) if (activeFilters[chip.id]) params.set(chip.id, chip.urlValue?.(activeFilters[chip.id] as string) ?? (activeFilters[chip.id] as string));
   if (selectedUrn !== null) params.set('urn', String(selectedUrn));
   // Commas stay readable in a shared link (?compare=1,2,3)
   const query = params.toString().replaceAll('%2C', ',');
@@ -893,7 +906,7 @@ async function main(): Promise<void> {
   const params = new URLSearchParams(location.search);
   for (const chip of CHIPS) {
     const value = params.get(chip.id);
-    if (value) filters[chip.id] = value;
+    if (value) filters[chip.id] = await resolveFocus(chip, value).catch(() => value);
   }
   // A saved mode or filter needs its columns before the first draw
   await data.ensureFields(data.viewFields(mode.id, inUse(filters)));
@@ -911,6 +924,8 @@ async function main(): Promise<void> {
   else map.once('load', () => !map.getSource('schools') && addLayers());
   renderLegendAndList();
   renderFocus();
+  // Rewrites an old long link in its short form
+  syncUrl();
 
   startExtensions();
 

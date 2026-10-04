@@ -1,6 +1,6 @@
 import { median, type FilterDef, type PopupSectionDef, type RowEntry, type School } from '../../web/toolkit.ts';
 import { MEASURE_LABELS, SIMILAR_COUNT } from './model.ts';
-import { parseSimilar, rankAmong, similarFocusValue } from './shared.ts';
+import { parseSimilar, rankAmong, resolveSimilar, similarFocusValue, similarUrlValue } from './shared.ts';
 
 const METHOD =
   'This is our own grouping, not an official one. A school’s similar schools are the ' +
@@ -59,6 +59,8 @@ export const filters: FilterDef[] = [
         return h.html`${h.rows(entries.filter(([, v]) => v !== null))}${h.note(METHOD)}`;
       },
     },
+    resolve: resolveSimilar,
+    urlValue: similarUrlValue,
     default: '',
     test: (p, value) => !value || urnsIn(value).has(p.urn),
   },

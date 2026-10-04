@@ -124,6 +124,15 @@ export interface ChipFilter extends FilterBase {
     /** Optional block under the chip. Return null for nothing. */
     summary?: (schools: School[], value: string, h: Helpers, meta?: Metadata) => Html | null;
   };
+  /**
+   * Optional: turns the value of a short link into the full value `test` needs, once at start-up, before anything
+   * reads the filter. A link such as `?similar=<urn>` can carry just a key, with the rest (which is only in a
+   * school's detail shard) looked up here. `load` fetches a school's detail shard and returns its full record.
+   * Must keep a full value as it is (old long links), and may return `value` unchanged if it can't resolve it.
+   */
+  resolve?: (value: string, load: (urn: number) => Promise<School | undefined>) => Promise<string>;
+  /** Optional: the shorter form of the value that goes in the address (`?<id>=...`). Default: the value as it is. */
+  urlValue?: (value: string) => string;
   /** Always '' (no focus). */
   default: '';
   /** True to keep the school. Called with '' when the focus is off, and must keep everything then (without reading any field). */
