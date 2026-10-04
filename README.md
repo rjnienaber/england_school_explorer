@@ -72,7 +72,7 @@ All are published under the [Open Government Licence v3.0](https://www.nationala
 | --- | --- | --- |
 | [Get Information About Schools: daily extract of every establishment](https://get-information-schools.service.gov.uk/), Department for Education (OGL v3) | Location, type, pupils on roll, capacity, status, age range, gender, sixth form, admissions policy, religion, religious ethos and diocese, trust (name and code), website, SEN units and resourced provision, urban or rural area, boarding schools, opening date and reason | Updated daily. Windows-1252. Only open establishments and the columns the modules read are kept (the extract is about 65 MB; about 10 MB is stored). Gives British National Grid easting/northing, which are converted to WGS84 with `proj4`. |
 | [DfE pupil absence in schools in England, absence rates by school](https://explore-education-statistics.service.gov.uk/find-statistics/pupil-absence-in-schools-in-england), Department for Education (OGL v3) | Overall, unauthorised, persistent (10%+ of sessions) and severe (50%+) absence rates, with pupil numbers | Updated annually (full academic year, published in the spring). All academic years since 2013/14 in one file (about 120 MB), currently to 2024/25; only the latest year is used. The download is filtered as it arrives: only the latest year, State-funded secondary rows and the columns read are stored. State-funded schools only. Missing values are suppressed (`x`). |
-| [DfE Schools, pupils and their characteristics (January school census), school level](https://explore-education-statistics.service.gov.uk/find-statistics/school-pupils-and-their-characteristics), Department for Education (OGL v3) | Pupils on roll, free school meals eligibility and pupils with English as an additional language, whole school | Updated annually (January census, published in June). The full file is 2.8 GB (every school of every phase, with ethnicity, age and year-group breakdowns), so only the rows used are fetched through the DfE statistics API (about 1 MB): state-funded secondary and independent schools, whole-school totals. The latest census only. Percentages are suppressed (`x`) where numbers are very small. There is no school-level SEN data in the open DfE statistics (the Special educational needs in England data sets stop at local authority level), so SEN is not shown. |
+| [DfE Schools, pupils and their characteristics (January school census), school level](https://explore-education-statistics.service.gov.uk/find-statistics/school-pupils-and-their-characteristics), Department for Education (OGL v3) | Pupils on roll, free school meals eligibility and pupils with English as an additional language, whole school (the latter also feeds the expected score in Results vs intake) | Updated annually (January census, published in June). The full file is 2.8 GB (every school of every phase, with ethnicity, age and year-group breakdowns), so only the rows used are fetched through the DfE statistics API (about 1 MB): state-funded secondary and independent schools, whole-school totals. The latest census only. Percentages are suppressed (`x`) where numbers are very small. There is no school-level SEN data in the open DfE statistics (the Special educational needs in England data sets stop at local authority level), so SEN is not shown. |
 | [English Indices of Deprivation 2025: all ranks, scores and deciles for each small area (LSOA)](https://www.gov.uk/government/statistics/english-indices-of-deprivation-2025), Ministry of Housing, Communities and Local Government (OGL v3) | Area deprivation (income deprivation affecting children, IDACI) of the neighbourhood each school is in | Updated every few years (previous edition 2019). About 10 MB, of which three columns are kept. Joined to schools through the LSOA (2021) code in the school register. England only. |
 | [DfE key stage 4 destination measures, institution level](https://explore-education-statistics.service.gov.uk/find-statistics/key-stage-4-destination-measures), Department for Education (OGL v3) | Where Year 11 leavers went next: school sixth form, sixth form college, FE college, apprenticeship, work | Updated annually (about two years behind: leavers of year X are published around October of X+2). Several leaver years in one file (about 38 MB), currently 2020/21 to 2022/23; only the latest is used, and only the all-pupils rows (the download is filtered to those as it arrives). Small cohorts are suppressed (`c`). |
 | [DfE suspensions and permanent exclusions in England, school level](https://explore-education-statistics.service.gov.uk/find-statistics/suspensions-and-permanent-exclusions-in-england), Department for Education (OGL v3) | Suspension rate, pupils suspended at least once and permanent exclusions, with pupil numbers | Updated annually (full academic year, published in the summer, a year behind). All academic years since 2006/07 in one file (about 85 MB), currently to 2024/25; only the latest year is used. The download is filtered as it arrives and stopped once the latest year has been read (the file lists the newest year first). State-funded schools only. Rates are suppressed (`x`) for schools with no pupils on roll. |
@@ -177,14 +177,78 @@ above or below average only if its whole 95% confidence interval is. "Well above
 below" also needs the score to be at least ±0.5. The popup shows the interval. About 28%
 of intervals cross zero, so many apparent differences are noise. P8 isn't published for
 2024/25 or 2025/26 because those cohorts had no KS2 tests during COVID, so the latest is
-2023/24.
+2023/24. The map and popup say so, and point to Results vs intake (below), the nearest
+intake-adjusted measure for those years.
 
-**Results vs intake** (our own estimate). Attainment 8 minus the score predicted from the
-cohort's share of disadvantaged pupils. The prediction is a straight-line fit across
-non-selective state schools, fitted for each year: currently Att8 ≈ 53.3 − 0.26 × %
-disadvantaged, r = −0.50. Shown as a percentile among state schools. This is a rough,
-contextual measure that covers years without P8. Grammar schools score highly because
-their intake is selected on prior attainment, which the model doesn't see.
+**Results vs intake** (our own estimate). Attainment 8 minus the Attainment 8 expected for the
+school's intake, shown as a percentile among state schools. It is the only recent measure that
+allows for intake: Progress 8 is not published for 2024/25 (the file has no Progress 8 values at
+all for that year, and DfE's own tables show only Attainment 8) and will not be for 2025/26,
+because those pupils sat no KS2 tests during COVID. The latest Progress 8 is 2023/24.
+
+*Method.* For each GCSE year, a multiple linear regression (ordinary least squares) of
+Attainment 8 on six intake factors, fitted across non-selective state-funded mainstream schools.
+The expected score is the fitted value; the result is `actual - expected`, in Attainment 8
+points. The factors:
+
+| Factor | Source | Effect on Attainment 8, 2024/25 |
+| --- | --- | --- |
+| % disadvantaged pupils in the GCSE year | KS4 file | -0.17 points per percentage point |
+| % pupils with English as an additional language (whole school) | school census | +0.10 per percentage point |
+| % low prior attainers | KS4 file | -0.15 per percentage point |
+| % high prior attainers | KS4 file | +0.38 per percentage point |
+| girls-only school | school register | +3.5 points |
+| boys-only school | school register | +1.9 points |
+
+Fitted on 2,903 schools. It explains 60.5% of the variation in Attainment 8 between schools
+(R² = 0.605, residual standard error 4.5 points), against 24.6% (R² = 0.246) for the previous
+model, which used % disadvantaged alone, on the same schools. In standardised terms (effect of a one
+standard deviation change) the share of high prior attainers matters most, then % disadvantaged,
+then English as an additional language, then % low prior attainers. The build prints every
+fit and puts the latest year's R² and coefficients in the data's metadata (`intakeModel`).
+
+*Choices.*
+- **Prior attainment is last year's mix.** It needs KS2 results, which the 2024/25 cohort never
+  sat, so each school's mix comes from the latest year that has one (2023/24). A school's intake
+  changes slowly, and using it still lifts R² from 0.40 to 0.61 for 2024/25 (checked). It is a
+  stand-in, so a school whose intake changed sharply will be mis-scored.
+- **Area deprivation (IDACI) was tested and left out.** On top of % disadvantaged it adds
+  nothing (R² unchanged to three decimals with or without prior attainment; +0.005 with only
+  the other non-prior factors) and its sign is unstable, so it would only make the score harder
+  to interpret. Free school meals % from the census was also left out: it raises R² by 0.003
+  (0.605 to 0.608) because it largely repeats % disadvantaged.
+- **Girls-only and boys-only schools** are adjusted for because girls score higher at GCSE
+  nationally. This adds about 0.01 of R² on top of the prior-attainment model (0.03 without it),
+  so it is a modest term. Single-sex schools can differ in other ways too, which end up in the
+  coefficients.
+- **Selective schools** are left out of the fit (about 160 grammar schools) but still scored.
+  They score highly by design: their intake is selected on ability, which the model only sees
+  partly through prior attainment. They are not given a "selective" term, so they are not
+  compared with other grammar schools.
+- **Special educational needs** is not used: DfE publishes no school-level SEN figures for
+  secondary schools.
+- **Fallbacks.** A school missing an input is scored with the richest model it has all the
+  inputs for, never dropped: "full" (above), then "without prior attainment" (3,042 schools,
+  R² = 0.398 against 0.251 for % disadvantaged alone), then "basic" (% disadvantaged only).
+  In 2024/25, 2,903 schools use the full model, 303 the second and 2 the basic one. The model
+  used is stored for each school.
+
+*Uncertainty.* Each school also has a standard error (`att8VsIntakeSe`, Attainment 8 points):
+
+`SE = sqrt(14.5^2 / pupils in year group + residual SE^2 * leverage)`
+
+The first term is chance variation: a year group is a sample of the pupils the school could
+have had, and one pupil's score varies around the school average with a standard deviation of
+about 14.5 points (taken from the spread implied by DfE's Progress 8 confidence intervals,
+which is almost the same for every school). The second term is uncertainty in the expected
+score, which is small except for schools that look very unlike the others. It is stored
+alongside `att8VsIntake`, so the value is approximately normal with that standard error,
+which is all that is needed for P(A > B) = Phi((A - B) / sqrt(SE_A^2 + SE_B^2)). Standard errors run
+from 0.7 to 4 points, with a median of 1.1. It does not include intake differences
+the model cannot see (the residual standard error of 4.5 points is much larger than the
+chance part), so it is a lower bound on the real uncertainty, and the percentile has no
+margin of its own. The popup shows 1.96 x SE as "Margin of error", and says it covers chance
+only.
 
 **Attainment 8**. The raw average GCSE points across eight subjects, as a percentile among
 state schools. It is the most stable measure year to year (r = 0.97), but it mostly

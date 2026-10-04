@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
 import type { Scope } from './dimension.ts';
-import { linearFit, makeStatsToolkit, mean, median, percentileRanker, round } from './stats.ts';
+import { linearFit, makeStatsToolkit, mean, median, multipleFit, percentileRanker, round } from './stats.ts';
 
 test('percentileRanker gives ties the middle rank', () => {
   const rank = percentileRanker([1, 2, 3, 4, 5]);
@@ -47,4 +47,39 @@ test('the toolkit only ranks state schools, and can flip direction', () => {
   assert.equal(rank(30), 83);
   const lowIsGood = stats.percentileAmongState(population, { higherIsBetter: false });
   assert.equal(lowIsGood(10), 83);
+});
+
+test('multipleFit recovers a known plane, its R² and its leverage', () => {
+  // y = 2 + 3a - 1b, then a fixed wobble of ±0.5
+  const x: number[][] = [];
+  const y: number[] = [];
+  for (let i = 0; i < 40; i++) {
+    const a = i % 8;
+    const b = (i * 7) % 11;
+    x.push([a, b]);
+    y.push(2 + 3 * a - b + (i % 2 ? 0.5 : -0.5));
+  }
+  const fit = multipleFit(x, y);
+  assert.ok(Math.abs(fit.coefficients[0] - 3) < 0.1);
+  assert.ok(Math.abs(fit.coefficients[1] + 1) < 0.1);
+  assert.ok(Math.abs(fit.intercept - 2) < 0.3);
+  assert.ok(fit.r2 > 0.98 && fit.r2 < 1);
+  assert.ok(fit.adjR2 < fit.r2);
+  assert.ok(Math.abs(fit.rse - 0.5) < 0.1);
+  assert.ok(fit.standardised[0] > 0 && fit.standardised[1] < 0);
+  assert.ok(Math.abs(fit.predict([4, 5]) - (2 + 12 - 5)) < 0.3);
+  // A point far from the others has higher leverage; the leverages of the data sum to the parameter count
+  assert.ok(fit.leverage([50, 50]) > fit.leverage([4, 5]));
+  assert.ok(Math.abs(x.reduce((s, row) => s + fit.leverage(row), 0) - 3) < 1e-6);
+});
+
+test('multipleFit with one predictor agrees with linearFit; collinear or too little data throws', () => {
+  const points: [number, number][] = [[1, 2], [2, 4.5], [3, 5], [4, 8.5], [5, 9]];
+  const one = linearFit(points);
+  const many = multipleFit(points.map(([a]) => [a]), points.map(([, b]) => b));
+  assert.ok(Math.abs(many.coefficients[0] - one.slope) < 1e-9);
+  assert.ok(Math.abs(many.intercept - one.intercept) < 1e-9);
+  assert.ok(Math.abs(Math.sqrt(many.r2) - one.r) < 1e-9);
+  assert.throws(() => multipleFit([[1, 2], [2, 4], [3, 6], [4, 8], [5, 10]], [1, 2, 3, 5, 4]), /collinear/);
+  assert.throws(() => multipleFit([[1, 2], [2, 3]], [1, 2]), /too few/);
 });

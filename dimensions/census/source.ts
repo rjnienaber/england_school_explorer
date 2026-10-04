@@ -9,7 +9,7 @@ export const sources: SourceDef[] = [
     publisher: 'Department for Education',
     licence: 'OGL v3',
     updated: 'annually (January census, published in June)',
-    usedFor: 'Pupils on roll, free school meals eligibility and pupils with English as an additional language, whole school',
+    usedFor: 'Pupils on roll, free school meals eligibility and pupils with English as an additional language, whole school (the latter also feeds the expected score in Results vs intake)',
     notes:
       'The full file is 2.8 GB (every school of every phase, with ethnicity, age and year-group breakdowns), so only the rows used are fetched through the DfE statistics API (about 1 MB): ' +
       'state-funded secondary and independent schools, whole-school totals. The latest census only. Percentages are suppressed (`x`) where numbers are very small. ' +

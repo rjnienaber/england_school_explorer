@@ -39,6 +39,96 @@ export function linearFit(points: [x: number, y: number][]): { intercept: number
   return { intercept: meanY - slope * meanX, slope, r: sxy / Math.sqrt(sxx * syy) };
 }
 
+export interface MultipleFit {
+  /** Fitted value for one school's predictors (same order as the fitted columns). */
+  predict(x: number[]): number;
+  /** Raw-unit coefficients, one per predictor, and the intercept. */
+  intercept: number;
+  coefficients: number[];
+  /** Effect on y of a one standard deviation rise in each predictor (comparable across predictors). */
+  standardised: number[];
+  /** Share of the variance in y explained (0-1), and the same adjusted for the number of predictors. */
+  r2: number;
+  adjR2: number;
+  /** Residual standard error: the typical size of a miss, in the units of y. */
+  rse: number;
+  n: number;
+  /** Leverage of a point: how far its predictors are from the typical school's (the variance of its fitted value is rse² × this). */
+  leverage(x: number[]): number;
+}
+
+/** Inverts a small symmetric positive-definite matrix by Gauss-Jordan elimination. */
+function invert(m: number[][]): number[][] {
+  const k = m.length;
+  const a = m.map((row, i) => [...row, ...Array.from({ length: k }, (_, j) => (i === j ? 1 : 0))]);
+  for (let col = 0; col < k; col++) {
+    let pivot = col;
+    for (let r = col + 1; r < k; r++) if (Math.abs(a[r][col]) > Math.abs(a[pivot][col])) pivot = r;
+    if (Math.abs(a[pivot][col]) < 1e-12) throw new Error('multipleFit: predictors are collinear');
+    [a[col], a[pivot]] = [a[pivot], a[col]];
+    const d = a[col][col];
+    for (let j = 0; j < 2 * k; j++) a[col][j] /= d;
+    for (let r = 0; r < k; r++) {
+      if (r === col) continue;
+      const f = a[r][col];
+      if (f !== 0) for (let j = 0; j < 2 * k; j++) a[r][j] -= f * a[col][j];
+    }
+  }
+  return a.map((row) => row.slice(k));
+}
+
+/**
+ * Multiple linear regression (ordinary least squares) of y on several predictors, by the normal
+ * equations. `x[i]` holds school i's predictors. Predictors are standardised internally so the
+ * arithmetic stays well behaved, then the coefficients are turned back into raw units.
+ */
+export function multipleFit(x: number[][], y: number[]): MultipleFit {
+  const n = y.length;
+  const k = x[0]?.length ?? 0;
+  if (n <= k + 1) throw new Error(`multipleFit: ${n} rows is too few for ${k} predictors`);
+  const means = Array.from({ length: k }, (_, j) => x.reduce((s, row) => s + row[j], 0) / n);
+  const sds = means.map((m, j) => Math.sqrt(x.reduce((s, row) => s + (row[j] - m) ** 2, 0) / (n - 1)));
+  const z = (row: number[]) => row.map((v, j) => (v - means[j]) / sds[j]);
+  const meanY = y.reduce((s, v) => s + v, 0) / n;
+
+  const zs = x.map(z);
+  const xtx = Array.from({ length: k }, () => new Array<number>(k).fill(0));
+  const xty = new Array<number>(k).fill(0);
+  zs.forEach((row, i) => {
+    for (let a = 0; a < k; a++) {
+      xty[a] += row[a] * (y[i] - meanY);
+      for (let b = 0; b < k; b++) xtx[a][b] += row[a] * row[b];
+    }
+  });
+  const inv = invert(xtx);
+  const beta = inv.map((row) => row.reduce((s, v, b) => s + v * xty[b], 0));
+
+  let sse = 0;
+  let sst = 0;
+  zs.forEach((row, i) => {
+    const fitted = meanY + row.reduce((s, v, j) => s + v * beta[j], 0);
+    sse += (y[i] - fitted) ** 2;
+    sst += (y[i] - meanY) ** 2;
+  });
+  const coefficients = beta.map((b, j) => b / sds[j]);
+  const intercept = meanY - coefficients.reduce((s, c, j) => s + c * means[j], 0);
+  const r2 = 1 - sse / sst;
+  return {
+    intercept,
+    coefficients,
+    standardised: beta,
+    r2,
+    adjR2: 1 - ((1 - r2) * (n - 1)) / (n - k - 1),
+    rse: Math.sqrt(sse / (n - k - 1)),
+    n,
+    predict: (row) => intercept + coefficients.reduce((s, c, j) => s + c * row[j], 0),
+    leverage(row) {
+      const v = z(row);
+      return 1 / n + v.reduce((s, vi, a) => s + vi * inv[a].reduce((t, w, b) => t + w * v[b], 0), 0);
+    },
+  };
+}
+
 export const round = (value: number | null, places = 1): number | null =>
   value === null ? null : Math.round(value * 10 ** places) / 10 ** places;
 
@@ -69,6 +159,7 @@ export function makeStatsToolkit(scope: Scope): StatsToolkit {
     },
     nationalMedianAmongState: (population) => median(stateValues(population)),
     linearFit,
+    multipleFit,
     mean,
     round,
   };

@@ -3,6 +3,7 @@
 
 import type { DatabaseSync } from 'node:sqlite';
 import type { Row } from './csv.ts';
+import type { MultipleFit } from './stats.ts';
 
 // ---------- Sources ----------
 
@@ -140,6 +141,8 @@ export interface StatsToolkit {
   /** Median of the state-funded mainstream schools' values. */
   nationalMedianAmongState(population: Iterable<[urn: number, value: number]>): number | null;
   linearFit(points: [x: number, y: number][]): { intercept: number; slope: number; r: number };
+  /** Multiple linear regression of y on several predictors (see `multipleFit` in lib/stats.ts). */
+  multipleFit(x: number[][], y: number[]): MultipleFit;
   mean(values: number[]): number | null;
   round(value: number | null, places?: number): number | null;
 }

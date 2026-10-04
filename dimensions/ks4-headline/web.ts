@@ -11,7 +11,8 @@ export const modes: ModeDef[] = [
     description: (meta) =>
       `Progress from age 11 to GCSE compared with pupils nationally who started from the same point (${(meta.p8Year as string | null) ?? 'latest'}). ` +
       'Bands follow DfE: a school is only above or below average if its whole 95% confidence interval is. ' +
-      'Not published for 2024/25 or 2025/26, because those pupils sat no KS2 tests during COVID.',
+      'Not published for 2024/25 or 2025/26, because those pupils sat no KS2 tests during COVID. ' +
+      'For those years, "Results vs intake" is the nearest intake-adjusted measure (our own estimate, not DfE’s).',
     buckets: P8_BANDS.map((b, i) => ({ label: P8_LABELS[b], colour: 4 - i })),
     bucketOf: (p) => (p.p8Band ? P8_BANDS.indexOf(p.p8Band) : null),
     sortValue: (p) => p.p8,
@@ -39,7 +40,12 @@ export const popupSections: PopupSectionDef[] = [
     title: (p) => `Progress 8 ${p.p8Year ?? ''}`,
     render(p, h) {
       if (p.p8 === null || p.p8Lower === null || p.p8Upper === null || p.p8Band === null) return null;
-      return h.html`${h.rows([[P8_LABELS[p.p8Band], signed(p.p8, 2)]])}${h.ciChart({
+      // Progress 8 stops at 2023/24, so the GCSE results below may be newer than it
+      const older =
+        p.ks4Year !== null && p.p8Year !== null && p.ks4Year !== p.p8Year
+          ? h.note(`Progress 8 isn’t published for ${p.ks4Year} (those pupils sat no KS2 tests). “Vs expected for intake” below is our own estimate for that year.`)
+          : null;
+      return h.html`${h.rows([[P8_LABELS[p.p8Band], signed(p.p8, 2)]])}${older}${h.ciChart({
         value: p.p8,
         lower: p.p8Lower,
         upper: p.p8Upper,
