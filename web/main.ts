@@ -160,6 +160,8 @@ let theme: Theme = darkQuery.matches ? 'dark' : 'light';
 
 let data: SchoolData;
 let shown: SchoolFeature[] = [];
+/** Set once the first view is worked out. A style that loads earlier (a link with a focus filter fetches data first) must not draw dots from an empty view. */
+let layersWanted = false;
 let selectedUrn: number | null = null;
 
 const isNarrow = () => window.matchMedia('(max-width: 720px)').matches;
@@ -483,11 +485,31 @@ function openSchool(urn: number, fly = false): void {
   if (!data.hasDetails(urn)) {
     // Only redraw if this school's popup is still the one on screen
     // Setting the HTML replaces the scrolling element, so carry the scroll position over
+    // and so does keyboard focus, which is found again by group, id or link/label
     const redraw = (markup: string) => {
-      const top = detailPopup.getElement()?.querySelector('.school-popup')?.scrollTop ?? 0;
+      const root = detailPopup.getElement();
+      const top = root?.querySelector('.school-popup')?.scrollTop ?? 0;
+      const controls = (el: Element | null) => [...(el?.querySelectorAll<HTMLElement>('summary, a[href], button, input, select, textarea, [tabindex]') ?? [])];
+      const active = document.activeElement;
+      let focus: ((el: Element | null) => HTMLElement | null | undefined) | null = null;
+      if (active instanceof HTMLElement && root?.contains(active)) {
+        const group = active.closest<HTMLElement>('details[data-group]')?.dataset.group;
+        if (active.tagName === 'SUMMARY' && group) {
+          focus = (el) => el?.querySelector<HTMLElement>(`details[data-group="${CSS.escape(group)}"] > summary`);
+        } else if (active.id) {
+          focus = (el) => el?.querySelector<HTMLElement>(`#${CSS.escape(active.id)}`);
+        } else {
+          // Anything else: the same link or same-labelled control. No match leaves focus alone rather than guessing.
+          const href = active.getAttribute('href');
+          const label = active.textContent?.trim();
+          focus = (el) => controls(el).find((c) => c.tagName === active.tagName && (href ? c.getAttribute('href') === href : c.textContent?.trim() === label));
+        }
+      }
       detailPopup.setHTML(markup);
       const next = detailPopup.getElement()?.querySelector('.school-popup');
       if (next) next.scrollTop = top;
+      // preventScroll: the scroll position was just restored
+      focus?.(detailPopup.getElement())?.focus({ preventScroll: true });
     };
     const update = (failed: boolean) => selectedUrn === urn && detailPopup.isOpen() && redraw(render(failed));
     data.getDetails(urn).then(
@@ -864,7 +886,7 @@ function bindMapEvents(): void {
 
   // Basemap follows the OS theme; setStyle drops our layers, so re-add them on load
   map.on('style.load', () => {
-    if (data && !map.getSource('schools')) addLayers();
+    if (layersWanted && !map.getSource('schools')) addLayers();
   });
   darkQuery.addEventListener('change', (e) => {
     theme = e.matches ? 'dark' : 'light';
@@ -920,6 +942,7 @@ async function main(): Promise<void> {
   bindSearch();
   if (isNarrow()) setPanelCollapsed(true);
 
+  layersWanted = true;
   if (map.isStyleLoaded()) addLayers();
   else map.once('load', () => !map.getSource('schools') && addLayers());
   renderLegendAndList();
