@@ -1,0 +1,44 @@
+time_period,school_urn,qualification_detailed,subject_discount_group,subject,number_achieving,pupil_count
+202425,100001,GCSE (9-1) Full Course,Computer Science,Computer Science,25,100
+202425,100001,GCSE (9-1) Full Course,French Language,French,33,100
+202425,100001,GCSE (9-1) Full Course,Geography,Geography,48,100
+202425,100001,GCSE (9-1) Full Course,German,German,14,100
+202425,100001,GCSE (9-1) Full Course,Latin,Latin,22,100
+202425,100001,GCSE (9-1) Full Course,Italian,Other Modern Languages,3,100
+202425,100049,GCSE (9-1) Full Course,Biology,Biology,21,146
+202425,100049,GCSE (9-1) Full Course,Computer Science,Computer Science,23,146
+202425,100049,GCSE (9-1) Full Course,French Language,French,2,146
+202425,100049,GCSE (9-1) Full Course,Geography,Geography,62,146
+202425,100049,GCSE (9-1) Full Course,Maths (General),Mathematics,136,146
+202425,100049,GCSE (9-1) Full Course,Music Studies (General),Music,3,146
+202425,100049,GCSE (9-1) Full Course,Italian,Other Modern Languages,1,146
+202425,100049,GCSE (9-1) Full Course,Spanish,Spanish,35,146
+202425,100050,GCSE (9-1) Full Course,Biology,Biology,50,179
+202425,100050,GCSE (9-1) Full Course,Computer Science,Computer Science,12,179
+202425,100050,GCSE (9-1) Full Course,French Language,French,43,179
+202425,100050,GCSE (9-1) Full Course,Geography,Geography,57,179
+202425,100050,GCSE (9-1) Full Course,German,German,6,179
+202425,100050,GCSE (9-1) Full Course,Maths (General),Mathematics,174,179
+202425,100050,GCSE (9-1) Full Course,Music Studies (General),Music,14,179
+202425,100050,GCSE (9-1) Full Course,Italian,Other Modern Languages,3,179
+202425,100050,GCSE (9-1) Full Course,Spanish,Spanish,40,179
+202425,100052,GCSE (9-1) Full Course,Biology,Biology,29,202
+202425,100052,GCSE (9-1) Full Course,Computer Science,Computer Science,19,202
+202425,100052,GCSE (9-1) Full Course,French Language,French,32,202
+202425,100052,GCSE (9-1) Full Course,Geography,Geography,87,202
+202425,100052,GCSE (9-1) Full Course,Maths (General),Mathematics,201,202
+202425,100052,GCSE (9-1) Full Course,Music Studies (General),Music,12,202
+202425,100052,GCSE (9-1) Full Course,Spanish,Spanish,43,202
+202425,100052,GCSE (9-1) Full Course,Statistics,Statistics,63,202
+202425,108640,GCSE (9-1) Full Course,Biology,Biology,29,131
+202425,108640,GCSE (9-1) Full Course,Computer Science,Computer Science,23,131
+202425,108640,GCSE (9-1) Full Course,French Language,French,30,131
+202425,108640,GCSE (9-1) Full Course,Geography,Geography,68,131
+202425,108640,GCSE (9-1) Full Course,Maths (General),Mathematics,131,131
+202425,108640,GCSE (9-1) Full Course,Music Studies (General),Music,9,131
+202425,108640,GCSE (9-1) Full Course,Italian,Other Modern Languages,2,131
+202425,108640,GCSE (9-1) Full Course,Spanish,Spanish,65,131
+202425,100055,GCSE (9-1) Full Course,Spanish,Spanish,c,120
+202425,100055,GCSE (9-1) Full Course,Computer Science,Computer Science,125,120
+202425,100055,GCSE (9-1) Full Course,French Language,French,z,z
+202425,100455,Free standing Maths Qual Level 3,Additional Maths (FSMQ),Mathematics,36,183
