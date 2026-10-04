@@ -1,4 +1,4 @@
-import { num, readCsv } from '../../lib/csv.ts';
+import { num, readCsvShared } from '../../lib/csv.ts';
 import { yearLabel } from '../ks4-headline/parse.ts';
 
 export type Sex = 'Boys' | 'Girls';
@@ -15,7 +15,7 @@ export type SexSchool = Map<string, Partial<Record<Sex, SexResults>>>;
 export async function loadSexResults(file: string): Promise<Map<number, SexSchool>> {
   const schools = new Map<number, SexSchool>();
 
-  for await (const row of readCsv(file)) {
+  for await (const row of readCsvShared(file)) {
     if (row.breakdown !== 'Boys' && row.breakdown !== 'Girls') continue;
     const urn = num(row.school_urn);
     if (urn === null) continue;

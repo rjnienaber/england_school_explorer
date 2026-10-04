@@ -1,4 +1,4 @@
-import { num, readCsv } from '../../lib/csv.ts';
+import { num, readCsvShared } from '../../lib/csv.ts';
 import { yearLabel } from '../ks4-headline/parse.ts';
 
 export interface EalResults {
@@ -18,7 +18,7 @@ export type EalSchool = Map<string, EalResults>;
 export async function loadEal(file: string): Promise<Map<number, EalSchool>> {
   const schools = new Map<number, EalSchool>();
 
-  for await (const row of readCsv(file)) {
+  for await (const row of readCsvShared(file)) {
     if (row.breakdown !== 'Known or believed to be other than English') continue;
     const urn = num(row.school_urn);
     if (urn === null) continue;

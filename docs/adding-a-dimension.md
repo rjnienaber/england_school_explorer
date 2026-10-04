@@ -255,13 +255,22 @@ so a new module and its `extraTables` are included automatically.
 
 | Member | Use |
 | --- | --- |
-| `ctx.csv(sourceId)` | Streams a downloaded CSV as objects, in the encoding declared on the `SourceDef`. |
+| `ctx.csv(sourceId)` | Streams a downloaded CSV as objects, in the encoding declared on the `SourceDef`. Parsed once per build and shared (see "Sources several modules read"). |
 | `ctx.dataPath(sourceId)` | The file path, for non-CSV sources or custom parsing. |
 | `ctx.sources` | Resolved download URLs (put one in the About text via `h.sourceLink`). |
 | `ctx.schools` | The in-scope schools: `.urns`, `.all`, `.get(urn)`, `.isState(urn)`. Use it to ignore rows for schools you do not show. |
 | `ctx.read`, `ctx.readExtra` | See above. |
 | `ctx.stats` | See below. |
 | `ctx.log(msg)` | Progress line, prefixed with your module id. Log counts ("3,812 schools matched"). |
+
+### Sources several modules read
+
+Parsing the 96 MB KS4 file takes about 17 seconds, so it must not be repeated per module. Inside a
+`parse.ts`, read a shared source with `readCsvShared(file, encoding?)` from `lib/csv.ts` instead of `readCsv`.
+It has the same shape (an async generator of rows), but the first call parses the file and every later call in the
+same build replays the same rows from memory (about 1 GB for KS4; the pipeline frees it when the build ends).
+`ctx.csv(sourceId)` is shared the same way. Rules: treat rows as read-only, and use plain `readCsv` for a file
+only one module reads. All `ks4-*` modules use it; with it the whole `build:data` went from 173 s to 32 s.
 
 Parse defensively: DfE files mark missing values with `z`, `c`, `x`, `NE`, `SUPP` and similar.
 `lib/csv.ts` has `text()` and `num()` helpers that turn the usual markers into `null`. Look at

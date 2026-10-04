@@ -1,4 +1,4 @@
-import { num, readCsv } from '../../lib/csv.ts';
+import { num, readCsvShared } from '../../lib/csv.ts';
 import { yearLabel } from '../ks4-headline/parse.ts';
 
 export interface PassRates {
@@ -18,7 +18,7 @@ export type PassRatesSchool = Map<string, PassRates>;
 export async function loadPassRates(file: string): Promise<Map<number, PassRatesSchool>> {
   const schools = new Map<number, PassRatesSchool>();
 
-  for await (const row of readCsv(file)) {
+  for await (const row of readCsvShared(file)) {
     if (row.breakdown !== 'Total') continue;
     const urn = num(row.school_urn);
     if (urn === null) continue;

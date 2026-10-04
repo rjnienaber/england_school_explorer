@@ -1,4 +1,4 @@
-import { num, readCsv } from '../../lib/csv.ts';
+import { num, readCsvShared } from '../../lib/csv.ts';
 import { yearLabel } from '../ks4-headline/parse.ts';
 
 export interface DisadvantageYear {
@@ -19,7 +19,7 @@ export type DisadvantageSchool = Map<string, DisadvantageYear>;
 export async function loadDisadvantage(file: string): Promise<Map<number, DisadvantageSchool>> {
   const schools = new Map<number, DisadvantageSchool>();
 
-  for await (const row of readCsv(file)) {
+  for await (const row of readCsvShared(file)) {
     const disadvantaged = row.breakdown === 'Disadvantaged';
     if (!disadvantaged && row.breakdown !== 'Not known to be disadvantaged') continue;
     const urn = num(row.school_urn);

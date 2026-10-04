@@ -19,6 +19,33 @@ export async function* readCsv(file: string, encoding = 'utf-8'): AsyncGenerator
   yield* parser as AsyncIterable<Row>;
 }
 
+const shared = new Map<string, Promise<Row[]>>();
+
+/**
+ * Like readCsv, but parses each file only once per build and replays the rows to every caller. Use it for a
+ * source several modules read (the 96 MB KS4 file): parsing it takes about 17 seconds, and each module used
+ * to repeat that. Rows are shared, so never modify one. Call clearSharedCsv() when the build is done to
+ * free the memory (the pipeline does).
+ */
+export async function* readCsvShared(file: string, encoding = 'utf-8'): AsyncGenerator<Row> {
+  const key = `${encoding}:${file}`;
+  let rows = shared.get(key);
+  if (!rows) {
+    rows = (async () => {
+      const all: Row[] = [];
+      for await (const row of readCsv(file, encoding)) all.push(row);
+      return all;
+    })();
+    shared.set(key, rows);
+    rows.catch(() => shared.delete(key));
+  }
+  yield* await rows;
+}
+
+export function clearSharedCsv(): void {
+  shared.clear();
+}
+
 const MISSING = new Set(['', 'NULL', 'NA', 'N/A', 'Not applicable', 'Does not apply', 'None']);
 
 /** Trims a text field, mapping the various "no value" spellings to null. */

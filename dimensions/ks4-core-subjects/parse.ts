@@ -1,4 +1,4 @@
-import { num, readCsv } from '../../lib/csv.ts';
+import { num, readCsvShared } from '../../lib/csv.ts';
 import { yearLabel } from '../ks4-headline/parse.ts';
 
 export interface CoreSubjects {
@@ -26,7 +26,7 @@ export function pointsToGrade(points: number | null): number | null {
 export async function loadCoreSubjects(file: string): Promise<Map<number, CoreSubjectsSchool>> {
   const schools = new Map<number, CoreSubjectsSchool>();
 
-  for await (const row of readCsv(file)) {
+  for await (const row of readCsvShared(file)) {
     if (row.breakdown !== 'Total') continue;
     const urn = num(row.school_urn);
     if (urn === null) continue;

@@ -1,4 +1,4 @@
-import { num, readCsv, text } from '../../lib/csv.ts';
+import { num, readCsvShared, text } from '../../lib/csv.ts';
 
 export interface Ks4Year {
   cohort: number | null;
@@ -42,7 +42,7 @@ const emptyYear = (): Ks4Year => ({
 export async function loadKs4(file: string): Promise<Map<number, Ks4School>> {
   const schools = new Map<number, Ks4School>();
 
-  for await (const row of readCsv(file)) {
+  for await (const row of readCsvShared(file)) {
     const breakdown = row.breakdown;
     if (breakdown !== 'Total' && breakdown !== 'Disadvantaged') continue;
 

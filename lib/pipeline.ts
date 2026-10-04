@@ -2,7 +2,7 @@
 
 import { existsSync, readFileSync } from 'node:fs';
 import type { DatabaseSync } from 'node:sqlite';
-import { readCsv } from './csv.ts';
+import { clearSharedCsv, readCsvShared } from './csv.ts';
 import type { BuildContext, BuildResult, ExtraRow, Fields, RowOf, Scope, ScopeSchool, SourceDef } from './dimension.ts';
 import { dataPath, SOURCES_FILE, STORE_FILE } from './paths.ts';
 import type { LoadedDimension } from './registry.ts';
@@ -83,6 +83,7 @@ export async function buildStore(
     return scope;
   }
 
+  clearSharedCsv();
   for (const { id, module: m } of order) {
     const started = Date.now();
     const allowed = new Set([...(m.dependsOn ?? []), ...(m.scope ? [] : [order.find((d) => d.module.scope)!.id])]);
@@ -102,7 +103,7 @@ export async function buildStore(
         if (!existsSync(file)) throw new Error(`${id}: ${file} is missing; run "npm run fetch"`);
         return file;
       },
-      csv: (sourceId) => readCsv(ctx.dataPath(sourceId), sourceDefs.get(sourceId)!.encoding),
+      csv: (sourceId) => readCsvShared(ctx.dataPath(sourceId), sourceDefs.get(sourceId)!.encoding),
       schools: lazyScope,
       read: (dep) => readModuleRows(db, dep, requireDep(dep).fields),
       readExtra: (dep, table) => {
@@ -150,6 +151,7 @@ export async function buildStore(
   for (const [key, value] of Object.entries(metadata)) setMeta(db, `metadata.${key}`, value);
   setMeta(db, 'builtAt', new Date().toISOString());
   setMeta(db, 'order', order.map((d) => d.id));
+  clearSharedCsv();
   return { db, scope: need(), metadata, warnings };
 }
 

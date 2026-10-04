@@ -1,4 +1,4 @@
-import { num, readCsv } from '../../lib/csv.ts';
+import { num, readCsvShared } from '../../lib/csv.ts';
 import { yearLabel } from '../ks4-headline/parse.ts';
 import { PRIOR_BREAKDOWNS, type PriorGroup } from './groups.ts';
 
@@ -21,7 +21,7 @@ export type PriorSchool = Map<string, Map<PriorGroup, PriorResults>>;
 export async function loadPriorAttainment(file: string): Promise<Map<number, PriorSchool>> {
   const schools = new Map<number, PriorSchool>();
 
-  for await (const row of readCsv(file)) {
+  for await (const row of readCsvShared(file)) {
     const group = PRIOR_BREAKDOWNS[row.breakdown];
     const urn = num(row.school_urn);
     if (!group || urn === null) continue;
