@@ -273,6 +273,19 @@ input[type='search'] {
   gap: 8px;
 }
 
+.legend {
+  transition: opacity 0.15s;
+}
+
+/* A new view's data is on its way; the old legend stays up but dimmed */
+.legend.loading {
+  opacity: 0.45;
+}
+
+.loading-note {
+  font-style: italic;
+}
+
 .legend .count {
   margin-left: auto;
   color: var(--muted);

@@ -24,7 +24,7 @@ How the pieces connect:
 
 ```
 npm run fetch        source.ts  -> data/<id>.csv        (+ data/sources.json with the URLs)
-npm run build:data   build.ts   -> build/schools.sqlite -> dist/schools.geojson
+npm run build:data   build.ts   -> build/schools.sqlite -> dist/data/ (core, modes/, details/, manifest.json)
 npm run generate     build.ts fields -> web/generated/fields.ts   (the SchoolRecord type)
                      web.ts files    -> web/generated/registry.ts (what the browser imports)
                      source.ts       -> the README sources table
@@ -95,7 +95,7 @@ field name is a compile error. See "Web exports" for filters, popup sections and
 npm run typecheck
 node --disable-warning=ExperimentalWarning --test dimensions/school-size/test.ts
 npm run build                      # then check it in a browser
-node scripts/diff-geojson.ts /path/to/old/schools.geojson dist/schools.geojson --allow-new-properties
+node scripts/diff-geojson.ts /tmp/old-data dist/data --allow-new-properties
 ```
 
 The last command proves you changed nothing that existed before (see "Proving you changed
@@ -137,14 +137,24 @@ nothing").
 
 ### Placement
 
-`placement` says how early the browser needs the field. The data is currently one file, but
-#31 splits it by placement, so declare it honestly now. If in doubt, choose `detail`.
+`placement` says how early the browser needs the field, and decides which published file it
+goes in (see "How the data is published" below). If in doubt, choose `detail`.
 
 | Placement | Meaning | Examples |
 | --- | --- | --- |
-| `core` | Needed at start-up: identity, search, filters, and whatever the **default map mode** (the one with the lowest `order`) uses. Keep this tiny. | `name`, `sector`, `p8`, `p8Band` |
-| `mode` | Needed for every school, but only once a mode, filter or the ranked list uses it. | `att8`, `att8Pct`, `ofstedSummary` |
+| `core` | Needed at start-up: identity, search, filters that are on by default, and whatever the **default map mode** (the one with the lowest `order`) uses. Keep this tiny: every visitor downloads it. | `name`, `sector`, `p8`, `p8Band` |
+| `mode` | Needed for every school, but only once a mode, filter or the ranked list uses it. One small file per field, fetched the first time. | `att8`, `att8Pct`, `ofstedSummary` |
 | `detail` | Only shown in the popup for one school at a time. | `engMaths5`, `rcInclusion`, `website` |
+
+You never declare *which* modes, filters or popup sections use a field: the build runs every
+`bucketOf`, `sortValue`, `formatValue`, filter `test` and popup `render` over every school with a
+recorder and works it out. The only thing you must get right is the placement, and the build
+tells you when you don't:
+
+- **Error**: a mode or filter reads a `detail` field (it would not be loaded). Make it `mode`.
+- **Note** (printed by `build:data`, not fatal): the default mode or a default filter reads a
+  `mode` field (promote it to `core`, or start-up costs an extra request); a `core` field nothing
+  needs at start-up; a `mode` field no mode or filter reads (make it `detail`).
 
 Rules of thumb:
 
@@ -154,6 +164,29 @@ Rules of thumb:
 3. If your dimension's mode becomes the default mode (lowest `order`), its fields become
    `core`. Do not do this casually: it changes the start-up download.
 4. Fields you read from another module are that module's business: don't redeclare them.
+
+### How the data is published
+
+`npm run build:data` writes `dist/data/`:
+
+- `core.json`: school ids, positions and every `core` field as columns (enums as integers, booleans
+  as 0/1, so key names are not repeated per school), plus the field table and the field lists
+  found above. Budget: 150 KB gzipped.
+- `modes/<field>.json`: one column per `mode` field, in core's order. Fetched when a mode or
+  filter first reads it; a second use costs nothing.
+- `details/<n>.json`: **all** non-core fields (`mode` ones too) for the ~65 schools whose
+  `urn % 64 == n`. A popup is one request however many fields it reads. Missing values (null or
+  the field's default) are left out.
+- `manifest.json`: raw and gzipped size of every file, for budget checks.
+
+In the browser, search, the list and hover tips read only core fields and the current mode's
+columns. A popup opens at once and shows "Loading…" for sections whose fields are still coming.
+Your `web.ts` code needs no loading logic: write `p.x` as usual. Two consequences:
+
+- Reading a `detail` field in `bucketOf`, `sortValue`, `formatValue` or a filter `test` fails the
+  build (see above).
+- Don't reach fields through anything but `p`: a `Proxy` on `p` is how reads are found, so
+  `const q = { ...p }` or `Object.keys(p)` would hide them or read everything.
 
 ## Reading other modules: dependsOn
 
@@ -189,7 +222,7 @@ build(ctx) {
 }
 ```
 
-`urn` is added for you and an index is created. Extra tables are not in `schools.geojson`;
+`urn` is added for you and an index is created. Extra tables are not in `dist/data`;
 they live in the store (`build/schools.sqlite`, table `dim_<id>__<name>`) for other modules and
 for later per-school detail files. Any field you want in the popup today must also be a normal
 field (summarise the table into a few fields).
@@ -387,13 +420,13 @@ previous build: usually a renamed column. Read the warnings.
 Before you start, build the current output and keep a copy:
 
 ```bash
-npm run build:data && cp dist/schools.geojson /tmp/old-schools.geojson
+npm run build:data && cp -r dist/data /tmp/old-data
 ```
 
 After your change:
 
 ```bash
-node --disable-warning=ExperimentalWarning scripts/diff-geojson.ts /tmp/old-schools.geojson dist/schools.geojson --allow-new-properties
+node --disable-warning=ExperimentalWarning scripts/diff-geojson.ts /tmp/old-data dist/data --allow-new-properties
 ```
 
 It reports every feature and property that differs, ignoring property order and `builtAt`,
@@ -404,10 +437,10 @@ report rather than hiding it.)
 ## Definition of done
 
 - [ ] `npm run typecheck`, `npm test` and `npm run build` pass; about 4,150 schools still come out.
-- [ ] `diff-geojson --allow-new-properties` shows 0 differences against the previous build.
+- [ ] `diff-geojson --allow-new-properties` shows 0 differences against the previous build (it rebuilds school records from `dist/data` first). `build:data` also verifies the files against the store.
 - [ ] Browser check (Playwright): the new mode, filter and popup work; no console errors;
       screenshots in light, dark and 390 px wide.
-- [ ] Data size reported, raw and gzip (`gzip -9c dist/schools.geojson | wc -c`), before and after.
+- [ ] Data size reported before and after from `dist/data/manifest.json` (core, largest mode column, largest shard, total; gzipped).
 - [ ] Fields have honest placements, labels and descriptions; derived measures say they are derived.
 - [ ] `test.ts` covers parsing and known schools.
 - [ ] No files outside `dimensions/<id>/` changed, except deliberate framework growth (explain it).
@@ -419,6 +452,4 @@ report rather than hiding it.)
 
 - The build parses `ks4.csv` twice (`gias-core` needs it to decide which schools are in scope);
   the whole build takes about 45 seconds.
-- All fields are still written to one `schools.geojson`. #31 will split it by `placement`, which
-  is why placement must be declared correctly now.
 - Percentile/ranking helpers cover state schools only.

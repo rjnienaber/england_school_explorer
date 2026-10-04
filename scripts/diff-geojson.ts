@@ -1,15 +1,22 @@
-// Compares two schools.geojson files and reports every difference: features added or
-// removed, geometry changes, properties added, removed or changed, and metadata changes.
-// Property order and metadata.builtAt are ignored. Exits 1 if anything differs.
+// Compares two builds' school data and reports every difference: schools added or removed,
+// location changes, fields added, removed or changed, and metadata changes. Property order
+// and metadata.builtAt are ignored. Exits 1 if anything differs.
 //
-// Usage: node scripts/diff-geojson.ts <old.geojson> <new.geojson> [--allow-new-properties]
+// Each side is either a schools.geojson file (what builds before #31 wrote) or a data folder
+// (dist/data: core.json, modes/, details/). A folder is rebuilt into one record per school
+// with the same decoding the browser uses, so this also proves the split files are complete.
 //
-// Used to prove a refactor changed nothing: build the old output first, keep a copy, then
-//   node scripts/diff-geojson.ts /path/to/old/schools.geojson dist/schools.geojson
+// Usage: node scripts/diff-geojson.ts <old> <new> [--allow-new-properties]
+//
+// Used to prove a change altered nothing: build first, keep a copy of dist/data, then
+//   cp -r dist/data /tmp/old-data
+//   node scripts/diff-geojson.ts /tmp/old-data dist/data --allow-new-properties
 // --allow-new-properties lets a PR that adds a dimension pass while still proving every
-// existing property (and the feature list) is unchanged.
+// existing property (and the school list) is unchanged.
+// (To check dist/data against the build store instead, run scripts/verify-data.ts.)
 
-import { readFileSync } from 'node:fs';
+import { readFileSync, statSync } from 'node:fs';
+import { readDataFolder, toGeojson } from '../lib/read-data.ts';
 
 interface Feature {
   geometry: unknown;
@@ -24,11 +31,19 @@ const args = process.argv.slice(2);
 const allowNew = args.includes('--allow-new-properties');
 const [oldFile, newFile] = args.filter((a) => !a.startsWith('--'));
 if (!oldFile || !newFile) {
-  console.error('Usage: node scripts/diff-geojson.ts <old.geojson> <new.geojson> [--allow-new-properties]');
+  console.error('Usage: node scripts/diff-geojson.ts <old.geojson|data folder> <new.geojson|data folder> [--allow-new-properties]');
   process.exit(2);
 }
 
-const load = (file: string) => JSON.parse(readFileSync(file, 'utf-8')) as Collection;
+function load(path: string): Collection {
+  if (!statSync(path).isDirectory()) return JSON.parse(readFileSync(path, 'utf-8')) as Collection;
+  const folder = readDataFolder(path);
+  if (folder.problems.length) {
+    console.error(`${path} is inconsistent:\n  ${folder.problems.slice(0, 10).join('\n  ')}`);
+    process.exit(1);
+  }
+  return toGeojson(folder) as unknown as Collection;
+}
 const a = load(oldFile);
 const b = load(newFile);
 

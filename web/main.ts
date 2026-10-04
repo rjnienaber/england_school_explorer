@@ -1,7 +1,8 @@
 import * as maplibregl from 'maplibre-gl';
 import type { ExpressionSpecification, GeoJSONSource, MapLayerMouseEvent } from 'maplibre-gl';
 import type { FeatureCollection } from 'geojson';
-import type { SchoolCollection, SchoolFeature, SchoolRecord } from './types.ts';
+import type { SchoolFeature, SchoolRecord } from './types.ts';
+import { loadCore, StaleDataError, type SchoolData } from './data.ts';
 import { drawOrder, PALETTES, type Theme } from './palette.ts';
 import { FILTERS, MODES, SOURCE_NOTES, modeById } from './registry.ts';
 import { h, type FilterDef, type ModeDef } from './toolkit.ts';
@@ -60,7 +61,7 @@ function loadSettings(): Settings {
 
 function saveSettings(): void {
   try {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify({ mode: mode.id, filters } satisfies Settings));
+    localStorage.setItem(STORAGE_KEY, JSON.stringify({ mode: mode.id, filters: activeFilters } satisfies Settings));
   } catch {
     // storage unavailable (private window etc.)
   }
@@ -68,14 +69,18 @@ function saveSettings(): void {
 
 // ---------- State ----------
 
+// What the page shows (`mode`, `activeFilters`) can lag behind what the person picked
+// (`wanted`, `filters`) while the columns for a new choice download. Everything drawn uses
+// the first pair, so nothing is ever computed from a column that isn't loaded yet.
 const settings = loadSettings();
 let mode: ModeDef = modeById(settings.mode);
+let wanted: ModeDef = mode;
 const filters: FilterValues = settings.filters;
+let activeFilters: FilterValues = { ...filters };
 const darkQuery = window.matchMedia('(prefers-color-scheme: dark)');
 let theme: Theme = darkQuery.matches ? 'dark' : 'light';
 
-let collection: SchoolCollection;
-const byUrn = new Map<number, SchoolFeature>();
+let data: SchoolData;
 let shown: SchoolFeature[] = [];
 let selectedUrn: number | null = null;
 
@@ -104,7 +109,7 @@ let searchMarker: maplibregl.Marker | null = null;
 
 function passesFilters(p: SchoolRecord): boolean {
   // Each test is typed for its own control kind, which the shared FilterValues record can't express
-  return FILTERS.every((f) => (f.test as (p: SchoolRecord, value: boolean | string) => boolean)(p, filters[f.id]));
+  return FILTERS.every((f) => (f.test as (p: SchoolRecord, value: boolean | string) => boolean)(p, activeFilters[f.id]));
 }
 
 /** Map features carry only what styling needs; popups look schools up by URN. */
@@ -174,8 +179,43 @@ function applyColours(): void {
   map.setPaintProperty('schools', 'circle-color', colourExpression());
 }
 
-function refresh(): void {
-  shown = collection.features.filter((f) => passesFilters(f.properties));
+function setLoading(on: boolean, message = ''): void {
+  $('legend').classList.toggle('loading', on);
+  $('legend').setAttribute('aria-busy', String(on));
+  $('view-status').textContent = on ? 'Loading…' : message;
+}
+
+let refreshes = 0;
+
+/**
+ * Applies the chosen mode and filters. A first-time choice needs its columns first: the old
+ * view stays up (dimmed legend) until they arrive. If the person changes their mind meanwhile,
+ * only the latest request is applied; if loading fails, the previous choices are put back.
+ */
+async function refresh(): Promise<void> {
+  const mine = ++refreshes;
+  const fields = data.viewFields(wanted.id, filters);
+  if (!data.hasFields(fields)) {
+    setLoading(true);
+    try {
+      await data.ensureFields(fields);
+    } catch (err) {
+      if (mine !== refreshes) return;
+      console.error(err);
+      wanted = mode;
+      Object.assign(filters, activeFilters);
+      renderModes();
+      bindFilters();
+      setLoading(false, err instanceof StaleDataError ? err.message : 'Couldn’t load that view. Check your connection and try again.');
+      return;
+    }
+  }
+  if (mine !== refreshes) return;
+  setLoading(false);
+  mode = wanted;
+  activeFilters = { ...filters };
+  applyColours();
+  shown = data.features.filter((f) => passesFilters(f.properties));
   (map.getSource('schools') as GeoJSONSource | undefined)?.setData(mapData());
   renderLegendAndList();
   saveSettings();
@@ -186,15 +226,29 @@ function setSelected(urn: number | null): void {
   if (map.getLayer('schools-selected')) map.setFilter('schools-selected', ['==', ['get', 'urn'], urn ?? -1]);
 }
 
+/** Opens the popup at once with the core fields, then fills in the rest when the school's shard arrives. */
 function openSchool(urn: number, fly = false): void {
-  const feature = byUrn.get(urn);
+  const feature = data.byUrn.get(urn);
   if (!feature) return;
   const [lng, lat] = feature.geometry.coordinates;
   hoverTip.remove();
   if (fly) map.flyTo({ center: [lng, lat], zoom: Math.max(map.getZoom(), 12), padding: mapPadding() });
-  detailPopup.setLngLat([lng, lat]).setHTML(popupHtml(feature.properties)).addTo(map);
+  const render = (failed = false) =>
+    popupHtml(feature.properties, { needs: data.core.needs.popup, ready: (f) => data.hasField(f, urn), failed });
+  detailPopup.setLngLat([lng, lat]).setHTML(render()).addTo(map);
   setSelected(urn);
   if (isNarrow()) setPanelCollapsed(true);
+  if (!data.hasDetails(urn)) {
+    // Only redraw if this school's popup is still the one on screen
+    const update = (failed: boolean) => selectedUrn === urn && detailPopup.isOpen() && detailPopup.setHTML(render(failed));
+    data.getDetails(urn).then(
+      () => update(false),
+      (err: unknown) => {
+        console.error(err);
+        update(true);
+      },
+    );
+  }
 }
 
 // ---------- Panel rendering ----------
@@ -207,19 +261,17 @@ function renderModes(): void {
       button.type = 'button';
       button.role = 'radio';
       button.textContent = m.label;
-      button.setAttribute('aria-checked', String(m.id === mode.id));
+      button.setAttribute('aria-checked', String(m.id === wanted.id));
       button.addEventListener('click', () => {
-        mode = m;
+        wanted = m;
         renderModes();
-        // The palette can differ between modes, so restyle the layer along with the data
-        applyColours();
-        refresh();
+        void refresh();
       });
       return button;
     }),
   );
-  const { description } = mode;
-  $('mode-description').textContent = typeof description === 'string' ? description : description(collection.metadata);
+  const { description } = wanted;
+  $('mode-description').textContent = typeof description === 'string' ? description : description(data.core.metadata);
 }
 
 function swatch(colour: number): HTMLSpanElement {
@@ -296,7 +348,7 @@ function renderLegendAndList(): void {
 }
 
 function renderAbout(): void {
-  const { metadata } = collection;
+  const { metadata } = data.core;
   const built = new Date(metadata.builtAt).toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' });
   const sourceLink = (key: string, label: string) =>
     metadata.sources[key] ? h.html`<a href="${metadata.sources[key]}" target="_blank" rel="noopener">${label}</a>` : h.html`${label}`;
@@ -305,7 +357,7 @@ function renderAbout(): void {
     .map((item) => `<li>${item.value}</li>`)
     .join('\n      ');
   $('about').innerHTML = `
-    <p>${collection.features.length.toLocaleString()} open mainstream secondary schools with GCSE results. Built ${built}.</p>
+    <p>${data.core.count.toLocaleString()} open mainstream secondary schools with GCSE results. Built ${built}.</p>
     <ul>
       ${items}
     </ul>
@@ -333,7 +385,7 @@ function bindFilters(): void {
         input.checked = filters[f.id] as boolean;
         input.addEventListener('change', () => {
           filters[f.id] = input.checked;
-          refresh();
+          void refresh();
         });
         label.append(input, ` ${f.control.label}`);
       } else {
@@ -343,7 +395,7 @@ function bindFilters(): void {
         select.value = filters[f.id] as string;
         select.addEventListener('change', () => {
           filters[f.id] = select.value;
-          refresh();
+          void refresh();
         });
         label.append(`${f.control.label} `, select);
       }
@@ -429,7 +481,7 @@ function bindSearch(): void {
     matches =
       q.length < 3
         ? []
-        : collection.features.filter((f) => f.properties.name.toLowerCase().includes(q)).slice(0, 8);
+        : data.features.filter((f) => f.properties.name.toLowerCase().includes(q)).slice(0, 8);
     active = -1;
     render();
   });
@@ -471,7 +523,7 @@ $('panel-toggle').addEventListener('click', () => {
 function bindMapEvents(): void {
   map.on('mousemove', 'schools', (e: MapLayerMouseEvent) => {
     const urn = e.features?.[0]?.properties.urn as number | undefined;
-    const feature = urn !== undefined ? byUrn.get(urn) : undefined;
+    const feature = urn !== undefined ? data.byUrn.get(urn) : undefined;
     if (!feature) return;
     map.getCanvas().style.cursor = 'pointer';
     if (urn === selectedUrn && detailPopup.isOpen()) return;
@@ -497,7 +549,7 @@ function bindMapEvents(): void {
 
   // Basemap follows the OS theme; setStyle drops our layers, so re-add them on load
   map.on('style.load', () => {
-    if (collection) addLayers();
+    if (data) addLayers();
   });
   darkQuery.addEventListener('change', (e) => {
     theme = e.matches ? 'dark' : 'light';
@@ -510,11 +562,10 @@ function bindMapEvents(): void {
 
 async function main(): Promise<void> {
   bindMapEvents();
-  const res = await fetch('schools.geojson');
-  if (!res.ok) throw new Error(`Couldn't load schools.geojson (${res.status}). Run npm run build first.`);
-  collection = (await res.json()) as SchoolCollection;
-  for (const f of collection.features) byUrn.set(f.properties.urn, f);
-  shown = collection.features.filter((f) => passesFilters(f.properties));
+  data = await loadCore();
+  // A saved mode or filter needs its columns before the first draw
+  await data.ensureFields(data.viewFields(mode.id, filters));
+  shown = data.features.filter((f) => passesFilters(f.properties));
 
   renderAbout();
   renderModes();

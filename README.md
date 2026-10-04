@@ -23,7 +23,7 @@ Or run the steps separately:
 | --- | --- |
 | `npm run fetch` | Downloads the three source files into `data/` (about 180 MB). Skips files already there; `-- --force` re-downloads. Records URLs in `data/sources.json`. |
 | `npm run generate` | Writes the generated browser types and registry, and this README's sources table, from `dimensions/`. The build and typecheck run it for you. |
-| `npm run build:data` | Builds the store from the sources and writes `dist/schools.geojson` (about 5 MB, about 45 s). |
+| `npm run build:data` | Builds the store from the sources and writes the site's data to `dist/data/` (about 110 KB gzipped to start, 3 MB in all, about 45 s), checks it against the store, and writes `dist/data/manifest.json` with every file's size. |
 | `npm run build:web` | Bundles `web/` with esbuild into `dist/app.js` and `dist/app.css`, and copies `index.html` and MapLibre's worker files. |
 | `npm run build` | Both build steps. |
 | `npm run build:release` | Both build steps without sourcemaps, as used by the deploy. |
@@ -73,7 +73,7 @@ dimensions/<id>/      one folder per kind of data; the only place a new dimensio
   web.ts              colour modes, filters, popup sections, About text
   test.ts             tests for this module
 lib/                  the framework: module types, build store, pipeline, generators
-scripts/              thin runners: fetch, generate, build-data, build-web, serve, diff-geojson
+scripts/              thin runners: fetch, generate, build-data, build-web, serve, diff-geojson, verify-data
 web/                  the browser shell: map, list, search, popup framework, toolkit, palettes
   generated/          git-ignored; written by `npm run generate`
 docs/adding-a-dimension.md   the guide for adding a dimension
@@ -81,7 +81,7 @@ docs/adding-a-dimension.md   the guide for adding a dimension
 
 Each dimension is self-contained. `npm run build:data` builds the modules in dependency order
 into a SQLite store (`build/schools.sqlite`, git-ignored), checks every row against the declared
-fields, then exports `dist/schools.geojson`. `npm run generate` writes the browser's record type
+fields, then exports `dist/data/` (see below). `npm run generate` writes the browser's record type
 and module list from the folders, so adding a dimension means adding a folder and editing no
 other file. See [docs/adding-a-dimension.md](docs/adding-a-dimension.md).
 
@@ -91,8 +91,20 @@ and `ofsted`.
 In scope: open, mainstream secondary schools in England with a KS4 entry (state-funded and
 independent). Special schools, alternative provision and closed schools are excluded.
 
-The browser loads the whole GeoJSON once, filters in memory, and gives MapLibre a slim
-copy that holds only a colour index per school. Popups look the full record up by URN.
+The data is split so a visit downloads only what it uses (`lib/columnar.ts` describes the format):
+
+| File | Holds | Loaded |
+| --- | --- | --- |
+| `dist/data/core.json` | every school's id, position and `core` fields as columns (about 110 KB gzipped) | at start |
+| `dist/data/modes/<field>.json` | one `mode` field for every school | first time a mode or filter reads it |
+| `dist/data/details/<n>.json` | every non-core field for ~65 schools (`urn % 64 == n`) | when a popup in that shard opens |
+
+Which fields a mode, filter or popup section reads is found at build time by running them over
+every school (`lib/trace-needs.ts`), so modules declare nothing beyond each field's `placement`.
+Files are requested with `?v=<buildId>` and each carries that id, so a deploy can't mix old and
+new files; a mismatch reloads the page once. The browser filters in memory and gives MapLibre a
+slim copy that holds only a colour index per school. The full dataset for reuse is not published
+from the site.
 
 ## How schools are compared
 
