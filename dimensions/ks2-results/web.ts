@@ -153,9 +153,9 @@ export const sourceNotes: SourceNoteDef[] = [
     dates: (meta) => [newest(meta) && `KS2 ${newest(meta)}`, meta.ks2ProgressYear ? `KS2 progress ${meta.ks2ProgressYear as string}` : null],
   },
   {
-    id: 'primary-no-compare',
+    id: 'primary-no-similar',
     order: 96,
     about: (_meta, h) =>
-      h.html`<strong>Shortlists and similar schools are secondary only.</strong> A primary school’s result comes from a year group of often 20 to 40 pupils, and the only intake-adjusted measure (KS2 progress) was published for 2022/23 alone, so there is no fair basis for ranking two primaries against each other. Use the percentile, the cohort size and the three-year average in each popup instead.`,
+      h.html`<strong>Similar schools are secondary only.</strong> The list of schools with a similar intake needs prior-attainment and pupil-mix measures that the primary data does not have yet. A primary shortlist can still be compared side by side, but KS2 results mostly reflect who joins a school, so read the comparison with the pupil context in each popup.`,
   },
 ];

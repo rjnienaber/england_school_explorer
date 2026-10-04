@@ -4,7 +4,7 @@ import type { FeatureCollection } from 'geojson';
 import type { SchoolFeature, SchoolRecord } from './types.ts';
 import { loadCore, StaleDataError, type SchoolData } from './data.ts';
 import { drawOrder, PALETTES, type Theme } from './palette.ts';
-import { DEFAULT_PHASE, isPhase, PHASES, type Phase } from '../lib/phase.ts';
+import { choosePhase, DEFAULT_PHASE, isPhase, PHASES, type Phase } from '../lib/phase.ts';
 import { registryFor } from './registry.ts';
 import { FILTER_GROUPS, h, type AppApi, type ChipFilter, type FilterDef, type FilterGroupId, type ModeDef } from './toolkit.ts';
 import { popupHtml } from './popup.ts';
@@ -27,19 +27,13 @@ const PHASE_KEY = 'schools-map-phase';
 // Each phase is its own dataset, with its own modes, filters and popups. Switching reloads the page with
 // `?phase=...`, so everything below is set up for one phase only. The URL decides, then the saved choice.
 function readPhase(): Phase {
-  const fromUrl = new URLSearchParams(location.search).get('phase');
-  if (isPhase(fromUrl)) return fromUrl;
-  // Shortlists exist only in the default phase, so a shared ?compare= link opens there whatever phase was last used
-  // (the same goes for ?similar=)
-  const query = new URLSearchParams(location.search);
-  if (query.has('compare') || query.has('similar')) return DEFAULT_PHASE;
+  let saved: string | null = null;
   try {
-    const saved = localStorage.getItem(PHASE_KEY);
-    if (isPhase(saved)) return saved;
+    saved = localStorage.getItem(PHASE_KEY);
   } catch {
     // storage unavailable
   }
-  return DEFAULT_PHASE;
+  return choosePhase(new URLSearchParams(location.search), saved);
 }
 const PHASE = readPhase();
 const hasPhaseInUrl = isPhase(new URLSearchParams(location.search).get('phase'));
@@ -909,6 +903,7 @@ function startExtensions(): void {
     focusValue: (filterId) => (activeFilters[filterId] as string | undefined) ?? '',
     isNarrow,
     collapsePanel: () => setPanelCollapsed(true),
+    phase: PHASE,
   };
   for (const extension of EXTENSIONS) {
     // One extension failing must not stop the map

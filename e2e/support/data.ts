@@ -135,6 +135,37 @@ export function aPrimary(): CoreSchool {
 }
 
 /**
+ * Three state-funded primary schools with KS2 results and a Year 6 group size, far apart from the rest, and spread over the
+ * range of results (lowest, middle and highest expected-standard percentage). The same build always gives the same three.
+ */
+export function comparablePrimary(): CoreSchool[] {
+  const { schools } = loadBuiltCore('primary');
+  const [expected, cohort] = [modeColumn('primary', 'ks2RwmExpected'), modeColumn('primary', 'ks2Cohort')];
+  const result = new Map(schools.map((s, i) => [s.urn, { expected: expected[i] as number | null, cohort: cohort[i] as number | null }]));
+  const ok = isolated(schools).filter((s) => s.sector === 'state' && result.get(s.urn)!.expected !== null && result.get(s.urn)!.cohort !== null && /^[\w ,'’&.()-]+$/.test(s.name));
+  ok.sort((a, b) => result.get(a.urn)!.expected! - result.get(b.urn)!.expected! || a.urn - b.urn);
+  if (ok.length < 20) throw new Error(`Expected many comparable primary schools in the build, found ${ok.length}`);
+  return [ok[Math.floor(ok.length * 0.1)], ok[Math.floor(ok.length / 2)], ok[Math.floor(ok.length * 0.9)]];
+}
+
+/** A primary school with a KS2 result but no published Year 6 group size (a few of these exist), or null if a refresh removed them. */
+export function primaryWithoutCohort(): { school: CoreSchool; expected: number } | null {
+  const { schools } = loadBuiltCore('primary');
+  const [expected, cohort] = [modeColumn('primary', 'ks2RwmExpected'), modeColumn('primary', 'ks2Cohort')];
+  const i = schools.findIndex((s, k) => expected[k] !== null && cohort[k] === null && /^[\w ,'’&.()-]+$/.test(s.name));
+  return i < 0 ? null : { school: schools[i], expected: expected[i] as number };
+}
+
+/** A primary school with no KS2 results at all. */
+export function primaryWithoutResults(): CoreSchool {
+  const { schools } = loadBuiltCore('primary');
+  const expected = modeColumn('primary', 'ks2RwmExpected');
+  const found = schools.find((s, i) => expected[i] === null && /^[\w ,'’&.()-]+$/.test(s.name));
+  if (!found) throw new Error('Every primary school in the build has KS2 results');
+  return found;
+}
+
+/**
  * Three comparable schools, in this order, where the first is beaten on every measure the comparison counts by default
  * (at least as good everywhere and likely better somewhere) by one of the others. Found with the comparison's own rule
  * (`beatenBy`) over the built data, so the test knows which "beaten on every measure" line must appear without

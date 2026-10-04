@@ -357,6 +357,8 @@ export interface SourceNoteDef extends PhaseScoped {
 
 /** What the app hands an extension when it starts. */
 export interface AppApi {
+  /** The phase this page shows (secondary or primary). */
+  phase: Phase;
   /** The loaded data: every school's core fields, `ensureFields` for mode columns and `getDetails(urn)` for popup fields. */
   data: SchoolData;
   /** Adds a block to the left panel, under the focus chips. */

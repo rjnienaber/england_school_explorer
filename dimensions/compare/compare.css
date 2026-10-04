@@ -118,6 +118,15 @@
   padding: 4px 10px;
   background: var(--page);
 }
+.cmp-caveats {
+  border-left: 4px solid var(--cmp-worse);
+  padding: 4px 10px;
+  background: var(--page);
+}
+.cmp-caveats ul {
+  margin: 4px 0 2px;
+  padding-left: 20px;
+}
 .cmp-scroll {
   overflow-x: auto;
   border: 1px solid var(--hairline);

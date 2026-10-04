@@ -49,7 +49,7 @@ export function simulateShortlist(schools: SimSchool[], measures: SimMeasure[], 
   const normal = makeNormal(makeRng(seed));
   const strongest = new Array<number>(n).fill(0);
   const places = schools.map(() => new Array<number>(n).fill(0));
-  const usable = schools.map((s) => s.readings.some((r, i) => r !== null && measures[i].weight > 0));
+  const usable = schools.map((s) => s.readings.some((r, i) => r !== null && !r.unknownSe && measures[i].weight > 0));
   const scores = new Array<number>(n);
 
   for (let d = 0; d < draws; d++) {
@@ -63,7 +63,7 @@ export function simulateShortlist(schools: SimSchool[], measures: SimMeasure[], 
       for (let m = 0; m < measures.length; m++) {
         const r = schools[s].readings[m];
         const meas = measures[m];
-        if (!r || meas.weight <= 0) continue;
+        if (!r || r.unknownSe || meas.weight <= 0) continue;
         const noise = r.se === null ? 0 : normal() * r.se;
         const score = percentileScore(meas, r.value + noise);
         if (score === null) continue;

@@ -49,6 +49,11 @@ export const verdictOf = (p: number): Verdict => (p >= LIKELY ? 'better' : p <= 
 export interface Reading {
   value: number;
   se: number | null;
+  /**
+   * A percentage-type figure whose uncertainty cannot be worked out (no group size). It is shown as it is but
+   * takes no part in verdicts, probabilities or the suggested order. Not the same as `se: null` on a grade.
+   */
+  unknownSe?: boolean;
 }
 
 /**
@@ -62,7 +67,7 @@ export function compareReadings(
   b: Reading | null,
   higherIsBetter = true,
 ): { prob: number | null; verdict: Verdict; atLeastAsGood: boolean } | null {
-  if (!a || !b) return null;
+  if (!a || !b || a.unknownSe || b.unknownSe) return null;
   const sign = higherIsBetter ? 1 : -1;
   const diff = sign * (a.value - b.value);
   if (a.se === null || b.se === null) {

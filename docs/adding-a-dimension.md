@@ -484,6 +484,12 @@ tsconfig excludes `web.ts` and `web-*.ts`; the web one includes them). CSS impor
 `mode` placement even if no mode reads them; mark such a field `lazy: true` so the build does not note that
 nothing reads it. The extension loads the columns with `data.ensureFields`. See `dimensions/compare/`.
 
+An extension that covers both phases reads `app.phase` and takes everything that differs from one per-phase config
+object (the shortlist comparison's is `compare/phases.ts`), so `start` has no `if (primary)` branches. When the
+metadata it needs is built from modules that exist in one phase only, give that phase its own metadata-only module
+(`compare-primary`, `fields: {}`) and set `phases` on the extension's items in `web.ts`. A link such as `?compare=`
+that predates phases opens in secondary unless it says `&phase=` (`choosePhase` in `lib/phase.ts`).
+
 ## Reusable pieces for later modules
 
 Several features have already been built from the same few parts. Reuse them rather than adding new

@@ -7,16 +7,21 @@ import type { Metadata, School } from '../../web/toolkit.ts';
 /**
  * Which kind of claim a measure supports. Wording follows it:
  * - quality: adjusted for intake, so "better" can be said of the school (Progress 8, results vs intake);
+ * - progress: primary KS2 progress, adjusted for the pupils' results at age 7 but only published for 2022/23;
  * - results: raw results of the pupils at this school, which largely reflect who they are;
  * - pupils: absence and suspensions, which describe the pupils' experience, not intake-adjusted;
  * - inspection: Ofsted, an ordered grade with no probability.
  */
-export type MeasureGroup = 'quality' | 'results' | 'pupils' | 'inspection';
+export type MeasureGroup = 'quality' | 'progress' | 'results' | 'pupils' | 'inspection';
 
 export const GROUP_TITLES: Record<MeasureGroup, { title: string; note: string }> = {
   quality: {
     title: 'School effect (allowing for intake)',
     note: 'These try to separate the school from the pupils it admits, so they are the fairest basis for saying one school looks better than another.',
+  },
+  progress: {
+    title: 'Progress from age 7 (2022/23, the last year published)',
+    note: 'Compares pupils’ results at the end of Year 6 with pupils who had the same results at age 7, so it allows for who joined. It is the nearest thing to a school effect here, but it describes children who left primary school three years ago, and DfE has not published it since.',
   },
   results: {
     title: 'Results of pupils at this school (largely reflect intake)',
@@ -58,6 +63,8 @@ export interface MeasureDef {
   national?: { value: keyof School; se: keyof School | null };
   /** Percent measures are clamped to 0-100 when an interval is drawn. */
   isPercent?: boolean;
+  /** The key of the England average for this measure in the dataset's `compareAverages`, when it has one. */
+  averageKey?: string;
 }
 
 const num = (x: unknown): number | null => (typeof x === 'number' && Number.isFinite(x) ? x : null);
@@ -74,13 +81,26 @@ export const pupilSdOf = (meta?: Metadata): number => {
 /** An Attainment 8 average of `cohort` pupils: the chance spread of a mean. */
 export const seOfAtt8 = (cohort: number, meta?: Metadata) => pupilSdOf(meta) / Math.sqrt(cohort);
 
-/** A percentage of the year group, with its binomial standard error. */
-const percentReading = (value: unknown, n: unknown): Reading | null => {
+/**
+ * A percentage of the year group, with its binomial standard error. Without the group size there is no error, so the
+ * figure is dropped (`keepUnmeasured` false: secondary) or kept as a plain value that no verdict is drawn from (primary).
+ */
+const percentReading = (value: unknown, n: unknown, keepUnmeasured = false): Reading | null => {
   const v = num(value);
   const count = num(n);
   if (v === null) return null;
   const se = count === null ? null : seOfPercent(v, count);
-  return se === null ? null : { value: v, se };
+  if (se !== null) return { value: v, se };
+  return keepUnmeasured ? { value: v, se: null, unknownSe: true } : null;
+};
+
+/** A KS2 progress score with its published 95% interval; without the interval it is kept as a plain value. */
+const progressReading = (score: unknown, lower: unknown, upper: unknown): Reading | null => {
+  const v = num(score);
+  const lo = num(lower);
+  const hi = num(upper);
+  if (v === null) return null;
+  return lo === null || hi === null ? { value: v, se: null, unknownSe: true } : { value: v, se: seFromCi(lo, hi) };
 };
 
 export const OFSTED_RANK = { serious: 1, concern: 2, good: 3, top: 4 } as const;
@@ -89,6 +109,7 @@ export const OFSTED_LABELS: Record<number, string> = { 4: 'Outstanding', 3: 'Goo
 export const MEASURES: MeasureDef[] = [
   {
     id: 'p8',
+    averageKey: 'p8',
     label: 'Progress 8',
     group: 'quality',
     higherIsBetter: true,
@@ -126,6 +147,7 @@ export const MEASURES: MeasureDef[] = [
   },
   {
     id: 'att8',
+    averageKey: 'att8',
     label: 'Attainment 8',
     group: 'results',
     higherIsBetter: true,
@@ -144,6 +166,7 @@ export const MEASURES: MeasureDef[] = [
   },
   {
     id: 'engMaths5',
+    averageKey: 'engMaths5',
     label: 'English and maths grade 5+',
     group: 'results',
     higherIsBetter: true,
@@ -158,6 +181,7 @@ export const MEASURES: MeasureDef[] = [
   },
   {
     id: 'engMaths4',
+    averageKey: 'engMaths4',
     label: 'English and maths grade 4+',
     group: 'results',
     higherIsBetter: true,
@@ -172,6 +196,7 @@ export const MEASURES: MeasureDef[] = [
   },
   {
     id: 'absence',
+    averageKey: 'absence',
     label: 'Persistent absence',
     group: 'pupils',
     higherIsBetter: false,
@@ -187,6 +212,7 @@ export const MEASURES: MeasureDef[] = [
   },
   {
     id: 'suspended',
+    averageKey: 'suspended',
     label: 'Pupils suspended',
     group: 'pupils',
     higherIsBetter: false,
@@ -220,7 +246,69 @@ export const MEASURES: MeasureDef[] = [
   },
 ];
 
-export const measureById = (id: string): MeasureDef => MEASURES.find((m) => m.id === id)!;
+const KS2_STANDARD_ABOUT = 'Share of the Year 6 pupils who sat the key stage 2 tests';
+const percentWhole = (v: number) => `${Math.round(v)}%`;
+const signedOne = (v: number) => signed(v, 1);
+
+/** One KS2 progress measure (reading, writing or maths), with DfE's published 95% interval. */
+const progressMeasure = (id: string, label: string, subject: string, f: { score: keyof School; lower: keyof School; upper: keyof School }): MeasureDef => ({
+  id,
+  averageKey: id,
+  label,
+  group: 'progress',
+  higherIsBetter: true,
+  about: `How much pupils progressed in ${subject} from age 7 to 11 compared with pupils who had the same results at 7. DfE’s official measure, with its own 95% confidence interval. Published for 2022/23 only.`,
+  byDefault: false,
+  words: { better: 'better progress', worse: 'worse progress' },
+  chanceOnly: false,
+  format: signedOne,
+  reading: (p) => progressReading(p[f.score], p[f.lower], p[f.upper]),
+  year: (p) => str(p.ks2ProgressYear),
+});
+
+/** The measures of the primary comparison: raw KS2 results, the old KS2 progress, absence and Ofsted. */
+export const PRIMARY_MEASURES: MeasureDef[] = [
+  {
+    id: 'rwmExpected',
+    averageKey: 'rwmExpected',
+    label: 'Reading, writing and maths: expected standard',
+    group: 'results',
+    higherIsBetter: true,
+    about: `${KS2_STANDARD_ABOUT} who reached the expected standard in reading, writing and maths together.`,
+    byDefault: true,
+    words: { better: 'higher results', worse: 'lower results' },
+    chanceOnly: true,
+    isPercent: true,
+    format: percentWhole,
+    reading: (p) => percentReading(p.ks2RwmExpected, p.ks2Cohort, true),
+    year: (p) => str(p.ks2Year),
+  },
+  {
+    id: 'rwmHigher',
+    averageKey: 'rwmHigher',
+    label: 'Reading, writing and maths: higher standard',
+    group: 'results',
+    higherIsBetter: true,
+    about: `${KS2_STANDARD_ABOUT} who reached the higher standard in reading, writing and maths together.`,
+    byDefault: true,
+    words: { better: 'higher results', worse: 'lower results' },
+    chanceOnly: true,
+    isPercent: true,
+    format: percentWhole,
+    reading: (p) => percentReading(p.ks2RwmHigher, p.ks2Cohort, true),
+    year: (p) => str(p.ks2Year),
+  },
+  progressMeasure('readProgress', 'Reading progress', 'reading', { score: 'ks2ReadProgress', lower: 'ks2ReadProgressLower', upper: 'ks2ReadProgressUpper' }),
+  progressMeasure('writeProgress', 'Writing progress', 'writing', { score: 'ks2WriteProgress', lower: 'ks2WriteProgressLower', upper: 'ks2WriteProgressUpper' }),
+  progressMeasure('mathsProgress', 'Maths progress', 'maths', { score: 'ks2MathsProgress', lower: 'ks2MathsProgressLower', upper: 'ks2MathsProgressUpper' }),
+  // Absence and Ofsted are the same measures as in secondary
+  MEASURES.find((m) => m.id === 'absence')!,
+  MEASURES.find((m) => m.id === 'ofsted')!,
+];
+
+/** Every measure of either phase (the shared ones appear once). */
+const ALL_MEASURES = [...MEASURES, ...PRIMARY_MEASURES];
+export const measureById = (id: string): MeasureDef => ALL_MEASURES.find((m) => m.id === id)!;
 
 /** Display interval (95%) for a reading, or null for an ordinal grade. Percentages stay within 0-100. */
 export function intervalOf(m: MeasureDef, r: Reading): [number, number] | null {

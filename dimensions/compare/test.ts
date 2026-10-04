@@ -2,9 +2,10 @@ import assert from 'node:assert/strict';
 import { test } from 'node:test';
 import { buildFromFixtures } from '../../lib/test-fixtures.ts';
 import { h, type ChipFilter, type School } from '../../web/toolkit.ts';
-import { MEASURES, intervalOf, measureById } from './measures.ts';
+import { MEASURES, PRIMARY_MEASURES, intervalOf, measureById } from './measures.ts';
+import { COMPARE_PHASES, comparePhase } from './phases.ts';
 import { drawScores, describeBand, rankBand } from './national.ts';
-import { MAX_SHORTLIST, parseShortlist, shortlistValue, withSchool } from './shortlist.ts';
+import { MAX_SHORTLIST, parseShortlist, shortlistLink, shortlistStoreKey, shortlistValue, withSchool } from './shortlist.ts';
 import { placeRange, simulateShortlist, type SimMeasure } from './simulate.ts';
 import {
   beatenBy, compareReadings, dominates, gradePercentiles, makeNormal, makeRng, normalCdf, percentileIn, probHigher,
@@ -372,4 +373,121 @@ test('web: the popup button is for state schools only, and the extension is lazy
   assert.match(String(section.render(school({ urn: 9 }), h, () => [])), /data-compare-toggle="9"/);
   assert.match(String(section.render(school({ urn: 9, sector: 'independent' }), h, () => [])), /Independent schools/);
   assert.equal(extensions[0].id, 'compare');
+});
+
+// ---------- Primary schools ----------
+
+const ks2 = (o: Record<string, unknown>) => ({ ks2Cohort: 30, ks2RwmExpected: 70, ks2RwmHigher: 10, ks2ProgressYear: '2022/23', ...o }) as unknown as School;
+const primary = (id: string) => PRIMARY_MEASURES.find((m) => m.id === id)!;
+
+test('primary measures: percentages use the Year 6 group size for their standard error', () => {
+  const r = primary('rwmExpected').reading(ks2({ ks2Cohort: 30, ks2RwmExpected: 70 }))!;
+  assert.equal(r.value, 70);
+  near(r.se!, seOfPercent(70, 30)!, 1e-9);
+  assert.equal(r.unknownSe, undefined);
+  const [lo, hi] = intervalOf(primary('rwmExpected'), r)!;
+  assert.ok(lo < 70 && hi > 70 && hi <= 100 && lo >= 0);
+  assert.equal(primary('rwmExpected').format(70), '70%');
+  assert.equal(primary('rwmExpected').reading(ks2({ ks2RwmExpected: null })), null);
+});
+
+test('primary measures: without a year group size the value is kept, with no interval and no verdict', () => {
+  const m = primary('rwmExpected');
+  const kept = m.reading(ks2({ ks2Cohort: null }))!;
+  assert.deepEqual(kept, { value: 70, se: null, unknownSe: true });
+  assert.equal(intervalOf(m, kept), null);
+  const known = m.reading(ks2({ ks2RwmExpected: 40 }))!;
+  assert.equal(compareReadings(kept, known, true), null);
+  assert.equal(compareReadings(known, kept, true), null);
+  // It takes no part in anyone's row verdict
+  const rows = [kept, known, m.reading(ks2({ ks2RwmExpected: 90, ks2Cohort: 60 }))!];
+  assert.equal(rowVerdict(rows, 0, true)!.others, 0);
+  assert.equal(rowVerdict(rows, 1, true)!.others, 1);
+  assert.equal(verdictText(m, rowVerdict(rows, 0, true)), null);
+  // ... or in the suggested order or the beaten check
+  const profiles: Profile[] = rows.map((reading, id) => ({ id, readings: [reading] }));
+  assert.deepEqual(beatenBy(profiles, [true]), [null, 2, null]);
+  const result = simulateShortlist(profiles, [{ weight: 1, higherIsBetter: true, table }], 300, 3);
+  assert.equal(result.strongest[0], null);
+});
+
+test('primary measures: progress uses the published interval, and is the old 2022/23 figure', () => {
+  const m = primary('readProgress');
+  const r = m.reading(ks2({ ks2ReadProgress: 1.2, ks2ReadProgressLower: -0.8, ks2ReadProgressUpper: 3.2 }))!;
+  near(r.se!, seFromCi(-0.8, 3.2), 1e-12);
+  assert.deepEqual(intervalOf(m, r)!.map((v) => Math.round(v * 10) / 10), [-0.8, 3.2]);
+  assert.equal(m.year(ks2({})), '2022/23');
+  assert.equal(m.format(1.2), '+1.2');
+  assert.equal(m.byDefault, false, 'three-year-old progress is not counted unless asked');
+  // A score with no published interval is kept as a plain value
+  assert.deepEqual(m.reading(ks2({ ks2ReadProgress: 0.5, ks2ReadProgressLower: null, ks2ReadProgressUpper: null })), { value: 0.5, se: null, unknownSe: true });
+  assert.equal(m.reading(ks2({ ks2ReadProgress: null })), null);
+});
+
+test('primary measures: absence is binomial, Ofsted is an ordered grade, and ids are unique across phases', () => {
+  const absence = primary('absence').reading({ absencePersistentPct: 12, absencePupils: 200 } as unknown as School)!;
+  near(absence.se!, seOfPercent(12, 200)!, 1e-9);
+  const grade = primary('ofsted').reading({ ofstedSummary: 'good' } as unknown as School)!;
+  assert.deepEqual(grade, { value: 3, se: null });
+  assert.equal(primary('ofsted').ordinal, true);
+  assert.equal(measureById('rwmHigher').id, 'rwmHigher');
+  assert.equal(measureById('p8').id, 'p8');
+  const shared = PRIMARY_MEASURES.filter((m) => MEASURES.includes(m)).map((m) => m.id);
+  assert.deepEqual(shared, ['absence', 'ofsted']);
+  const own = PRIMARY_MEASURES.filter((m) => !MEASURES.includes(m)).map((m) => m.id);
+  assert.ok(own.every((id) => !MEASURES.some((m) => m.id === id)));
+});
+
+test('primary wording: raw results say "results", never "better school"', () => {
+  for (const id of ['rwmExpected', 'rwmHigher']) {
+    const m = primary(id);
+    assert.equal(m.chanceOnly, true);
+    assert.ok(!/better|worse|best/.test(`${m.words.better} ${m.words.worse}`), id);
+    const v = verdictText(m, { better: 2, worse: 0, same: 0, others: 2, best: true })!;
+    assert.equal(v.text, 'Likely higher results than all 2 others');
+  }
+  assert.equal(verdictText(primary('readProgress'), { better: 1, worse: 0, same: 0, others: 1, best: true })!.text, 'Likely better progress');
+  assert.match(pairSentence(primary('rwmExpected'), 'A', 'B', 0.93, 'better'), /only for chance variation/);
+});
+
+test('phase config: each phase lists real measures, its own groups, caveats and apply link', () => {
+  for (const cfg of Object.values(COMPARE_PHASES)) {
+    assert.ok(cfg.measures.length >= 5);
+    assert.ok(cfg.measures.every((m) => cfg.groups.includes(m.group)), `${cfg.phase}: every measure's group is shown`);
+    assert.ok(cfg.measures.some((m) => m.byDefault));
+    assert.equal(cfg.averageColumns.length, cfg.phase === 'secondary' ? 2 : 1);
+    assert.ok(cfg.apply.url.includes(`apply-for-${cfg.phase}-school-place`));
+    assert.match(cfg.trust, /Leckie and Goldstein, 2017/);
+  }
+  const p = comparePhase('primary');
+  assert.equal(p.nationalRank, false);
+  assert.equal(p.similarSchools, false);
+  assert.equal(p.caveats.length, 2);
+  assert.match(p.caveats[0], /mostly reflect who joins the school/);
+  assert.match(p.caveats[1], /Year 6 groups are small/);
+  assert.equal(comparePhase('secondary').nationalRank, true);
+  assert.equal(comparePhase().phase, 'secondary');
+});
+
+test('shortlist storage and links are per phase, and secondary keeps its original ones', () => {
+  assert.equal(shortlistStoreKey('secondary'), 'schools-shortlist');
+  assert.equal(shortlistStoreKey('primary'), 'schools-shortlist-primary');
+  assert.equal(comparePhase('secondary').storeKey, shortlistStoreKey('secondary'));
+  assert.equal(comparePhase('primary').storeKey, shortlistStoreKey('primary'));
+  const here = 'https://example.org/england_school_explorer/?phase=primary&compare=1&urn=5#x';
+  assert.equal(shortlistLink(here, 'secondary', [1, 2]), 'https://example.org/england_school_explorer/?compare=1,2');
+  assert.equal(shortlistLink(here, 'primary', [1, 2]), 'https://example.org/england_school_explorer/?compare=1,2&phase=primary');
+});
+
+test('the compare filter, popup button, extension and a source note per phase', () => {
+  for (const item of [...filters, ...popupSections, ...extensions]) assert.deepEqual(item.phases, ['secondary', 'primary'], item.id);
+});
+
+test('compare-primary metadata is consistent with the primary measures', async () => {
+  const { metadata } = await buildFromFixtures('compare-primary', 'primary');
+  const quantiles = metadata.compareQuantiles as Record<string, number[]>;
+  for (const m of PRIMARY_MEASURES.filter((x) => !x.ordinal)) assert.ok(quantiles[m.id] || m.id === 'absence', `percentile table for ${m.id}`);
+  const averages = (metadata.compareAverages as { state: Record<string, number | null> }).state;
+  for (const m of PRIMARY_MEASURES.filter((x) => x.averageKey)) assert.ok(m.averageKey! in averages, `average for ${m.id}`);
+  for (const row of comparePhase('primary').context) if (row.average) assert.ok(row.average.key in averages, row.average.key);
 });

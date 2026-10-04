@@ -5,39 +5,33 @@
 import './compare.css';
 import { escapeHtml as esc, type AppApi, type Metadata, type School } from '../../web/toolkit.ts';
 import { parseSimilar } from '../similar-schools/shared.ts';
-import { GROUP_TITLES, MEASURES, OFSTED_RANK, intervalOf, measureById, nationalFields, type MeasureDef, type MeasureGroup } from './measures.ts';
+import { GROUP_TITLES, OFSTED_RANK, intervalOf, measureById, nationalFields, type MeasureDef, type MeasureGroup } from './measures.ts';
 import { describeBand, drawScores, rankBand, NATIONAL_DRAWS, type PopMeasure } from './national.ts';
-import { MAX_SHORTLIST, parseShortlist, shortlistValue, withSchool, withoutSchool } from './shortlist.ts';
+import { comparePhase } from './phases.ts';
+import { MAX_SHORTLIST, parseShortlist, shortlistLink, shortlistValue, withSchool, withoutSchool } from './shortlist.ts';
 import { DRAWS, SEED, placeRange, simulateShortlist, type SimMeasure } from './simulate.ts';
 import { beatenBy, compareReadings, rowVerdict, type Profile, type Reading } from './stats.ts';
 import { pairSentence, verdictText } from './wording.ts';
 
-const STORE = 'schools-shortlist';
-const GOV_APPLY = 'https://www.gov.uk/apply-for-secondary-school-place';
 const GOV_COUNCIL = 'https://www.gov.uk/find-local-council';
 
-interface Averages {
-  p8: number | null;
-  att8: number | null;
-  engMaths5: number | null;
-  engMaths4: number | null;
-  absence: number | null;
-  suspended: number | null;
-  suspensionRate: number | null;
-  ofstedGoodPct: number | null;
-}
+/** The England averages in the dataset's `compareAverages`, by the key each measure names (`averageKey`). */
+type Averages = Record<string, number | null | undefined>;
 
 const place = (n: number) => `${n}${['th', 'st', 'nd', 'rd'][n % 100 > 10 && n % 100 < 14 ? 0 : n % 10 < 4 ? n % 10 : 0]}`;
 
 export function start(app: AppApi): void {
   const data = app.data;
   const meta = data.core.metadata as Metadata;
+  // Everything that differs between secondary and primary comes from this one object
+  const cfg = comparePhase(app.phase);
+  const MEASURES = cfg.measures;
   let list: number[] = [];
   let dialogOpen = false;
   /** Measures ticked in the priorities block and their weights (0-10). */
   const counted = new Set(MEASURES.filter((m) => m.byDefault).map((m) => m.id));
   const weights: Record<string, number> = Object.fromEntries(MEASURES.map((m) => [m.id, 5]));
-  let matrixId = 'p8';
+  let matrixId = MEASURES[0].id;
   let pairText = '';
   let pairKey = '';
   /** True while `list` is someone else's shortlist from a `?compare=` link: it is shown but never saved over the viewer's own. */
@@ -47,7 +41,7 @@ export function start(app: AppApi): void {
   const save = () => {
     if (shared) return;
     try {
-      localStorage.setItem(STORE, shortlistValue(list));
+      localStorage.setItem(cfg.storeKey, shortlistValue(list));
     } catch {
       /* private window: the list lasts for this visit */
     }
@@ -56,7 +50,7 @@ export function start(app: AppApi): void {
   const fromLink = parseShortlist(new URLSearchParams(location.search).get('compare'));
   const saved = (): number[] => {
     try {
-      return known(parseShortlist(localStorage.getItem(STORE)));
+      return known(parseShortlist(localStorage.getItem(cfg.storeKey)));
     } catch {
       return [];
     }
@@ -83,12 +77,7 @@ export function start(app: AppApi): void {
   dialog.setAttribute('aria-labelledby', 'cmp-title');
   document.body.append(dialog);
 
-  const linkFor = () => {
-    const url = new URL(location.href);
-    url.search = '';
-    url.hash = '';
-    return `${url.toString()}?compare=${shortlistValue(list)}`;
-  };
+  const linkFor = () => shortlistLink(location.href, app.phase, list);
 
   function renderPanel(): void {
     panel.hidden = list.length === 0 && !shared;
@@ -182,16 +171,15 @@ export function start(app: AppApi): void {
 
   // ---------- Readings ----------
   const readingsOf = (m: MeasureDef): (Reading | null)[] => list.map((u) => m.reading(school(u), meta));
-  const averages = (meta.compareAverages ?? null) as { state: Averages; all: Averages } | null;
-  const avgKey: Record<string, keyof Averages> = { p8: 'p8', att8: 'att8', engMaths5: 'engMaths5', engMaths4: 'engMaths4', absence: 'absence', suspended: 'suspended' };
+  const averages = (meta.compareAverages ?? null) as { state?: Averages; all?: Averages } | null;
   const avgText = (m: MeasureDef, set: 'state' | 'all'): string => {
-    if (!averages) return '–';
+    const sets = averages?.[set];
+    if (!sets) return '–';
     if (m.id === 'ofsted') {
-      const v = averages[set].ofstedGoodPct;
-      return v === null ? '–' : `${v}% Good or Outstanding`;
+      const v = sets.ofstedGoodPct;
+      return v === null || v === undefined ? '–' : `${v}% Good or Outstanding`;
     }
-    const key = avgKey[m.id];
-    const v = key ? averages[set][key] : null;
+    const v = m.averageKey ? sets[m.averageKey] : null;
     return v === null || v === undefined ? '–' : m.format(v);
   };
 
@@ -207,16 +195,28 @@ export function start(app: AppApi): void {
     return parts.length ? `<p class="cmp-notice">${parts.join(' ')}</p>` : '';
   };
 
+  /** Primary: schools with no KS2 results at all, and schools whose year group size is unknown (so no range and no verdict). */
+  const ks2Notice = (): string => {
+    const none = list.filter((u) => school(u).ks2RwmExpected === null).map((u) => esc(school(u).name));
+    const noGroup = list.filter((u) => school(u).ks2RwmExpected !== null && school(u).ks2Cohort === null).map((u) => esc(school(u).name));
+    const parts: string[] = [];
+    if (none.length) parts.push(`No KS2 results are published for ${none.join(', ')} (a new school, or too few pupils to publish). It is left out of the results rows.`);
+    if (noGroup.length) parts.push(`The size of the Year 6 group is not published for ${noGroup.join(', ')}, so its percentages are shown without a range and take no part in the verdicts.`);
+    return parts.length ? `<p class="cmp-notice">${parts.join(' ')}</p>` : '';
+  };
+  const notice = () => (app.phase === 'primary' ? ks2Notice() : p8Notice());
+
   function tableHtml(): string {
     const head = list
       .map((u) => `<th scope="col"><button type="button" class="link-button" data-cmp-open="${u}">${esc(school(u).name)}</button><span class="cmp-sub">${esc(school(u).la ?? '')}${school(u).selective ? ' · selective' : ''}</span><button type="button" class="cmp-x" data-cmp-remove="${u}" aria-label="Remove ${esc(school(u).name)}">✕ remove</button></th>`)
       .join('');
-    const cols = list.length + 3;
+    const avgCols = cfg.averageColumns;
+    const cols = list.length + 1 + avgCols.length;
     let body = '';
-    for (const group of Object.keys(GROUP_TITLES) as MeasureGroup[]) {
+    for (const group of cfg.groups) {
       const rows = MEASURES.filter((m) => m.group === group && readingsOf(m).some((r) => r));
       if (!rows.length) continue;
-      body += `<tr class="cmp-group"><th colspan="${cols}" scope="colgroup"><div class="cmp-group-text">${esc(GROUP_TITLES[group].title)}<span>${esc(GROUP_TITLES[group].note)}</span></div></th></tr>`;
+      body += `<tr class="cmp-group"><th colspan="${cols}" scope="colgroup"><div class="cmp-group-text">${esc(GROUP_TITLES[group].title)}<span>${esc(cfg.groupNotes[group] ?? GROUP_TITLES[group].note)}</span></div></th></tr>`;
       for (const m of rows) {
         const rs = readingsOf(m);
         const years = new Set(list.map((u) => m.year(school(u))).filter(Boolean));
@@ -227,25 +227,27 @@ export function start(app: AppApi): void {
             const v = list.length > 1 ? verdictText(m, rowVerdict(rs, i, m.higherIsBetter)) : null;
             const sym = v?.kind === 'best' || v?.kind === 'better' ? '▲ ' : v?.kind === 'worse' ? '▼ ' : v?.kind === 'mixed' ? '◆ ' : v ? '● ' : '';
             const yr = m.id === 'p8' ? m.year(school(list[i])) : null;
-            return `<td${v?.kind === 'best' ? ' class="cmp-best"' : ''}><strong>${esc(m.format(r.value))}</strong>${iv ? `<span class="cmp-sub">95% range ${esc(m.format(iv[0]))} to ${esc(m.format(iv[1]))}</span>` : ''}${yr ? `<span class="cmp-sub">${esc(yr)}</span>` : ''}${v ? `<span class="cmp-v ${v.kind}">${sym}${esc(v.text)}</span>` : ''}</td>`;
+            const noRange = r.unknownSe ? `<span class="cmp-sub">${m.group === 'progress' ? 'No published range' : 'Year group size not published: no range'}</span>` : '';
+            return `<td${v?.kind === 'best' ? ' class="cmp-best"' : ''}><strong>${esc(m.format(r.value))}</strong>${iv ? `<span class="cmp-sub">95% range ${esc(m.format(iv[0]))} to ${esc(m.format(iv[1]))}</span>` : ''}${noRange}${yr ? `<span class="cmp-sub">${esc(yr)}</span>` : ''}${v ? `<span class="cmp-v ${v.kind}">${sym}${esc(v.text)}</span>` : ''}</td>`;
           })
           .join('');
-        body += `<tr><th scope="row" class="cmp-label" title="${esc(m.about)}">${esc(m.label)}<span class="cmp-sub">${years.size ? esc([...years].join(', ')) : ''}</span></th>${cells}<td class="cmp-avg">${esc(avgText(m, 'state'))}</td><td class="cmp-avg">${esc(avgText(m, 'all'))}</td></tr>`;
+        body += `<tr><th scope="row" class="cmp-label" title="${esc(m.about)}">${esc(m.label)}<span class="cmp-sub">${years.size ? esc([...years].join(', ')) : ''}</span></th>${cells}${avgCols.map((c) => `<td class="cmp-avg">${esc(avgText(m, c.set))}</td>`).join('')}</tr>`;
       }
     }
     // Context rows with no verdict
-    const info: [string, (p: School) => string | null][] = [
-      ['Place among similar schools (Attainment 8)', (p) => (p.similarAtt8Rank !== null && p.similarAtt8Of !== null ? `${place(p.similarAtt8Rank)} of ${p.similarAtt8Of}` : null)],
-      ['Suspensions per 100 pupils', (p) => (p.suspensionRate !== null ? p.suspensionRate.toFixed(1) : null)],
-    ];
-    body += `<tr class="cmp-group"><th colspan="${cols}" scope="colgroup"><div class="cmp-group-text">For context (no verdict)</div></th></tr>`;
-    for (const [label, pick] of info) {
-      const vals = list.map((u) => pick(school(u)));
+    let context = '';
+    for (const row of cfg.context) {
+      const vals = list.map((u) => row.pick(school(u)));
       if (!vals.some(Boolean)) continue;
-      const avg = label.startsWith('Suspensions') && averages ? [averages.state.suspensionRate, averages.all.suspensionRate].map((v) => (v === null ? '–' : v.toFixed(1))) : ['', ''];
-      body += `<tr><th scope="row" class="cmp-label">${esc(label)}</th>${vals.map((v) => `<td${v ? '' : ' class="cmp-na"'}>${v ? esc(v) : 'No figure'}</td>`).join('')}<td class="cmp-avg">${avg[0]}</td><td class="cmp-avg">${avg[1]}</td></tr>`;
+      const avg = avgCols.map((c) => {
+        if (!row.average || !averages) return '';
+        const v = averages[c.set]?.[row.average.key];
+        return v === null || v === undefined ? '–' : v.toFixed(row.average.places);
+      });
+      context += `<tr><th scope="row" class="cmp-label">${esc(row.label)}</th>${vals.map((v) => `<td${v ? '' : ' class="cmp-na"'}>${v ? esc(v) : 'No figure'}</td>`).join('')}${avg.map((v) => `<td class="cmp-avg">${v}</td>`).join('')}</tr>`;
     }
-    return `<div class="cmp-scroll" tabindex="0" role="region" aria-label="Comparison table, scrolls sideways"><table class="cmp-table"><thead><tr><th scope="col" class="cmp-label">Measure</th>${head}<th scope="col" class="cmp-avg">England average, state-funded schools*</th><th scope="col" class="cmp-avg">England average, all schools*</th></tr></thead><tbody>${body}</tbody></table></div><p class="note">* Our own calculation: the average of the schools on this map, weighted by the pupils each figure is based on. DfE’s official England figures cover some schools this map leaves out, so they differ a little. “▲ Likely better” means at least a 90% chance that the school’s real figure is higher (or lower where lower is better), allowing for chance variation only.</p>`;
+    if (context) body += `<tr class="cmp-group"><th colspan="${cols}" scope="colgroup"><div class="cmp-group-text">For context (no verdict)</div></th></tr>${context}`;
+    return `<div class="cmp-scroll" tabindex="0" role="region" aria-label="Comparison table, scrolls sideways"><table class="cmp-table"><thead><tr><th scope="col" class="cmp-label">Measure</th>${head}${avgCols.map((c) => `<th scope="col" class="cmp-avg">${esc(c.heading)}</th>`).join('')}</tr></thead><tbody>${body}</tbody></table></div><p class="note">${esc(cfg.averagesNote)} “▲ Likely better” means at least a 90% chance that the school’s real figure is higher (or lower where lower is better), allowing for chance variation only.</p>`;
   }
 
   // ---------- Head to head ----------
@@ -353,7 +355,7 @@ export function start(app: AppApi): void {
     };
     set('#cmp-beaten', beatenHtml());
     set('#cmp-sim', simHtml());
-    set('#cmp-national', nationalIdle());
+    if (cfg.nationalRank) set('#cmp-national', nationalIdle());
   }
 
   // ---------- National rank band (on request) ----------
@@ -415,7 +417,7 @@ export function start(app: AppApi): void {
   // ---------- Equal preference ----------
   function admissionsHtml(): string {
     const las = [...new Set(list.map((u) => school(u).la).filter(Boolean))];
-    return `<p>Under the School Admissions Code, every school you list is considered equally: a school does not know where you ranked it. Councils offer the highest-ranked school on your list that can offer your child a place, so <strong>list the schools in your true order of preference</strong>. Listing a very popular school first does not reduce your chance at the others, and listing a school lower does not improve it. Admission rules, such as distance or sibling priority, decide who gets a place, not these figures.</p><p><a href="${GOV_APPLY}" target="_blank" rel="noopener">Apply for a secondary school place (GOV.UK)</a> · <a href="${GOV_COUNCIL}" target="_blank" rel="noopener">Find your council’s admissions page${las.length ? ` (${las.map(esc).join(', ')})` : ''}</a></p>`;
+    return `<p>Under the School Admissions Code, every school you list is considered equally: a school does not know where you ranked it. Councils offer the highest-ranked school on your list that can offer your child a place, so <strong>list the schools in your true order of preference</strong>. Listing a very popular school first does not reduce your chance at the others, and listing a school lower does not improve it. Admission rules, such as distance or sibling priority, decide who gets a place, not these figures.</p><p><a href="${cfg.apply.url}" target="_blank" rel="noopener">${esc(cfg.apply.label)}</a> · <a href="${GOV_COUNCIL}" target="_blank" rel="noopener">Find your council’s admissions page${las.length ? ` (${las.map(esc).join(', ')})` : ''}</a></p>`;
   }
 
   // ---------- The dialog ----------
@@ -431,14 +433,15 @@ export function start(app: AppApi): void {
     }
     dialog.innerHTML = `<div class="cmp-head"><h2 id="cmp-title">Comparing ${list.length} schools</h2><button type="button" class="cmp-btn quiet" data-cmp="close">Close</button></div><div class="cmp-body">
       <p class="note">A comparison of published figures, with the uncertainty in each. Standard errors allow for chance variation only and understate the real uncertainty, so treat a “likely better” as weaker than it sounds.</p>
-      ${p8Notice()}
+      ${cfg.caveats.length ? `<div class="cmp-caveats" role="note"><strong>Before you read the figures</strong><ul>${cfg.caveats.map((c) => `<li>${esc(c)}</li>`).join('')}</ul></div>` : ''}
+      ${notice()}
       <h3>The figures</h3>${tableHtml()}
       <h3>Head to head</h3>${matrixHtml()}
       <h3>Beaten on every measure?</h3><div id="cmp-beaten"></div>
-      <h3>What matters to you</h3>${weightsHtml()}<div id="cmp-sim"></div><div id="cmp-national"></div>
-      <h3>Like with like</h3>${likeHtml()}
+      <h3>What matters to you</h3>${weightsHtml()}<div id="cmp-sim"></div>${cfg.nationalRank ? '<div id="cmp-national"></div>' : ''}
+      ${cfg.similarSchools ? `<h3>Like with like</h3>${likeHtml()}` : ''}
       <h3>Applying: equal preference</h3>${admissionsHtml()}
-      <h3>How far to trust this</h3><p>Results largely reflect who a school admits. Progress 8 and “results vs intake” try to allow for that and are the only measures here that speak to the school itself. Even those are noisy: published research on school league tables (Goldstein and Spiegelhalter, 1996; Leckie and Goldstein, 2017) finds that a school’s past results predict a child’s own progress only loosely. Use this to ask better questions on a visit, not to pick a winner.</p>
+      <h3>How far to trust this</h3><p>${esc(cfg.trust)}</p>
       <div class="cmp-actions"><button type="button" class="cmp-btn" data-cmp="map">Show on map</button><button type="button" class="cmp-btn quiet" data-cmp="copy">Copy link</button></div></div>`;
     updatePriorities();
     const body = dialog.querySelector('.cmp-body');
