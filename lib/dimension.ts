@@ -37,6 +37,12 @@ export interface SourceDef {
    * `downloadFilteredCsv` in lib/filter-csv.ts keeps only the rows and columns wanted from a CSV that has no API.
    */
   fetchTo?: (file: string) => Promise<string>;
+  /**
+   * For a file that never changes (a published edition: a new edition is a new URL and a new module version): its URL.
+   * `fetch --force` keeps a copy that is already in data/ instead of downloading it again (naming the source on the
+   * command line still does), and records this URL. Use `fetchTo` or `resolve` as usual for the first download.
+   */
+  fixedUrl?: string;
   /** Text encoding of the file, as a WHATWG label. Default 'utf-8'. */
   encoding?: string;
   /** File name inside data/. Default `<id>.csv`. */

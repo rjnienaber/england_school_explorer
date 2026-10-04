@@ -31,7 +31,7 @@ Or run the steps separately:
 
 | Command | What it does |
 | --- | --- |
-| `npm run fetch` | Downloads the sources into `data/`, keeping only the rows and columns the modules read (about 34 MB kept; about 170 MB transferred with `--force`, most of it the GIAS and Ofsted files, which can't be filtered on the server). Skips files already there; `-- --force` re-downloads. Records URLs in `data/sources.json` and prints what each source cost; in GitHub Actions the same table goes to the run summary. |
+| `npm run fetch` | Downloads the sources into `data/`, keeping only the rows and columns the modules read (about 34 MB kept; about 200 MB transferred with `--force`, most of it the GIAS (65 MB), absence (58 MB) and Ofsted (17 MB) files, which can't be filtered on the server). Skips files already there; `-- --force` re-downloads, except a source with a `fixedUrl` (a published edition that never changes: the deprivation indices) unless it is named. Records URLs in `data/sources.json` and prints what each source cost; in GitHub Actions the same table goes to the run summary. |
 | `npm run generate` | Writes the generated browser types and registry, and this README's sources table, from `dimensions/`. The build and typecheck run it for you. |
 | `npm run build:data` | Builds the store from the sources and writes the site's data to `dist/data/` (about 120 KB gzipped to start, 2.7 MB in all, about 20 s), checks it against the store, and writes `dist/data/manifest.json` with every file's size. |
 | `npm run build:web` | Bundles `web/` with esbuild into `dist/app.js` and `dist/app.css`, and copies `index.html` and MapLibre's worker files. |
@@ -58,7 +58,7 @@ Live at **https://rjnienaber.github.io/england_school_explorer/** via GitHub Pag
 - on demand: Actions → Deploy → Run workflow (also publishes the release; a re-run in the
   same month replaces that month's files).
 
-The monthly and manual deploys download fresh data (`fetch --force`); a deploy on a push restores the `data/` cache (keyed by month and the hash of every `source.ts`) and downloads only what is missing, which is nothing when the cache exists. Pull requests run `.github/workflows/ci.yml`
+The monthly and manual deploys download fresh data (`fetch --force`); a deploy on a push restores the `data/` cache (keyed by month and the hash of every `source.ts`) and downloads only what is missing, which is nothing when the cache exists. The deprivation indices (`fixedUrl`) have a cache of their own that forced runs restore too, so they are not downloaded again either. Pull requests run `.github/workflows/ci.yml`
 (typecheck, tests, build, size budgets); it caches `data/` per month and per set of
 `source.ts` files, using the copy the last deploy saved, so a warm run downloads nothing.
 Raising a budget in `budgets.json` is a deliberate change: explain it in the pull request.

@@ -5,7 +5,7 @@
 // $GITHUB_STEP_SUMMARY set (GitHub Actions), the same table goes into the run summary.
 //
 // Usage: node scripts/fetch.ts [--force] [source-id ...]
-//   --force      download again even if the file is there
+//   --force      download again even if the file is there (except files that never change, `fixedUrl`, unless named)
 //   source-id    only these sources (see `ls dimensions/*/source.ts`)
 
 import { existsSync } from 'node:fs';
@@ -34,8 +34,11 @@ async function main(): Promise<void> {
 
   for (const source of wanted) {
     const file = dataPath(source.file ?? `${source.id}.csv`);
-    if (existsSync(file) && !force) {
-      console.log(`${source.id}: already downloaded (use --force to refresh)`);
+    // A file that never changes is kept even by --force (the monthly run), unless it is asked for by name
+    const keep = !force || (source.fixedUrl !== undefined && only.length === 0);
+    if (existsSync(file) && keep) {
+      console.log(`${source.id}: already downloaded (${force ? 'never changes' : 'use --force to refresh'})`);
+      if (source.fixedUrl) resolved[source.id] = source.fixedUrl; // a cache may hold the file but not sources.json
       report.push({ id: source.id, stored: (await stat(file)).size });
       continue;
     }
@@ -73,7 +76,12 @@ async function main(): Promise<void> {
     } catch {
       // first run
     }
-    await writeFile(SOURCES_FILE, JSON.stringify({ ...existing, ...resolved, fetchedAt: new Date().toISOString() }, null, 2) + '\n');
+    // fetchedAt is when something was downloaded: a run that only notes the URL of a kept file leaves it alone
+    const downloaded = report.some((r) => r.wire !== undefined);
+    const changed = Object.entries(resolved).some(([id, url]) => existing[id] !== url);
+    if (downloaded || changed) {
+      await writeFile(SOURCES_FILE, JSON.stringify({ ...existing, ...resolved, fetchedAt: downloaded ? new Date().toISOString() : (existing.fetchedAt ?? new Date().toISOString()) }, null, 2) + '\n');
+    }
   }
 
   await summarise(report);

@@ -25,6 +25,8 @@ export const sources: SourceDef[] = [
     usedFor: 'Area deprivation (income deprivation affecting children, IDACI) of the neighbourhood each school is in',
     notes:
       'About 10 MB, of which three columns are kept. Joined to schools through the LSOA (2021) code in the school register. England only.',
+    // The edition never changes, so a forced fetch reuses the copy it has (the deploy workflow caches it separately for that)
+    fixedUrl: FILE_7,
     fetchTo: async (file) => {
       await downloadFilteredCsv(FILE_7, file, { columns: COLUMNS });
       return FILE_7;

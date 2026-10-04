@@ -11,6 +11,12 @@
 # restore-keys on purpose, so an old copy of a source whose query changed is never reused.
 # The downloaded files are saved afterwards so that pull request runs (ci.yml) start warm.
 #
+# One exception to "forced runs download everything": a source with a `fixedUrl` in its source.ts is a published edition that
+# never changes (the deprivation indices, 10 MB), so `fetch --force` keeps a copy that is already in data/. It is cached on its own,
+# for all events, keyed by the hash of the module's source.ts (the file is only fetched again if its source changes). The other
+# sources have no validators to make a conditional request with (EES and GIAS send no ETag, and answer a range request with
+# the whole file), and nothing from a previous run is available on a forced run to compare with.
+#
 # On the monthly schedule and on manual runs (never on a push) the joined dataset is also
 # published as a GitHub Release, data-YYYY-MM, marked latest (see the `release` job).
 name: Deploy
@@ -47,6 +53,11 @@ jobs:
       - run: npm test
       - id: month
         run: echo "month=$(date -u +%Y-%m)" >> "$GITHUB_OUTPUT"
+      # Never-changing sources (see the header), restored even on forced runs. Add a path and a hash if another source gets a fixedUrl.
+      - uses: actions/cache@v6
+        with:
+          path: data/iod2025.csv
+          key: static-iod2025-${{ hashFiles('dimensions/deprivation/source.ts') }}
       - if: github.event_name == 'push'
         uses: actions/cache/restore@v6
         with:
