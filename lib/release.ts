@@ -1,5 +1,5 @@
 // Turns the build store into the files published as GitHub Release assets (see scripts/export-release.ts):
-// schools.csv, uk_schools.sqlite, fields.csv, sources.csv and NOTES.md.
+// schools.csv, england_schools.sqlite, fields.csv, sources.csv and NOTES.md.
 //
 // Everything is generic over the dimension modules: the CSV columns, the `wide` view and the data
 // dictionary come from each module's `fields` and `extraTables`, so a new module needs no change here.
@@ -15,7 +15,7 @@ import { extraTableName, getMeta, tableName } from './store.ts';
 export const LICENCE_STATEMENT = 'Contains public sector information licensed under the Open Government Licence v3.0.';
 export const LICENCE_URL = 'https://www.nationalarchives.gov.uk/doc/open-government-licence/version/3/';
 
-export const FILES = { csv: 'schools.csv', sqlite: 'uk_schools.sqlite', fields: 'fields.csv', sources: 'sources.csv', notes: 'NOTES.md' } as const;
+export const FILES = { csv: 'schools.csv', sqlite: 'england_schools.sqlite', fields: 'fields.csv', sources: 'sources.csv', notes: 'NOTES.md' } as const;
 
 // ---------- Personal data ----------
 
@@ -246,7 +246,7 @@ export function releaseNotes(n: NotesInput): string {
     '',
     ...n.sources.map((s) => `- ${s.title}, ${s.publisher} (${s.homepage})`),
     '',
-    'Contains no personal data: head teacher names and telephone numbers in GIAS are left out. Code and pipeline: https://github.com/rjnienaber/uk_schools_performance',
+    'Contains no personal data: head teacher names and telephone numbers in GIAS are left out. Code and pipeline: https://github.com/rjnienaber/england_school_explorer',
     '',
   ];
   return lines.join('\n');

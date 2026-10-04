@@ -1,8 +1,14 @@
-# Secondary School Map
+# England School Explorer
 
 An interactive map of England's secondary schools, coloured by GCSE results, Progress 8 or
 Ofsted outcome. It is built from open government data and published as a static site:
 plain HTML, JS and one GeoJSON file, with no server or API keys.
+
+It covers England only. Wales, Scotland and Northern Ireland publish school results on different
+measures (Wales: Capped 9 on My Local School; Scotland: SQA qualifications of school leavers on
+Parentzone; Northern Ireland: no official school-level tables), with no Progress 8 equivalent and
+no Ofsted, so they can't share this map's colour scales. The project was called
+`uk_schools_performance` until October 2026.
 
 Version 2 (2026) replaces the 2021 data-prep scripts (`to_sqlite.sh`, `src/optimize.ts`,
 and a Google Maps front end that was never committed) with a reproducible TypeScript
@@ -39,7 +45,7 @@ or DreamHost). Source maps (`*.map`) are optional.
 
 ## Deployment
 
-Live at **https://rjnienaber.github.io/uk_schools_performance/** via GitHub Pages.
+Live at **https://rjnienaber.github.io/england_school_explorer/** via GitHub Pages.
 `.github/workflows/deploy.yml` downloads fresh data, builds and publishes the site:
 
 - on every push to `master`;
@@ -122,10 +128,10 @@ Release each month, tagged `data-YYYY-MM`. These links always give the newest:
 
 | File | For |
 | --- | --- |
-| [`schools.csv`](https://github.com/rjnienaber/uk_schools_performance/releases/latest/download/schools.csv) | Spreadsheets. One row per school, the latest value of every field. UTF-8 with a BOM, so Excel shows accents correctly. |
-| [`uk_schools.sqlite`](https://github.com/rjnienaber/uk_schools_performance/releases/latest/download/uk_schools.sqlite) | SQL, Datasette, DuckDB, pandas. Same data, plus the long-format tables. |
-| [`fields.csv`](https://github.com/rjnienaber/uk_schools_performance/releases/latest/download/fields.csv) | The data dictionary: every column with its label, description, type, unit, year field, source, and the number of schools that have a value. |
-| [`sources.csv`](https://github.com/rjnienaber/uk_schools_performance/releases/latest/download/sources.csv) | Each source: publisher, download URL, when it was fetched, licence. |
+| [`schools.csv`](https://github.com/rjnienaber/england_school_explorer/releases/latest/download/schools.csv) | Spreadsheets. One row per school, the latest value of every field. UTF-8 with a BOM, so Excel shows accents correctly. |
+| [`england_schools.sqlite`](https://github.com/rjnienaber/england_school_explorer/releases/latest/download/england_schools.sqlite) | SQL, Datasette, DuckDB, pandas. Same data, plus the long-format tables. |
+| [`fields.csv`](https://github.com/rjnienaber/england_school_explorer/releases/latest/download/fields.csv) | The data dictionary: every column with its label, description, type, unit, year field, source, and the number of schools that have a value. |
+| [`sources.csv`](https://github.com/rjnienaber/england_school_explorer/releases/latest/download/sources.csv) | Each source: publisher, download URL, when it was fetched, licence. |
 
 The SQLite file holds:
 
@@ -137,7 +143,7 @@ The SQLite file holds:
 - `fields` and `sources`: the two dictionaries above, as tables.
 
 ```bash
-sqlite3 uk_schools.sqlite 'select name, att8, p8 from wide where la = "Camden" order by p8 desc limit 5'
+sqlite3 england_schools.sqlite 'select name, att8, p8 from wide where la = "Camden" order by p8 desc limit 5'
 duckdb -c "select count(*) from 'schools.csv'"
 ```
 

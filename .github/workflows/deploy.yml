@@ -52,14 +52,14 @@ jobs:
       - run: npm run build:release
       # Reports the sizes in the run summary. Not a gate here (pull requests are): a source
       # growing on its own should not stop the monthly refresh.
-      - run: curl -fsSL -o "$RUNNER_TEMP/previous-manifest.json" https://rjnienaber.github.io/uk_schools_performance/data/manifest.json || true
+      - run: curl -fsSL -o "$RUNNER_TEMP/previous-manifest.json" https://rjnienaber.github.io/england_school_explorer/data/manifest.json || true
       - run: npm run check-budgets -- --previous "$RUNNER_TEMP/previous-manifest.json"
         continue-on-error: true
       - uses: actions/upload-pages-artifact@v5
         with:
           path: dist
 
-      # The dataset files (schools.csv, uk_schools.sqlite, fields.csv, sources.csv, NOTES.md). They
+      # The dataset files (schools.csv, england_schools.sqlite, fields.csv, sources.csv, NOTES.md). They
       # are written on every run so a broken export shows up on pushes, but only kept for a release.
       # The last release's fields.csv is only for the "fields added or removed" note.
       - run: curl -fsSL -o "$RUNNER_TEMP/previous-fields.csv" https://github.com/${{ github.repository }}/releases/latest/download/fields.csv || true
@@ -103,7 +103,7 @@ jobs:
           path: release
       - name: Create or update the release
         run: |
-          assets=(release/schools.csv release/uk_schools.sqlite release/fields.csv release/sources.csv)
+          assets=(release/schools.csv release/england_schools.sqlite release/fields.csv release/sources.csv)
           if gh release view "$TAG" > /dev/null 2>&1; then
             gh release upload "$TAG" "${assets[@]}" --clobber
             gh release edit "$TAG" --title "Data $MONTH" --notes-file release/NOTES.md --latest

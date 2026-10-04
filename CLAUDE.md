@@ -1,4 +1,4 @@
-# Secondary School Map
+# England School Explorer
 
 Before adding or changing data (a new measure, source, colour mode, filter or popup section),
 read `docs/adding-a-dimension.md`. Each kind of data is a self-contained folder in

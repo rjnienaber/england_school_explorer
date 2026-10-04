@@ -235,7 +235,7 @@ field (summarise the table into a few fields).
 ### The published dataset
 
 Every month the deploy also publishes the store as GitHub Release files (`npm run export-release` writes
-them to `release/`): `schools.csv` (one row per school, every field), `uk_schools.sqlite`, `fields.csv`
+them to `release/`): `schools.csv` (one row per school, every field), `england_schools.sqlite`, `fields.csv`
 (the data dictionary) and `sources.csv`. You do nothing for this: it is generated from your declarations,
 so a new module and its `extraTables` are included automatically.
 

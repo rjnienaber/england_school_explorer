@@ -1,5 +1,5 @@
 // Writes the files published as GitHub Release assets to release/ from the build store
-// (build/schools.sqlite): schools.csv, uk_schools.sqlite, fields.csv, sources.csv and NOTES.md.
+// (build/schools.sqlite): schools.csv, england_schools.sqlite, fields.csv, sources.csv and NOTES.md.
 // Run `npm run build:data` first. See lib/release.ts for what each file holds.
 //
 // Usage: node scripts/export-release.ts [--out release] [--month YYYY-MM] [--previous-fields <fields.csv>]

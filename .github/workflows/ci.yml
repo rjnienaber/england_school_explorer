@@ -42,7 +42,7 @@ jobs:
       - run: npm run build:release
 
       # The live site's manifest is only for the "change" column; the check works without it
-      - run: curl -fsSL -o "$RUNNER_TEMP/previous-manifest.json" https://rjnienaber.github.io/uk_schools_performance/data/manifest.json || true
+      - run: curl -fsSL -o "$RUNNER_TEMP/previous-manifest.json" https://rjnienaber.github.io/england_school_explorer/data/manifest.json || true
       - run: npm run check-budgets -- --previous "$RUNNER_TEMP/previous-manifest.json"
 
       # Proves the dataset export still works (nothing is published from a pull request)
