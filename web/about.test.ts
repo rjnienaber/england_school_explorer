@@ -2,9 +2,10 @@ import assert from 'node:assert/strict';
 import { test } from 'node:test';
 import { CODE_LICENCE, codeLicenceLine, REPO_URL, repoUrl } from './about.ts';
 
-test('the page makes no code licence claim until one is set', () => {
-  assert.equal(CODE_LICENCE, null);
-  assert.equal(codeLicenceLine(), '');
+test('the code licence line follows the constant, and is empty when none is set', () => {
+  assert.equal(CODE_LICENCE, 'MIT');
+  assert.equal(codeLicenceLine(), 'The source code is released under the MIT licence.');
+  assert.equal(codeLicenceLine(null), '');
   assert.equal(codeLicenceLine('MIT'), 'The source code is released under the MIT licence.');
 });
 

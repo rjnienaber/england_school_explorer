@@ -4,11 +4,8 @@
 /** The one place the repository address is written. A rename or move is a one-line change here. */
 export const REPO_URL = 'https://github.com/rjnienaber/england_school_explorer';
 
-/**
- * The licence of the code, for the About page. `null` shows nothing: the owner hasn't chosen one yet (there is
- * no LICENSE file), so the page makes no claim. Set it (for example 'MIT') once a LICENSE file is added.
- */
-export const CODE_LICENCE: string | null = null;
+/** The licence of the code (see LICENSE), for the About page. `null` would show nothing. */
+export const CODE_LICENCE: string | null = 'MIT';
 
 /** The sentence about the code's licence, or an empty string when none is set. */
 export function codeLicenceLine(licence: string | null = CODE_LICENCE): string {

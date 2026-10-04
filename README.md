@@ -642,4 +642,6 @@ the only third-party requests are the OpenFreeMap tiles and, for a postcode sear
 
 ## Licence
 
-Code: MIT. Data: Open Government Licence v3.0 (DfE, Ofsted). Map data © OpenStreetMap contributors.
+- **Code:** [MIT](LICENSE).
+- **Data:** the school data (DfE, Get Information about Schools, Ofsted), including the release files, is Crown copyright under the [Open Government Licence v3.0](https://www.nationalarchives.gov.uk/doc/open-government-licence/version/3/). If you reuse it, include: "Contains public sector information licensed under the Open Government Licence v3.0."
+- **Map:** map data © OpenStreetMap contributors; tiles by OpenFreeMap.
