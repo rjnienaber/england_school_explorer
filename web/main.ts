@@ -469,7 +469,14 @@ function openSchool(urn: number, fly = false): void {
   }
   if (!data.hasDetails(urn)) {
     // Only redraw if this school's popup is still the one on screen
-    const update = (failed: boolean) => selectedUrn === urn && detailPopup.isOpen() && detailPopup.setHTML(render(failed));
+    // Setting the HTML replaces the scrolling element, so carry the scroll position over
+    const redraw = (markup: string) => {
+      const top = detailPopup.getElement()?.querySelector('.school-popup')?.scrollTop ?? 0;
+      detailPopup.setHTML(markup);
+      const next = detailPopup.getElement()?.querySelector('.school-popup');
+      if (next) next.scrollTop = top;
+    };
+    const update = (failed: boolean) => selectedUrn === urn && detailPopup.isOpen() && redraw(render(failed));
     data.getDetails(urn).then(
       () => update(false),
       (err: unknown) => {

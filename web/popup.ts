@@ -87,6 +87,36 @@ function makePieces(phase: Phase): PopupPiece[] {
   ];
 }
 
+// Which groups the user has opened or closed, kept for the visit. A redraw (lazy data arriving) or a
+// different school's popup starts from this rather than from each group's default.
+const STORE_KEY = 'popup-groups';
+const remembered = new Map<string, boolean>();
+try {
+  for (const [id, open] of Object.entries(JSON.parse(sessionStorage.getItem(STORE_KEY) ?? '{}') as Record<string, unknown>)) {
+    if (typeof open === 'boolean') remembered.set(id, open);
+  }
+} catch {
+  // no sessionStorage, or junk in it: memory only
+}
+
+// `toggle` doesn't bubble, so listen in the capture phase. Redraws also fire it, but with the state we just rendered.
+if (typeof document !== 'undefined') {
+  document.addEventListener(
+    'toggle',
+    (e) => {
+      const el = e.target;
+      if (!(el instanceof HTMLDetailsElement) || !el.dataset.group) return;
+      remembered.set(el.dataset.group, el.open);
+      try {
+        sessionStorage.setItem(STORE_KEY, JSON.stringify(Object.fromEntries(remembered)));
+      } catch {
+        // private window or blocked storage
+      }
+    },
+    true,
+  );
+}
+
 /**
  * One collapsible group. With a single section in it, that section's own title is the heading;
  * with several, the group's label is, and each section keeps its smaller title inside.
@@ -96,7 +126,8 @@ function groupHtml(id: PopupGroupId, members: { title: string; body: Html }[]): 
   const single = members.length === 1;
   const heading = single && members[0].title ? members[0].title : def.label;
   const inner = members.map((m) => (single || !m.title ? m.body.value : `<h4>${escapeHtml(m.title)}</h4>${m.body.value}`));
-  return `<details class="popup-group"${def.open ? ' open' : ''}><summary>${escapeHtml(heading)}</summary>${inner.join('')}</details>`;
+  const open = remembered.get(id) ?? def.open ?? false;
+  return `<details class="popup-group" data-group="${id}"${open ? ' open' : ''}><summary>${escapeHtml(heading)}</summary>${inner.join('')}</details>`;
 }
 
 export interface PopupState {
