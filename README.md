@@ -70,7 +70,7 @@ All are published under the [Open Government Licence v3.0](https://www.nationala
 <!-- sources:start (generated from dimensions/*/source.ts by `npm run generate`; do not edit) -->
 | Source | Used for | Notes |
 | --- | --- | --- |
-| [Get Information About Schools: daily extract of every establishment](https://get-information-schools.service.gov.uk/), Department for Education (OGL v3) | Location, type, pupils on roll, capacity, status, age range, gender, sixth form, admissions policy, religion, trust, website, SEN units and resourced provision | Updated daily. Windows-1252. Gives British National Grid easting/northing, which are converted to WGS84 with `proj4`. |
+| [Get Information About Schools: daily extract of every establishment](https://get-information-schools.service.gov.uk/), Department for Education (OGL v3) | Location, type, pupils on roll, capacity, status, age range, gender, sixth form, admissions policy, religion, trust, website, SEN units and resourced provision, urban or rural area | Updated daily. Windows-1252. Gives British National Grid easting/northing, which are converted to WGS84 with `proj4`. |
 | [DfE key stage 4 performance, institution-level data set](https://explore-education-statistics.service.gov.uk/find-statistics/key-stage-4-performance), Department for Education (OGL v3) | Attainment 8, Progress 8 with confidence intervals, English and maths grade 5+ and 4+, average English and maths grades, Progress 8 by subject area, value added in science, humanities and languages, EBacc entry, cohort size, % disadvantaged | Updated annually (provisional in autumn, revised in spring). Three years per file (currently 2022/23 to 2024/25). `z` and `c` mark missing or suppressed values. The older compare-school-performance download blocks scripted access. |
 | [Ofsted monthly management information: state-funded schools, latest inspections](https://www.gov.uk/government/statistical-data-sets/monthly-management-information-ofsteds-school-inspections-outcomes), Ofsted (OGL v3) | Inspection outcomes | Updated monthly. Windows-1252. The latest file is found through the GOV.UK content API. Doesn't cover independent schools (most are inspected by the ISI). |
 <!-- sources:end -->
@@ -205,6 +205,13 @@ need box is greyed out until the tick box is on. The popup lists the needs the s
 caters for and the number of places where the register gives one. The register is filled in by
 schools and may lag behind, not every school with provision lists its needs, and a unit does not
 mean a place is available. Check the local authority's "local offer" and ask the school.
+
+**Urban or rural** (filter and popup, from the school register). The "Area" box keeps only urban
+or only rural schools (about 3,570 urban and 580 rural of the 4,150). The register classifies each
+school's location into six categories (Urban, Larger rural and Smaller rural, each nearer to or
+further from a major town or city), based on the ONS 2011 rural-urban classification; we group
+them into urban and rural, and the popup shows the original category under the school's name.
+It describes the area, not the school, and the classification dates from the 2011 census.
 
 **Ofsted**. The latest inspection, summarised to four levels:
 
