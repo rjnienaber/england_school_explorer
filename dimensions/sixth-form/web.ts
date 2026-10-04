@@ -44,6 +44,7 @@ export const modes: ModeDef[] = [
 export const popupSections: PopupSectionDef[] = [
   {
     id: 'sixth-form',
+    group: 'results',
     order: 25,
     title: (p) => `Sixth form${p.ks5Year ? ` (${p.ks5Year})` : ''}`,
     render(p, h, _extra, meta) {

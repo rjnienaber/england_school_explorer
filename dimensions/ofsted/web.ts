@@ -38,7 +38,7 @@ const present = (areas: [string, string | null][]): RowEntry[] => areas.filter((
 export const popupSections: PopupSectionDef[] = [
   {
     id: 'ofsted',
-    order: 30,
+    order: 8, // above the collapsible results: the first thing most people look for
     title: 'Ofsted',
     render(p, h) {
       const reports = p.ofstedUrl ? h.html` · ${h.link(p.ofstedUrl, 'reports')}` : null;

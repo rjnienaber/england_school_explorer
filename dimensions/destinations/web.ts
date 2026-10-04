@@ -6,6 +6,7 @@ const year = (meta: Metadata) => (meta.destYear as string | null | undefined) ??
 export const popupSections: PopupSectionDef[] = [
   {
     id: 'destinations',
+    group: 'after',
     order: 38,
     title: (p) => `After GCSEs${p.destYear ? ` (${p.destYear} leavers)` : ''}`,
     render(p, h, _extra, meta) {

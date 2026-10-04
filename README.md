@@ -485,7 +485,8 @@ schools in the list are usually not meaningful.
 
 "Add to shortlist" in a school's popup builds a list of up to six state-funded schools (kept in your
 browser, and in a shareable `?compare=<urn>,<urn>,...` link) and opens a full-screen comparison
-(`dimensions/compare/`). It is computed in the browser.
+(`dimensions/compare/`). It is computed in the browser. Opening someone else's `?compare=` link shows their list
+in the panel without touching your saved one; "Save as my shortlist" keeps it, "Back to mine" returns.
 
 - **Table.** Raw values with a 95% range, the England average (state-funded schools, and all schools; our own
   pupil-weighted averages of the schools on this map, not DfE's official figures) and a verdict beside each value.

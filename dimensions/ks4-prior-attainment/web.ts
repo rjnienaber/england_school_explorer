@@ -5,6 +5,7 @@ import { fmt, signed, type PopupSectionDef } from '../../web/toolkit.ts';
 export const popupSections: PopupSectionDef[] = [
   {
     id: 'prior-attainment',
+    group: 'results',
     order: 25, // after the GCSE results table
     title: (p) => `Results by starting point (${p.priorYear ?? ''})`,
     render(p, h) {

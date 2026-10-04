@@ -67,6 +67,7 @@ export const filters: FilterDef[] = [
 export const popupSections: PopupSectionDef[] = [
   {
     id: 'similar',
+    group: 'similar',
     order: 60,
     title: 'Similar schools',
     render: (p: School, h) => {

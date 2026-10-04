@@ -3,6 +3,7 @@ import type { FilterDef, PopupSectionDef, PopupTagDef, SourceNoteDef } from '../
 export const filters: FilterDef[] = [
   {
     id: 'state',
+    group: 'type',
     order: 10,
     control: { kind: 'checkbox', label: 'State-funded' },
     default: true,
@@ -10,6 +11,7 @@ export const filters: FilterDef[] = [
   },
   {
     id: 'independent',
+    group: 'type',
     order: 20,
     control: { kind: 'checkbox', label: 'Independent' },
     default: false,
@@ -17,6 +19,7 @@ export const filters: FilterDef[] = [
   },
   {
     id: 'selective',
+    group: 'type',
     order: 30,
     control: { kind: 'checkbox', label: 'Selective (grammar)' },
     default: true,
@@ -24,6 +27,7 @@ export const filters: FilterDef[] = [
   },
   {
     id: 'sixthForm',
+    group: 'type',
     order: 40,
     control: { kind: 'checkbox', label: 'Sixth form only' },
     default: false,
@@ -31,6 +35,7 @@ export const filters: FilterDef[] = [
   },
   {
     id: 'gender',
+    group: 'type',
     order: 50,
     control: {
       kind: 'select',

@@ -3,6 +3,7 @@ import type { FilterDef, PopupSectionDef } from '../../web/toolkit.ts';
 export const filters: FilterDef[] = [
   {
     id: 'urbanRural',
+    group: 'area',
     order: 130,
     control: {
       kind: 'select',

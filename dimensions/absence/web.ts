@@ -30,6 +30,7 @@ export const modes: ModeDef[] = [
 export const popupSections: PopupSectionDef[] = [
   {
     id: 'absence',
+    group: 'conduct',
     order: 35,
     title: (p) => `Attendance${p.absenceYear ? ` (${p.absenceYear})` : ''}`,
     render(p, h, _extra, meta) {

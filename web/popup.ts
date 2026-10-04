@@ -6,7 +6,7 @@
 // piece's fields are still downloading it shows "Loading…" instead of wrong or missing data.
 
 import { POPUP_ROWS, POPUP_SECTIONS, POPUP_TAGS } from './registry.ts';
-import { escapeHtml, h, html, raw, type Html, type Metadata, type School } from './toolkit.ts';
+import { escapeHtml, h, html, POPUP_GROUPS, raw, type Html, type Metadata, type PopupGroupId, type School } from './toolkit.ts';
 
 export interface PopupPiece {
   /** 'kind', 'place', 'tags' or 'section:<id>'. The key of `needs.popup`. */
@@ -15,6 +15,10 @@ export interface PopupPiece {
   html(p: School, meta?: Metadata): Html | null;
   /** Sections get a "Loading…" line while unready; the small header lines just wait. */
   isSection: boolean;
+  /** Collapsible group a section belongs to (`group` of its PopupSectionDef). */
+  group?: PopupGroupId;
+  /** A section's title and body apart, for putting it inside a group. */
+  parts?(p: School, meta?: Metadata): { title: string; body: Html } | null;
 }
 
 function describeSchool(p: School): string {
@@ -38,21 +42,41 @@ export const PIECES: PopupPiece[] = [
   { id: 'kind', isSection: false, html: (p) => raw(`<p class="meta">${describeSchool(p)}</p>`) },
   { id: 'place', isSection: false, html: place },
   { id: 'tags', isSection: false, html: tags },
-  ...POPUP_SECTIONS.map((s) => ({
-    id: `section:${s.id}`,
-    isSection: true,
-    html(p: School, meta?: Metadata): Html | null {
+  ...POPUP_SECTIONS.map((s) => {
+    const parts = (p: School, meta?: Metadata): { title: string; body: Html } | null => {
       const extra = (slot?: string) =>
         POPUP_ROWS.filter((r) => r.section === s.id && r.slot === slot)
           .map((r) => r.row(p, h))
           .filter((r) => r !== null);
       const body = s.render(p, h, extra, meta);
       if (!body) return null;
-      const title = typeof s.title === 'function' ? s.title(p) : s.title;
-      return title ? html`<h4>${title}</h4>${body}` : body;
-    },
-  })),
+      return { title: (typeof s.title === 'function' ? s.title(p) : s.title) ?? '', body };
+    };
+    return {
+      id: `section:${s.id}`,
+      isSection: true,
+      group: s.group,
+      parts,
+      html(p: School, meta?: Metadata): Html | null {
+        const part = parts(p, meta);
+        if (!part) return null;
+        return part.title ? html`<h4>${part.title}</h4>${part.body}` : part.body;
+      },
+    };
+  }),
 ];
+
+/**
+ * One collapsible group. With a single section in it, that section's own title is the heading;
+ * with several, the group's label is, and each section keeps its smaller title inside.
+ */
+function groupHtml(id: PopupGroupId, members: { title: string; body: Html }[]): string {
+  const def: { label: string; open?: boolean } = POPUP_GROUPS[id];
+  const single = members.length === 1;
+  const heading = single && members[0].title ? members[0].title : def.label;
+  const inner = members.map((m) => (single || !m.title ? m.body.value : `<h4>${escapeHtml(m.title)}</h4>${m.body.value}`));
+  return `<details class="popup-group"${def.open ? ' open' : ''}><summary>${escapeHtml(heading)}</summary>${inner.join('')}</details>`;
+}
 
 export interface PopupState {
   /** Fields each piece reads (`needs.popup` from core.json). */
@@ -66,7 +90,8 @@ export interface PopupState {
 }
 
 export function popupHtml(p: School, state: PopupState): string {
-  const out: string[] = [];
+  const out: (string | { group: PopupGroupId })[] = [];
+  const groups = new Map<PopupGroupId, { title: string; body: Html }[]>();
   let waiting = false;
   for (const piece of PIECES) {
     if (!(state.needs[piece.id] ?? []).every(state.ready)) {
@@ -80,12 +105,24 @@ export function popupHtml(p: School, state: PopupState): string {
       }
       continue;
     }
+    if (piece.group && piece.parts) {
+      const part = piece.parts(p, state.metadata);
+      if (!part) continue;
+      // The group sits where its first section would
+      if (!groups.has(piece.group)) {
+        groups.set(piece.group, []);
+        out.push({ group: piece.group });
+      }
+      groups.get(piece.group)!.push(part);
+      continue;
+    }
     const body = piece.html(p, state.metadata);
     if (body) out.push(body.value);
   }
+  const rendered = out.map((o) => (typeof o === 'string' ? o : groupHtml(o.group, groups.get(o.group)!)));
   return `
     <div class="school-popup">
       <h3>${escapeHtml(p.name)}</h3>
-      ${out.join('\n      ')}
+      ${rendered.join('\n      ')}
     </div>`;
 }

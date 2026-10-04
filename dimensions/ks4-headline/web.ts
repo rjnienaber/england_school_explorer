@@ -36,6 +36,7 @@ export const modes: ModeDef[] = [
 export const popupSections: PopupSectionDef[] = [
   {
     id: 'progress8',
+    group: 'results',
     order: 10,
     title: (p) => `Progress 8 ${p.p8Year ?? ''}`,
     render(p, h) {
@@ -60,6 +61,7 @@ export const popupSections: PopupSectionDef[] = [
     // Other modules add rows with popupRows { section: 'gcse', slot: 'after-average' } (or no slot, for the end).
     // Slots: 'after-average', 'after-engmaths', 'after-ebacc'.
     id: 'gcse',
+    group: 'results',
     order: 20,
     title: (p) => (p.att8 === null ? 'GCSE results' : `GCSE results ${p.ks4Year ?? ''}`),
     render(p, h, extra) {

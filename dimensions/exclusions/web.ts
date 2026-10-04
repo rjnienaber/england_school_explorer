@@ -6,6 +6,7 @@ const year = (meta: Metadata) => (meta.exclusionsYear as string | null | undefin
 export const popupSections: PopupSectionDef[] = [
   {
     id: 'exclusions',
+    group: 'conduct',
     order: 36,
     title: (p) => `Behaviour${p.exclusionsYear ? ` (${p.exclusionsYear})` : ''}`,
     render(p, h, _extra, meta) {

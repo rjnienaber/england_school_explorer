@@ -3,6 +3,7 @@ import type { FilterDef, PopupTagDef } from '../../web/toolkit.ts';
 export const filters: FilterDef[] = [
   {
     id: 'boarding',
+    group: 'type',
     order: 140,
     control: { kind: 'checkbox', label: 'Boarding schools only' },
     default: false,

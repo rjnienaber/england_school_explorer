@@ -24,6 +24,7 @@ const OPTIONS: [string, string][] = [
 export const filters: FilterDef[] = [
   {
     id: 'offersSubject',
+    group: 'subjects',
     order: 105,
     control: { kind: 'select', label: 'Offers GCSE', options: [{ value: '', label: 'Any subject' }, ...OPTIONS.map(([value, label]) => ({ value, label }))] },
     default: '',
@@ -35,6 +36,7 @@ export const filters: FilterDef[] = [
 export const popupSections: PopupSectionDef[] = [
   {
     id: 'subjects',
+    group: 'subjects',
     order: 26,
     title: (p) => `Subjects${p.subjectsYear ? ` (${p.subjectsYear})` : ''}`,
     render(p, h, _extra, meta) {
@@ -44,9 +46,8 @@ export const popupSections: PopupSectionDef[] = [
       const typical = lookup(meta, 'subjectsTypicalPct');
       const offeredBy = lookup(meta, 'subjectsOfferedByPct');
       const percent = (n: number | undefined) => (n === undefined ? null : `${n}%`);
-      const chips = offered.map((s) => h.html`<span class="tag">${s.label}</span>`);
       const notEntered = SUBJECTS.filter((s) => !s.language && !entries.has(s.code)).map((s) => SUBJECT_BY_CODE.get(s.code)!.label.replace(/ \(.*\)/, ''));
-      return h.html`<div class="tags">${chips}</div>${h.table(
+      return h.html`${h.table(
         ['Share of year group entered', 'This school', 'Typical school offering it', 'Schools offering it'],
         offered.map((s) => [s.label, `${entries.get(s.code)}%`, percent(typical[s.code]), percent(offeredBy[s.code])]),
       )}${notEntered.length ? h.note(`Not entered: ${notEntered.join(', ').toLowerCase()}.`) : null}${h.note('Pupils entered for the GCSE, not necessarily passed; a pupil taking a subject early or again can push a share up (it stops at 100%). Only the main subjects are listed. Typical is the median state school that enters the subject at all. Further maths is the Level 3 free-standing maths qualification, as there is no GCSE in it. A suppressed count is left out.')}`;

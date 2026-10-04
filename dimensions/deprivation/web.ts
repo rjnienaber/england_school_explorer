@@ -4,6 +4,7 @@ import { FIFTH_LABELS, fifthOf } from './bands.ts';
 export const filters: FilterDef[] = [
   {
     id: 'deprivation',
+    group: 'area',
     order: 160,
     control: {
       kind: 'select',
@@ -19,6 +20,7 @@ export const filters: FilterDef[] = [
 export const popupSections: PopupSectionDef[] = [
   {
     id: 'deprivation',
+    group: 'pupils',
     order: 70,
     title: 'Area deprivation',
     render: (p, h) => {

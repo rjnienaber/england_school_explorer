@@ -9,6 +9,7 @@ const januaryOf = (academicYear: string) => `January 20${academicYear.slice(5)}`
 export const popupSections: PopupSectionDef[] = [
   {
     id: 'census',
+    group: 'pupils',
     order: 55,
     title: (p) => `Pupils${p.censusYear ? ` (${januaryOf(p.censusYear)} census)` : ''}`,
     render(p, h, _extra, meta) {

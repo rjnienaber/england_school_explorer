@@ -30,6 +30,7 @@ export const modes: ModeDef[] = [
 export const popupSections: PopupSectionDef[] = [
   {
     id: 'capacity',
+    group: 'pupils',
     order: 60,
     title: 'Pupils and capacity',
     render: (p, h) => {

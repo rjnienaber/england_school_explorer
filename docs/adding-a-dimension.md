@@ -356,7 +356,7 @@ constants between `build.ts` and `web.ts` through a third file (`bands.ts`, `gra
 
 Everything is sorted by `order`. Leave gaps (10, 20, 30) so others can slot in between.
 Existing orders: modes p8 10, intake 20, att8 30, ofsted 40; popup sections progress8 10,
-gcse 20, ofsted 30; filters 10-50. New modes should start at 100 and up unless the issue says
+gcse 20, ofsted 8; filters 10-50. New modes should start at 100 and up unless the issue says
 where they belong.
 
 ### `modes: ModeDef[]`
@@ -392,6 +392,10 @@ While the checkbox is off, the control is greyed out and the filter is ignored: 
 its columns are not loaded. Its saved value is kept. Give it a higher `order` than its checkbox, so it sits
 underneath.
 
+Give a checkbox or select a `group` (a key of `FILTER_GROUPS` in `web/toolkit.ts`) to list it in a collapsible
+section of "Show". A section starts open if it has `open: true` or one of its filters is in use. Without `group`
+the control sits at the top, always visible. Focus (chip) filters are never listed there.
+
 A third kind, `control: { kind: 'chip', label, chipText, summary? }`, is a **focus filter**: a set of schools chosen
 from elsewhere (a popup button made with `h.filterButton(id, value, label)`, or a link `?<id>=<value>`) rather than a
 control in the "Show" list. While set, the map shows only the matching schools and fits to them, and the panel
@@ -417,6 +421,11 @@ render: (p, h) => h.html`${h.rows([['Pupils', p.pupils], ['Size band', p.sizeBan
 `h.rows` (label and one value), `h.table` (a heading row and several value columns), `h.note`, `h.meta`, `h.link`, `h.ciChart`, `h.fmt`, `h.signed`, `h.ordinal`,
 `h.formatDate`, `h.html`, `h.raw`. Never build HTML by string concatenation: `Html` marks safe
 markup; plain strings are escaped. `h.raw` is for static markup you wrote yourself, never for data.
+
+Add `group: 'results'` (or another key of `POPUP_GROUPS` in `web/toolkit.ts`) to put a section inside a
+collapsible group of the popup. A group sits where its first section would, and only `open: true` groups start
+open. A group holding a single section uses that section's title as its heading. Leave `group` out for a
+short section that should always show (Ofsted, links). Add a new group to `POPUP_GROUPS` only if none fits.
 
 ### `popupRows: PopupRowDef[]`
 

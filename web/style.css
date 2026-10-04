@@ -146,6 +146,7 @@ a {
 }
 
 .panel-body {
+  overflow-x: hidden;
   overflow-y: auto;
   padding: 12px 16px 16px;
   display: flex;
@@ -186,8 +187,61 @@ section > p {
     transform: rotate(-135deg);
   }
 
-  #panel.collapsed .panel-body {
+  /* Folded: the title bar, plus any focus chip (trust, shortlist...) so the person can see and clear it */
+  #panel.collapsed .panel-body > :not(#focus) {
     display: none;
+  }
+
+  #panel.collapsed .panel-body {
+    padding-top: 8px;
+    padding-bottom: 10px;
+  }
+
+  #panel.collapsed .panel-header {
+    border-bottom: 0;
+    padding-bottom: 12px;
+  }
+
+  #panel.collapsed .focus-block > :not(.chip) {
+    display: none;
+  }
+
+  #panel.collapsed .focus-block {
+    border: 0;
+    padding: 0;
+    background: none;
+  }
+
+  /* A school popup is a bottom sheet over the panel, so neither hides the other */
+  body.popup-open #panel {
+    display: none;
+  }
+
+  .maplibregl-popup:not(.hover-tip) {
+    position: fixed !important;
+    inset: auto 0 0 0 !important;
+    transform: none !important;
+    max-width: none !important;
+    z-index: 3;
+  }
+
+  .maplibregl-popup:not(.hover-tip) .maplibregl-popup-tip {
+    display: none;
+  }
+
+  .maplibregl-popup:not(.hover-tip) .maplibregl-popup-content {
+    border-radius: var(--radius) var(--radius) 0 0;
+    padding: 14px 16px 18px;
+    font-size: 0.9rem;
+  }
+
+  .maplibregl-popup-close-button {
+    font-size: 24px;
+    padding: 4px 12px;
+  }
+
+  .school-popup {
+    max-height: calc(50vh - 20px);
   }
 
   .maplibregl-ctrl-bottom-right,
@@ -312,29 +366,61 @@ input[type='search'] {
 /* ---------- Filters ---------- */
 
 .filters {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 6px 12px;
   font-size: 0.9rem;
 }
 
-.filters label {
+.filter-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: 6px 12px;
+}
+
+.filter-group {
+  border-top: 1px solid var(--hairline);
+  margin-top: 6px;
+  padding-top: 6px;
+}
+
+.filter-group > summary,
+.popup-group > summary {
+  cursor: pointer;
+  font-weight: 600;
+  color: var(--ink);
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.filter-group[open] > summary {
+  margin-bottom: 6px;
+}
+
+.filter-count {
+  font-weight: 600;
+  font-size: 0.8rem;
+  color: var(--accent);
+}
+
+.filter-grid label {
   display: flex;
   align-items: center;
   gap: 6px;
 }
 
-.filters label.dependent {
-  grid-column: 1 / -1; /* a select under its checkbox: a full row, so long option names fit */
-  padding-left: 22px;
+.filter-grid label.select-label {
+  grid-column: 1 / -1; /* a select gets a full row, so long option names fit */
 }
 
-.filters label.dependent select {
+.filter-grid label.dependent {
+  padding-left: 22px; /* a select under its checkbox */
+}
+
+.filter-grid label.select-label select {
   flex: 1;
   min-width: 0;
 }
 
-.filters label.disabled {
+.filter-grid label.disabled {
   opacity: 0.5;
 }
 
@@ -441,8 +527,30 @@ input[type='search'] {
 }
 
 .school-popup {
-  max-height: min(60vh, 520px);
+  /* With the popup's padding and tip this is at most half the screen, so it fits above or below its dot */
+  max-height: max(180px, calc(50vh - 70px));
   overflow-y: auto;
+}
+
+.popup-group {
+  border-top: 1px solid var(--hairline);
+  margin-top: 10px;
+  padding-top: 6px;
+}
+
+.popup-group > summary {
+  font-size: 0.8rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--ink-2);
+}
+
+.popup-group[open] > summary {
+  margin-bottom: 4px;
+}
+
+.popup-group > h4:first-of-type {
+  margin-top: 4px;
 }
 
 .school-popup h3 {

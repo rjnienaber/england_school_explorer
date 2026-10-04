@@ -1,11 +1,11 @@
 import * as maplibregl from 'maplibre-gl';
-import type { ExpressionSpecification, GeoJSONSource, MapLayerMouseEvent } from 'maplibre-gl';
+import type { ExpressionSpecification, GeoJSONSource, LayerSpecification, MapLayerMouseEvent, StyleSpecification } from 'maplibre-gl';
 import type { FeatureCollection } from 'geojson';
 import type { SchoolFeature, SchoolRecord } from './types.ts';
 import { loadCore, StaleDataError, type SchoolData } from './data.ts';
 import { drawOrder, PALETTES, type Theme } from './palette.ts';
 import { EXTENSIONS, FILTERS, MODES, SOURCE_NOTES, modeById } from './registry.ts';
-import { h, type AppApi, type ChipFilter, type FilterDef, type ModeDef } from './toolkit.ts';
+import { FILTER_GROUPS, h, type AppApi, type ChipFilter, type FilterDef, type FilterGroupId, type ModeDef } from './toolkit.ts';
 import { popupHtml } from './popup.ts';
 import './style.css';
 
@@ -90,8 +90,20 @@ let shown: SchoolFeature[] = [];
 let selectedUrn: number | null = null;
 
 const isNarrow = () => window.matchMedia('(max-width: 720px)').matches;
+/** True while the school popup is showing as a bottom sheet on a phone. */
+let sheetOpen = false;
 const mapPadding = () =>
-  isNarrow() ? { top: 20, bottom: 80, left: 20, right: 20 } : { top: 40, bottom: 40, left: 400, right: 40 };
+  isNarrow()
+    ? { top: 20, bottom: sheetOpen ? Math.round(window.innerHeight * 0.5) + 10 : 80, left: 20, right: 20 }
+    : { top: 40, bottom: 40, left: 400, right: 40 };
+
+function setSheetOpen(open: boolean): void {
+  if (sheetOpen === open) return;
+  sheetOpen = open;
+  document.body.classList.toggle('popup-open', open);
+  // Give the map back its room when the sheet goes away
+  if (!open && map) map.easeTo({ padding: mapPadding(), duration: 200 });
+}
 
 const map = new maplibregl.Map({
   container: 'map',
@@ -107,7 +119,10 @@ map.addControl(new maplibregl.ScaleControl({ unit: 'metric' }), 'bottom-right');
 
 const hoverTip = new maplibregl.Popup({ closeButton: false, closeOnClick: false, className: 'hover-tip', offset: 10 });
 const detailPopup = new maplibregl.Popup({ maxWidth: '340px', offset: 10, focusAfterOpen: false });
-detailPopup.on('close', () => setSelected(null));
+detailPopup.on('close', () => {
+  setSelected(null);
+  setSheetOpen(false);
+});
 let searchMarker: maplibregl.Marker | null = null;
 
 // ---------- Filtering and map data ----------
@@ -159,37 +174,59 @@ function strokeExpression(): ExpressionSpecification {
   return ['case', ['<', ['get', 'colour'], 0], empty, ring];
 }
 
+/** The map's two school layers (dots, and the ring round the open school), painted for the current theme. */
+function schoolLayers(): LayerSpecification[] {
+  return [
+    {
+      id: 'schools',
+      type: 'circle',
+      source: 'schools',
+      layout: { 'circle-sort-key': ['get', 'sortKey'] },
+      paint: {
+        'circle-radius': ['interpolate', ['linear'], ['zoom'], 5, 3, 9, 5.5, 13, 9],
+        'circle-color': colourExpression(),
+        'circle-stroke-width': ['interpolate', ['linear'], ['zoom'], 5, 0.6, 12, 1.5],
+        'circle-stroke-color': strokeExpression(),
+      },
+    },
+    {
+      id: 'schools-selected',
+      type: 'circle',
+      source: 'schools',
+      filter: ['==', ['get', 'urn'], selectedUrn ?? -1],
+      paint: {
+        'circle-radius': ['interpolate', ['linear'], ['zoom'], 5, 7, 9, 10, 13, 14],
+        'circle-color': 'rgba(0,0,0,0)',
+        'circle-stroke-width': 2.5,
+        'circle-stroke-color': theme === 'dark' ? '#ffffff' : '#0b0b0b',
+      },
+    },
+  ];
+}
+
+/**
+ * Where our layers go in a basemap's layer list: above roads but beneath place names, so town labels stay
+ * readable. Styles order their layers differently, so look for the first place-label layer.
+ */
+const firstLabelId = (layers: LayerSpecification[]) =>
+  layers.find((l) => l.type === 'symbol' && 'source-layer' in l && l['source-layer'] === 'place')?.id;
+
 function addLayers(): void {
   map.addSource('schools', { type: 'geojson', data: mapData() });
-  // Draw schools above roads but beneath place names, so town labels stay readable.
-  // Styles order their layers differently, so look for the first place-label layer.
-  const firstLabel = map
-    .getStyle()
-    .layers.find((l) => l.type === 'symbol' && 'source-layer' in l && l['source-layer'] === 'place')?.id;
-  map.addLayer({
-    id: 'schools',
-    type: 'circle',
-    source: 'schools',
-    layout: { 'circle-sort-key': ['get', 'sortKey'] },
-    paint: {
-      'circle-radius': ['interpolate', ['linear'], ['zoom'], 5, 3, 9, 5.5, 13, 9],
-      'circle-color': colourExpression(),
-      'circle-stroke-width': ['interpolate', ['linear'], ['zoom'], 5, 0.6, 12, 1.5],
-      'circle-stroke-color': strokeExpression(),
-    },
-  }, firstLabel);
-  map.addLayer({
-    id: 'schools-selected',
-    type: 'circle',
-    source: 'schools',
-    filter: ['==', ['get', 'urn'], selectedUrn ?? -1],
-    paint: {
-      'circle-radius': ['interpolate', ['linear'], ['zoom'], 5, 7, 9, 10, 13, 14],
-      'circle-color': 'rgba(0,0,0,0)',
-      'circle-stroke-width': 2.5,
-      'circle-stroke-color': theme === 'dark' ? '#ffffff' : '#0b0b0b',
-    },
-  }, firstLabel);
+  const before = firstLabelId(map.getStyle().layers);
+  for (const layer of schoolLayers()) map.addLayer(layer, before);
+}
+
+/**
+ * Puts our dots into a new basemap style before it loads, so a theme switch swaps basemap and dots together
+ * rather than showing the new basemap bare until `style.load` re-adds the layers.
+ */
+function withSchools(_previous: StyleSpecification | undefined, next: StyleSpecification): StyleSpecification {
+  if (!data) return next;
+  const layers = [...next.layers];
+  const at = layers.findIndex((l) => l.id === firstLabelId(layers));
+  layers.splice(at < 0 ? layers.length : at, 0, ...schoolLayers());
+  return { ...next, sources: { ...next.sources, schools: { type: 'geojson', data: mapData() } }, layers };
 }
 
 function applyColours(): void {
@@ -276,7 +313,8 @@ async function setFocus(chip: ChipFilter, value: string): Promise<void> {
   await refresh();
   if (value && activeFilters[chip.id] === value) {
     fitToSchools(shown.filter((f) => chip.test(f.properties, value)));
-    if (isNarrow()) setPanelCollapsed(false);
+    // On a phone the map is what was asked for: the chip stays visible in the folded panel
+    if (isNarrow()) setPanelCollapsed(true);
   }
 }
 
@@ -349,7 +387,12 @@ function openSchool(urn: number, fly = false): void {
     popupHtml(feature.properties, { needs: data.core.needs.popup, ready: (f) => data.hasField(f, urn), failed, metadata: data.core.metadata });
   detailPopup.setLngLat([lng, lat]).setHTML(render()).addTo(map);
   setSelected(urn);
-  if (isNarrow()) setPanelCollapsed(true);
+  if (isNarrow()) {
+    // The popup is a bottom sheet on a phone: fold the panel away and keep the dot above the sheet
+    setPanelCollapsed(true);
+    setSheetOpen(true);
+    if (!fly) map.easeTo({ center: [lng, lat], padding: mapPadding(), duration: 300 });
+  }
   if (!data.hasDetails(urn)) {
     // Only redraw if this school's popup is still the one on screen
     const update = (failed: boolean) => selectedUrn === urn && detailPopup.isOpen() && detailPopup.setHTML(render(failed));
@@ -486,11 +529,12 @@ function renderAbout(): void {
 
 // ---------- Filters UI ----------
 
-/** Builds the "Show" controls from the registered filters. */
+/** Builds the "Show" controls from the registered filters, with the grouped ones in collapsible sections. */
 function bindFilters(): void {
   const LISTED = FILTERS.filter((f): f is Exclude<FilterDef, ChipFilter> => !isChip(f));
   const container = $('filters');
   const controls = new Map<string, HTMLInputElement | HTMLSelectElement>();
+  const counters = new Map<FilterGroupId, () => void>();
   /** Greys out filters whose checkbox is off. */
   const syncEnabled = () => {
     for (const f of LISTED) {
@@ -498,36 +542,72 @@ function bindFilters(): void {
       control.disabled = isSwitchedOff(f, filters);
       control.closest('label')?.classList.toggle('disabled', control.disabled);
     }
+    for (const update of counters.values()) update();
   };
-  container.replaceChildren(
-    ...LISTED.map((f) => {
-      const label = document.createElement('label');
-      if (f.control.kind === 'checkbox') {
-        const input = document.createElement('input');
-        input.type = 'checkbox';
-        input.checked = filters[f.id] as boolean;
-        input.addEventListener('change', () => {
-          filters[f.id] = input.checked;
-          syncEnabled();
-          void refresh();
-        });
-        controls.set(f.id, input);
-        label.append(input, ` ${f.control.label}`);
-      } else {
-        label.className = f.enabledBy ? 'select-label dependent' : 'select-label';
-        const select = document.createElement('select');
-        for (const o of f.control.options) select.append(new Option(o.label, o.value));
-        select.value = filters[f.id] as string;
-        select.addEventListener('change', () => {
-          filters[f.id] = select.value;
-          void refresh();
-        });
-        controls.set(f.id, select);
-        label.append(`${f.control.label} `, select);
-      }
-      return label;
-    }),
-  );
+  const build = (f: (typeof LISTED)[number]) => {
+    const label = document.createElement('label');
+    if (f.control.kind === 'checkbox') {
+      const input = document.createElement('input');
+      input.type = 'checkbox';
+      input.checked = filters[f.id] as boolean;
+      input.addEventListener('change', () => {
+        filters[f.id] = input.checked;
+        syncEnabled();
+        void refresh();
+      });
+      controls.set(f.id, input);
+      label.append(input, ` ${f.control.label}`);
+    } else {
+      label.className = f.enabledBy ? 'select-label dependent' : 'select-label';
+      const select = document.createElement('select');
+      for (const o of f.control.options) select.append(new Option(o.label, o.value));
+      select.value = filters[f.id] as string;
+      select.addEventListener('change', () => {
+        filters[f.id] = select.value;
+        syncEnabled();
+        void refresh();
+      });
+      controls.set(f.id, select);
+      label.append(`${f.control.label} `, select);
+    }
+    return label;
+  };
+
+  const loose = LISTED.filter((f) => !f.group);
+  const nodes: HTMLElement[] = [];
+  if (loose.length) {
+    const grid = document.createElement('div');
+    grid.className = 'filter-grid';
+    grid.append(...loose.map(build));
+    nodes.push(grid);
+  }
+  // Groups appear in the order of their first filter
+  const groupIds = [...new Set(LISTED.flatMap((f) => (f.group ? [f.group] : [])))];
+  for (const id of groupIds) {
+    const members = LISTED.filter((f) => f.group === id);
+    const def: { label: string; open?: boolean } = FILTER_GROUPS[id];
+    const details = document.createElement('details');
+    details.className = 'filter-group';
+    const summary = document.createElement('summary');
+    const title = document.createElement('span');
+    title.textContent = def.label;
+    const count = document.createElement('span');
+    count.className = 'filter-count';
+    summary.append(title, count);
+    const grid = document.createElement('div');
+    grid.className = 'filter-grid';
+    grid.append(...members.map(build));
+    details.append(summary, grid);
+    // Open by default for the main group, and whenever one of its filters is in use
+    const inUseCount = () => members.filter((f) => !isSwitchedOff(f, filters) && filters[f.id] !== f.default).length;
+    details.open = !!def.open || inUseCount() > 0;
+    counters.set(id, () => {
+      const n = inUseCount();
+      count.textContent = n ? `${n} on` : '';
+    });
+    nodes.push(details);
+  }
+  container.replaceChildren(...nodes);
   syncEnabled();
 }
 
@@ -687,13 +767,18 @@ function bindMapEvents(): void {
 
   map.on('moveend', renderLegendAndList);
 
+  // The basemap styles name a few icons their sprites lack; a blank one stops a console warning for each
+  map.on('styleimagemissing', (e) => {
+    if (!map.hasImage(e.id)) map.addImage(e.id, { width: 1, height: 1, data: new Uint8Array(4) });
+  });
+
   // Basemap follows the OS theme; setStyle drops our layers, so re-add them on load
   map.on('style.load', () => {
-    if (data) addLayers();
+    if (data && !map.getSource('schools')) addLayers();
   });
   darkQuery.addEventListener('change', (e) => {
     theme = e.matches ? 'dark' : 'light';
-    map.setStyle(STYLES[theme]);
+    map.setStyle(STYLES[theme], { transformStyle: withSchools });
     renderLegendAndList();
   });
 }
@@ -757,5 +842,5 @@ async function main(): Promise<void> {
 
 main().catch((err: unknown) => {
   console.error(err);
-  $('data-dates').textContent = err instanceof Error ? err.message : String(err);
+  $('view-status').textContent = err instanceof Error ? err.message : String(err);
 });

@@ -7,6 +7,7 @@ const pounds = (n: number) => `£${Math.round(n).toLocaleString('en-GB')}`;
 export const popupSections: PopupSectionDef[] = [
   {
     id: 'spending',
+    group: 'funding',
     order: 58,
     title: (p) => `Funding${p.spendYear ? ` (${p.spendYear})` : ''}`,
     render(p, h, _extra, meta) {

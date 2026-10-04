@@ -6,6 +6,7 @@ const TRIPLE_SCIENCE_MAJORITY = 50;
 export const filters: FilterDef[] = [
   {
     id: 'tripleScience',
+    group: 'subjects',
     order: 100,
     control: { kind: 'checkbox', label: 'Most pupils take triple science' },
     default: false,
@@ -17,6 +18,7 @@ export const filters: FilterDef[] = [
 export const popupSections: PopupSectionDef[] = [
   {
     id: 'curriculum',
+    group: 'subjects',
     order: 25,
     title: (p) => `Curriculum ${p.curriculumYear ?? ''}`,
     render(p, h) {

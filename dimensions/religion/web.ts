@@ -4,6 +4,7 @@ import { dioceseLabel, ethosAddsToCharacter } from './faith.ts';
 export const filters: FilterDef[] = [
   {
     id: 'faith',
+    group: 'type',
     order: 150,
     control: {
       kind: 'select',

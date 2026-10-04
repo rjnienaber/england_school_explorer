@@ -6,6 +6,7 @@ const LOCAL_OFFER = 'The register may be out of date and does not say how many p
 export const filters: FilterDef[] = [
   {
     id: 'senProvision',
+    group: 'send',
     order: 120,
     control: { kind: 'checkbox', label: 'Has an SEN unit or resourced provision' },
     default: false,
@@ -13,6 +14,7 @@ export const filters: FilterDef[] = [
   },
   {
     id: 'senNeed',
+    group: 'send',
     order: 121,
     // Greyed out, and ignored, until the checkbox above is ticked
     enabledBy: 'senProvision',
@@ -40,6 +42,7 @@ export const popupTags: PopupTagDef[] = [
 export const popupSections: PopupSectionDef[] = [
   {
     id: 'sen',
+    group: 'pupils',
     order: 65,
     title: 'Special educational needs provision',
     render: (p, h) => {

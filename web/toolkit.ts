@@ -52,6 +52,15 @@ export const quintile = (pct: number | null) => (pct === null ? null : 4 - Math.
 
 // ---------- Filters ----------
 
+/** Collapsible sections of the "Show" list. A section opens by itself when one of its filters is in use. */
+export const FILTER_GROUPS = {
+  type: { label: 'Type of school', open: true },
+  subjects: { label: 'Subjects offered' },
+  area: { label: 'Area' },
+  send: { label: 'Special educational needs' },
+} satisfies Record<string, { label: string; open?: boolean }>;
+export type FilterGroupId = keyof typeof FILTER_GROUPS;
+
 interface FilterBase {
   /** Unique across modules. Also the key the value is saved under in localStorage. */
   id: string;
@@ -65,6 +74,8 @@ interface FilterBase {
    * so it appears underneath.
    */
   enabledBy?: string;
+  /** Collapsible section of the "Show" list this control goes in (a key of `FILTER_GROUPS`). Omit for the ungrouped top. */
+  group?: FilterGroupId;
 }
 
 export interface CheckboxFilter extends FilterBase {
@@ -258,9 +269,26 @@ export function median(values: (number | null | undefined)[]): number | null {
 export const h = { html, raw, rows, table, note, meta, link, ciChart, filterButton, escapeHtml, fmt, signed, ordinal, formatDate };
 export type Helpers = typeof h;
 
+/**
+ * Collapsible groups of popup sections, in the order their first section appears. A group holding one section
+ * uses that section's own title as its heading; with several, the label below is the heading.
+ */
+export const POPUP_GROUPS = {
+  results: { label: 'Results', open: true },
+  subjects: { label: 'Curriculum and subjects' },
+  conduct: { label: 'Attendance and behaviour' },
+  after: { label: 'After GCSEs' },
+  pupils: { label: 'Pupils and staff' },
+  funding: { label: 'Funding' },
+  similar: { label: 'Similar schools' },
+} satisfies Record<string, { label: string; open?: boolean }>;
+export type PopupGroupId = keyof typeof POPUP_GROUPS;
+
 export interface PopupSectionDef {
   /** Unique across modules. */
   id: string;
+  /** Collapsible group this section goes in (a key of `POPUP_GROUPS`). Omit to leave it always visible. */
+  group?: PopupGroupId;
   /** Position in the popup, below the school's name and tags. */
   order: number;
   /** Heading above the section. Omit for none. */

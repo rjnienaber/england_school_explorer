@@ -6,6 +6,7 @@ const AXIS = 2; // chart axis runs from -2 to +2; scores beyond it are drawn at 
 export const popupSections: PopupSectionDef[] = [
   {
     id: 'subject-areas',
+    group: 'results',
     order: 11, // directly after the Progress 8 section
     title: (p) => `By subject area (${p.subjectAreasYear ?? ''})`,
     render(p, h) {

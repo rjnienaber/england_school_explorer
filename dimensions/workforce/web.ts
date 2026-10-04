@@ -6,6 +6,7 @@ const year = (meta: Metadata, key: string) => (meta[key] as string | null | unde
 export const popupSections: PopupSectionDef[] = [
   {
     id: 'workforce',
+    group: 'pupils',
     order: 56,
     title: (p) => `Staff${p.workforceYear ? ` (${p.workforceYear})` : ''}`,
     render(p, h, _extra, meta) {
