@@ -25,7 +25,13 @@ export interface SourceDef {
    * Returns the download URL, or several candidates to try in order (the first that
    * downloads wins; GIAS uses this for "today's extract may not exist yet").
    */
-  resolve: () => Promise<string | string[]>;
+  resolve?: () => Promise<string | string[]>;
+  /**
+   * For a source that is not one file at one URL (a filtered or paged API query, for example): writes the file
+   * itself and returns the page to record in data/sources.json (what the About text links to). Used instead of
+   * `resolve`. `downloadEesQuery` in lib/ees.ts is one; the census uses it to fetch 1 MB instead of a 2.8 GB file.
+   */
+  fetchTo?: (file: string) => Promise<string>;
   /** Text encoding of the file, as a WHATWG label. Default 'utf-8'. */
   encoding?: string;
   /** File name inside data/. Default `<id>.csv`. */

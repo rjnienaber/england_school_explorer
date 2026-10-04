@@ -33,6 +33,11 @@ async function main(): Promise<void> {
       continue;
     }
     console.log(`${source.id}: downloading (${source.describe})`);
+    if (source.fetchTo) {
+      resolved[source.id] = await source.fetchTo(file);
+      continue;
+    }
+    if (!source.resolve) throw new Error(`${source.id}: needs resolve or fetchTo`);
     const resolvedUrls = await source.resolve();
     const candidates = Array.isArray(resolvedUrls) ? resolvedUrls : [resolvedUrls];
     let used: string | undefined;
