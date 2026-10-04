@@ -107,9 +107,19 @@ let searchMarker: maplibregl.Marker | null = null;
 
 // ---------- Filtering and map data ----------
 
+/** A filter whose `enabledBy` checkbox is off is switched off along with it. */
+function isSwitchedOff(f: FilterDef, values: FilterValues): boolean {
+  return f.enabledBy !== undefined && !values[f.enabledBy];
+}
+
+/** The filter values that count: those of switched-off filters are left out. */
+function inUse(values: FilterValues): FilterValues {
+  return Object.fromEntries(FILTERS.filter((f) => !isSwitchedOff(f, values)).map((f) => [f.id, values[f.id]]));
+}
+
 function passesFilters(p: SchoolRecord): boolean {
   // Each test is typed for its own control kind, which the shared FilterValues record can't express
-  return FILTERS.every((f) => (f.test as (p: SchoolRecord, value: boolean | string) => boolean)(p, activeFilters[f.id]));
+  return FILTERS.every((f) => isSwitchedOff(f, activeFilters) || (f.test as (p: SchoolRecord, value: boolean | string) => boolean)(p, activeFilters[f.id]));
 }
 
 /** Map features carry only what styling needs; popups look schools up by URN. */
@@ -194,7 +204,7 @@ let refreshes = 0;
  */
 async function refresh(): Promise<void> {
   const mine = ++refreshes;
-  const fields = data.viewFields(wanted.id, filters);
+  const fields = data.viewFields(wanted.id, inUse(filters));
   if (!data.hasFields(fields)) {
     setLoading(true);
     try {
@@ -376,6 +386,15 @@ function renderAbout(): void {
 /** Builds the "Show" controls from the registered filters. */
 function bindFilters(): void {
   const container = $('filters');
+  const controls = new Map<string, HTMLInputElement | HTMLSelectElement>();
+  /** Greys out filters whose checkbox is off. */
+  const syncEnabled = () => {
+    for (const f of FILTERS) {
+      const control = controls.get(f.id)!;
+      control.disabled = isSwitchedOff(f, filters);
+      control.closest('label')?.classList.toggle('disabled', control.disabled);
+    }
+  };
   container.replaceChildren(
     ...FILTERS.map((f) => {
       const label = document.createElement('label');
@@ -385,11 +404,13 @@ function bindFilters(): void {
         input.checked = filters[f.id] as boolean;
         input.addEventListener('change', () => {
           filters[f.id] = input.checked;
+          syncEnabled();
           void refresh();
         });
+        controls.set(f.id, input);
         label.append(input, ` ${f.control.label}`);
       } else {
-        label.className = 'select-label';
+        label.className = f.enabledBy ? 'select-label dependent' : 'select-label';
         const select = document.createElement('select');
         for (const o of f.control.options) select.append(new Option(o.label, o.value));
         select.value = filters[f.id] as string;
@@ -397,11 +418,13 @@ function bindFilters(): void {
           filters[f.id] = select.value;
           void refresh();
         });
+        controls.set(f.id, select);
         label.append(`${f.control.label} `, select);
       }
       return label;
     }),
   );
+  syncEnabled();
 }
 
 // ---------- Search: school names locally, postcodes via postcodes.io ----------
@@ -564,7 +587,7 @@ async function main(): Promise<void> {
   bindMapEvents();
   data = await loadCore();
   // A saved mode or filter needs its columns before the first draw
-  await data.ensureFields(data.viewFields(mode.id, filters));
+  await data.ensureFields(data.viewFields(mode.id, inUse(filters)));
   shown = data.features.filter((f) => passesFilters(f.properties));
 
   renderAbout();

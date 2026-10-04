@@ -320,6 +320,20 @@ input[type='search'] {
   gap: 6px;
 }
 
+.filters label.dependent {
+  grid-column: 1 / -1; /* a select under its checkbox: a full row, so long option names fit */
+  padding-left: 22px;
+}
+
+.filters label.dependent select {
+  flex: 1;
+  min-width: 0;
+}
+
+.filters label.disabled {
+  opacity: 0.5;
+}
+
 .select-label select {
   font: inherit;
   padding: 2px 4px;

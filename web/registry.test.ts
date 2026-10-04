@@ -31,3 +31,11 @@ test('every filter default is valid for its control', () => {
     else assert.ok(f.control.options.some((o) => o.value === f.default), f.id);
   }
 });
+
+test('enabledBy points at an earlier checkbox filter', () => {
+  for (const f of FILTERS.filter((x) => x.enabledBy)) {
+    const parent = FILTERS.find((x) => x.id === f.enabledBy);
+    assert.ok(parent && parent.control.kind === 'checkbox', `${f.id}: enabledBy must name a checkbox filter`);
+    assert.ok(parent.order < f.order, `${f.id}: should come after ${parent.id}`);
+  }
+});

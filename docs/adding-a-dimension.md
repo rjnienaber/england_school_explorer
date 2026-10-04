@@ -371,6 +371,12 @@ Controls in the "Show" panel. A filter is `{ id, order, control, default, test }
   default: '', test: (p, value) => !value || p.region === value }
 ```
 
+A filter can depend on a checkbox with `enabledBy: '<checkbox filter id>'`, for a select that only makes
+sense once the checkbox is ticked (`dimensions/sen-provision/web.ts`: "Has an SEN unit" and "Type of need").
+While the checkbox is off, the control is greyed out and the filter is ignored: its `test` is not called and
+its columns are not loaded. Its saved value is kept. Give it a higher `order` than its checkbox, so it sits
+underneath.
+
 Values are saved per filter id in localStorage and validated on load (unknown ids, wrong
 types and removed options are ignored), so adding or removing filters never breaks a saved visit.
 Keep the default as "show everything" unless the issue says otherwise.

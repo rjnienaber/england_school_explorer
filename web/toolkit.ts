@@ -56,6 +56,14 @@ interface FilterBase {
   id: string;
   /** Position in the "Show" list. */
   order: number;
+  /**
+   * Id of a checkbox filter this one depends on (for example a "Type of need" select under a
+   * "Has an SEN unit" checkbox). While that checkbox is off the control is greyed out and the
+   * filter is ignored (`test` is not called, and its columns are not loaded). The saved value is
+   * kept, so ticking the checkbox again brings it back. Give it a higher `order` than its parent
+   * so it appears underneath.
+   */
+  enabledBy?: string;
 }
 
 export interface CheckboxFilter extends FilterBase {
